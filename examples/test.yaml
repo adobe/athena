@@ -1,0 +1,13 @@
+name: ccecoTest
+specRef: ccecoSpec #can miss
+hooks:
+  checkSkip:
+  beforeMe:
+  afterMe:
+config:
+  timeout: 10 #think of other properties
+  repeat: 10 #repeat 10 times
+scenario:
+  given:
+  when:
+  then:

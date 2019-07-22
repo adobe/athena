@@ -1,0 +1,27 @@
+name: ccecoSpec
+title: CC-Eco spec
+isSpec: true
+hooks:
+  beforeEach:
+    - type: invoke
+      value: getServiceToken
+    - type: lib
+      value: ./path/to/lib
+    - type: inline
+      value: '''
+        function standard() {
+          -----
+        }
+      '''
+  beforeAll:
+  afterEach:
+  afterAll:
+  checkSkip: #function to run before every test and check if it should run or not
+config:
+  timeout: 10
+  #think of other stuff
+scenario:
+  given: #fields and properties that will be inherited by every test
+  when: #actions that will be executed by every test
+  then: #checks that will be inherited by every test
+
