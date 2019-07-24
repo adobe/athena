@@ -8,11 +8,10 @@ hooks:
     - type: lib
       value: ./path/to/lib
     - type: inline
-      value: '''
+      value: >
         function standard() {
-          -----
+          console.log("test")
         }
-      '''
   beforeAll:
   afterEach:
   afterAll:
@@ -21,7 +20,7 @@ config:
   timeout: 10
   #think of other stuff
 scenario:
-  given: #fields and properties that will be inherited by every test
-  when: #actions that will be executed by every test
-  then: #checks that will be inherited by every test
+  given: # fields and properties that will be inherited by every test
+  when: # actions that will be executed by every test
+  then: # checks that will be inherited by every test
 
