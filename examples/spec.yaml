@@ -13,15 +13,24 @@ hooks:
           -----
         }
       '''
-  beforeAll:
+  before:
+  after:
   afterEach:
-  afterAll:
   checkSkip: #function to run before every test and check if it should run or not
+  given: '''
+    this.host = "http://localhost:9191/get"
+  '''
 config:
   timeout: 10
   #think of other stuff
 scenario:
-  given: #fields and properties that will be inherited by every test
-  when: #actions that will be executed by every test
-  then: #checks that will be inherited by every test
+  given: '''
+    this.host = "override.host"
+  '''
+  when: '''
+    this.response = chakram.get(this.host)
+  '''
+  then: '''
+    expect(this.response).to.have.status(200)
+  '''
 
