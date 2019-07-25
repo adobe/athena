@@ -1,3 +1,7 @@
 name: isServiceToken
-type: lib #/inline
-value: ./path/to/lib #or inline function
+type: function
+config:
+  type: lib #/inline
+  value: ./path/to/lib #or inline function
+  exposes:
+    - serviceToken
