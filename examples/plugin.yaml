@@ -1,5 +1,5 @@
 name: isServiceToken
-type: function
+type: globalFunction #/chakramProperty/chakramMethod
 config:
   type: lib #/inline
   value: ./path/to/lib #or inline function
