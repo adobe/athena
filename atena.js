@@ -1,6 +1,8 @@
 
 var pathModule = require('path');
 var fs = require('fs');
+var util = require('util');
+var jsYaml = require('js-yaml');
 
 const originalReadFileSync = fs.readFileSync;
 const originalFindPath = module.constructor._findPath;
@@ -18,9 +20,12 @@ module.constructor._findPath = function(...args) {
 fs.readFileSync = function(...args) {
     let fileName = pathModule.basename(args[0]);
     if(fileName.indexOf(".atena.") != -1) {
-        let stringMockFile = registerdSuites[fileName].toString();
+        let stringMockFile = registerdSuites[fileName].suite.toString();
         stringMockFile = stringMockFile.replace(/function[\s]*\(.*\)[\s]*\{/, "").trim().replace(/.$/,'');
-        return stringMockFile;
+        let suiteInfo = util.format("let suiteInfoFile = \"%s\";\n" +
+            "let testInfoFiles = %s;\n", registerdSuites[fileName].suiteInfoFile, JSON.stringify(registerdSuites[fileName].testInfoFiles));
+
+        return suiteInfo + stringMockFile;
     }
     return originalReadFileSync(...args);
 };
@@ -32,7 +37,12 @@ const mocha = new Mocha();
 
 
 //must be encapsulated yet look like real js files
-registerdSuites["testing.atena.js"] = (function() {
+registerdSuites["testing.atena.js"] = {};
+registerdSuites["testing.atena.js"].suiteInfoFile = "./examples/spec.yaml";
+registerdSuites["testing.atena.js"].testInfoFiles = [
+    "./examples/test.yaml"
+];
+registerdSuites["testing.atena.js"].suite  = (function() {
 
     const assert = require('assert').ok,
         chakram = require('chakram'),
@@ -41,21 +51,31 @@ registerdSuites["testing.atena.js"] = (function() {
         path = require('path'),
         fs = require('fs');
 
-    let spec = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), "./examples/spec.yaml")));
-    let test = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), "./examples/test.yaml")));
+    let spec = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), suiteInfoFile)));
+    let tests = [];
+    testInfoFiles.forEach((fl) => {
+        tests.push(jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), fl))))
+    });
 
     chakram.addProperty("true", function(object){
         assert(object, true);
     });
 
     describe(spec.title, function() {
-        it(test.description, function() {
-            return expect(true).to.be.true;
+        tests.forEach((testInfo) => {
+            it(testInfo.description, function() {
+                return expect(true).to.be.true;
+            })
         })
     });
 });
 
-registerdSuites["testing2.atena.js"] = (function() {
+registerdSuites["testing2.atena.js"] = {};
+registerdSuites["testing2.atena.js"].suiteInfoFile = "./examples/spec.yaml";
+registerdSuites["testing2.atena.js"].testInfoFiles = [
+    "./examples/test.yaml"
+];
+registerdSuites["testing2.atena.js"].suite = (function() {
     var assert = require('assert').ok;
     const chakram = require('chakram');
     const expect = chakram.expect;
