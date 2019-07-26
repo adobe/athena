@@ -32,7 +32,7 @@ const mocha = new Mocha();
 
 
 //must be encapsulated yet look like real js files
-registerdSuites["testing.atena.js"] = function() {
+registerdSuites["testing.atena.js"] = (function() {
     var assert = require('assert').ok;
     const chakram = require('chakram');
     const expect = chakram.expect;
@@ -45,9 +45,9 @@ registerdSuites["testing.atena.js"] = function() {
             return expect(true).to.be.true;
         })
     });
-};
+});
 
-registerdSuites["testing2.atena.js"] = function() {
+registerdSuites["testing2.atena.js"] = (function() {
     var assert = require('assert').ok;
     const chakram = require('chakram');
     const expect = chakram.expect;
@@ -57,7 +57,7 @@ registerdSuites["testing2.atena.js"] = function() {
             return expect(true).to.be.true;
         })
     });
-};
+});
 
 mocha.addFile("testing.atena.js");
 mocha.addFile("testing2.atena.js");
