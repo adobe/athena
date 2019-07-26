@@ -1,5 +1,6 @@
 name: ccecoSpec
 title: CC-Eco spec
+description:
 isSpec: true
 hooks:
   beforeEach: '''

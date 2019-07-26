@@ -1,4 +1,5 @@
 name: ccecoTest
+description:
 specRef: ccecoSpec #can miss
 hooks:
   shouldSkip:
