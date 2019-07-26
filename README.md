@@ -1,2 +1,2 @@
 # atena
-A Testing Engine Neo Avantgardiste
+A Testing Engine for APIs
