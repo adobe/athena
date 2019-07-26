@@ -8,5 +8,9 @@
     "axios": "~0.18.0",
     "mocha": "^6.2.0",
     "mocha-parallel-tests": "^2.2.1"
+  },
+  "engineStrict": true,
+  "engines": {
+    "node": ">12.1.0"
   }
 }
