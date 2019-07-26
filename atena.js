@@ -7,7 +7,7 @@ const originalFindPath = module.constructor._findPath;
 
 module.constructor._findPath = function(...args) {
     let fileName = pathModule.basename(args[0]);
-    if(fileName.indexOf(".atena") != -1) {
+    if(fileName.indexOf(".atena.") != -1) {
         return fileName;
     }
 
@@ -17,7 +17,7 @@ module.constructor._findPath = function(...args) {
 
 fs.readFileSync = function(...args) {
     let fileName = pathModule.basename(args[0]);
-    if(fileName.indexOf(".atena") != -1) {
+    if(fileName.indexOf(".atena.") != -1) {
         let stringMockFile = registerdSuites[fileName].toString();
         stringMockFile = stringMockFile.replace(/function[\s]*\(.*\)[\s]*\{/, "").trim().replace(/.$/,'');
         return stringMockFile;
@@ -33,15 +33,23 @@ const mocha = new Mocha();
 
 //must be encapsulated yet look like real js files
 registerdSuites["testing.atena.js"] = (function() {
-    var assert = require('assert').ok;
-    const chakram = require('chakram');
-    const expect = chakram.expect;
+
+    const assert = require('assert').ok,
+        chakram = require('chakram'),
+        expect = chakram.expect,
+        jsYaml = require('js-yaml'),
+        path = require('path'),
+        fs = require('fs');
+
+    let spec = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), "./examples/spec.yaml")));
+    let test = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), "./examples/test.yaml")));
+
     chakram.addProperty("true", function(object){
         assert(object, true);
     });
 
-    describe('hope', function() {
-        it('shodld be ok', function() {
+    describe(spec.title, function() {
+        it(test.description, function() {
             return expect(true).to.be.true;
         })
     });

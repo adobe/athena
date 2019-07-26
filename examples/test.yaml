@@ -1,5 +1,5 @@
 name: ccecoTest
-description:
+description: description
 specRef: ccecoSpec #can miss
 hooks:
   shouldSkip:
