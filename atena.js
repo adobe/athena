@@ -46,7 +46,8 @@ registerdSuites["testing.atena.js"].testInfoFiles = [
 
 registerdSuites["preHook.atena.js"] = {};
 registerdSuites["preHook.atena.js"].suite = (() =>{
-    const chakram = require('chakram');
+    const chakram = require('chakram'),
+        assert = require('assert').ok;
     chakram.addProperty("true", function(object){
         assert(object, true);
     });
