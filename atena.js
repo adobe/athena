@@ -21,7 +21,7 @@ fs.readFileSync = function(...args) {
     let fileName = pathModule.basename(args[0]);
     if(fileName.indexOf(".atena.") != -1) {
         let stringMockFile = registerdSuites[fileName].suite.toString();
-        stringMockFile = stringMockFile.replace(/function[\s]*\(.*\)[\s]*\{/, "").trim().replace(/.$/,'');
+        stringMockFile = stringMockFile.replace(/(?:function)*[\s]*\(.*\)[=>\s]*\{/, "").trim().replace(/.$/,'');
         let suiteInfo = util.format("let suiteInfoFile = \"%s\";\n" +
             "let testInfoFiles = %s;\n", registerdSuites[fileName].suiteInfoFile, JSON.stringify(registerdSuites[fileName].testInfoFiles));
 
@@ -36,12 +36,23 @@ const Mocha = require('mocha');
 const mocha = new Mocha();
 
 
+
 //must be encapsulated yet look like real js files
 registerdSuites["testing.atena.js"] = {};
 registerdSuites["testing.atena.js"].suiteInfoFile = "./examples/spec.yaml";
 registerdSuites["testing.atena.js"].testInfoFiles = [
     "./examples/test.yaml"
 ];
+
+registerdSuites["preHook.atena.js"] = {};
+registerdSuites["preHook.atena.js"].suite = (() =>{
+    const chakram = require('chakram');
+    chakram.addProperty("true", function(object){
+        assert(object, true);
+    });
+});
+
+
 registerdSuites["testing.atena.js"].suite  = (function() {
 
     const assert = require('assert').ok,
@@ -51,14 +62,11 @@ registerdSuites["testing.atena.js"].suite  = (function() {
         path = require('path'),
         fs = require('fs');
 
+
     let spec = jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), suiteInfoFile)));
     let tests = [];
     testInfoFiles.forEach((fl) => {
         tests.push(jsYaml.safeLoad(fs.readFileSync(path.resolve(process.cwd(), fl))))
-    });
-
-    chakram.addProperty("true", function(object){
-        assert(object, true);
     });
 
     describe(spec.title, function() {
@@ -87,6 +95,7 @@ registerdSuites["testing2.atena.js"].suite = (function() {
     });
 });
 
+mocha.addFile("preHook.atena.js");
 mocha.addFile("testing.atena.js");
 mocha.addFile("testing2.atena.js");
 mocha.run(function(failures) {
