@@ -1,7 +1,8 @@
 name: ccecoTest
+description: description
 specRef: ccecoSpec #can miss
 hooks:
-  checkSkip:
+  shouldSkip:
   beforeMe:
   afterMe:
 config:

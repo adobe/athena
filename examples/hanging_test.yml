@@ -1,0 +1,13 @@
+name: hanging test
+description: this test does not belong to any spec
+hooks:
+  shouldSkip:
+  beforeMe:
+  afterMe:
+config:
+  timeout: 10 #think of other properties
+  repeat: 10 #repeat 10 times
+scenario:
+  given:
+  when:
+  then:

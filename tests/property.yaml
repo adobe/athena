@@ -1,3 +1,0 @@
-name: isServiceToken
-type: lib #/inline
-value: ./path/to/lib #or inline function

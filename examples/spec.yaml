@@ -1,0 +1,21 @@
+name: ccecoSpec
+title: CC-Eco spec
+description:
+type: spec
+hooks:
+  beforeEach: '''
+    this.token = getServiceToken()
+    this.host = "http://localhost:9191/get"
+  '''
+  before:
+  after:
+  afterEach:
+  shouldSkip: #function to run before every test and check if it should run or not returns true or false
+config:
+  timeout: 10
+  #think of other stuff
+scenario: #will run given inside the test
+  given: '''
+    this.host = "override.host"
+  '''
+
