@@ -1,5 +1,10 @@
 name: hanging test
 description: this test does not belong to any spec
+version: "1.1"
+dependency:
+  - name: mc
+    version: ">1.1"
+    type: api
 hooks:
   shouldSkip:
   beforeMe:

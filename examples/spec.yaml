@@ -1,7 +1,12 @@
 name: ccecoSpec
 title: CC-Eco spec
+version: "2.0"
 description:
 type: spec
+dependecy:
+  - name: cceco
+    version: ">=5.2.1"
+    type: api
 hooks:
   beforeEach: '''
     this.token = getServiceToken()

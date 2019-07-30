@@ -55,10 +55,10 @@ class Atena {
                     chakram = require('chakram'),
                     expect = chakram.expect;
 
-                describe($suite.data.name, function () {
+                describe(`${$suite.data.name} [${$suite.data.version}]`, function () {
                     $suite.tests.forEach((test) => {
-                        const {name, description} = test.data;
-                        it(`${name}: ${description}`, function () {
+                        const {name, description, version} = test.data;
+                        it(`${name} [${version}]: ${description}`, function () {
                             // TODO: parse real assertions.
                             return expect(true).to.be.true;
                         });
@@ -83,7 +83,7 @@ class Atena {
                     chakram = require('chakram'),
                     expect = chakram.expect;
 
-                describe($suite.data.name, function () {
+                describe(`${$suite.data.name}: [${$suite.data.version}]`, function () {
                     const {name, description} = $suite.data;
                     it(`${description}`, function () {
                         return expect(true).to.be.true;
@@ -136,16 +136,19 @@ class Atena {
 
             // Parse test files, include them in suites.
             const {specRef, name: testName} = test.data;
-            const specIdx = _.findIndex(this.specs, (s) => s.data.name === specRef);
+            let self = this;
+            specRef.forEach((specRef) => {
+                const specIdx = _.findIndex(self.specs, (s) => s.data.name === specRef);
 
-            // Check whether the specified spec exists.
-            if (specIdx === -1) {
-                log.warn(`Could not find spec "${specRef}" for test "${testName}".`);
-                return;
-            }
+                // Check whether the specified spec exists.
+                if (specIdx === -1) {
+                    log.warn(`Could not find spec "${specRef}" for test "${testName}".`);
+                    return;
+                }
 
-            this.specs[specIdx].tests = this.specs[specIdx].tests || [];
-            this.specs[specIdx].tests.push(test);
+                self.specs[specIdx].tests = self.specs[specIdx].tests || [];
+                self.specs[specIdx].tests.push(test);
+            });
         });
 
         return this;
