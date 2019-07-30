@@ -55,10 +55,10 @@ class Atena {
                     chakram = require('chakram'),
                     expect = chakram.expect;
 
-                describe(`${$suite.data.name} [${$suite.data.version}]`, function () {
+                describe(`${$suite.data.name} [v${$suite.data.version}]`, function () {
                     $suite.tests.forEach((test) => {
                         const {name, description, version} = test.data;
-                        it(`${name} [${version}]: ${description}`, function () {
+                        it(`${name} [v${version}]: ${description}`, function () {
                             // TODO: parse real assertions.
                             return expect(true).to.be.true;
                         });
@@ -83,7 +83,7 @@ class Atena {
                     chakram = require('chakram'),
                     expect = chakram.expect;
 
-                describe(`${$suite.data.name}: [${$suite.data.version}]`, function () {
+                describe(`${$suite.data.name}: [v${$suite.data.version}]`, function () {
                     const {name, description} = $suite.data;
                     it(`${description}`, function () {
                         return expect(true).to.be.true;
