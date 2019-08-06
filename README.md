@@ -10,8 +10,9 @@ A Testing Engine for APIs
 Usage: atena [options]
 
 Options:
-  -V, --version            output the version number
-  -t, --tests-path <path>  specify the tests path
-  -h, --help               output usage information
-
+  -V, --version             output the version number
+  -t, --tests-path <path>   Specify the tests path.
+  -D, --debug               Enable debug logging.
+  -p, --make-plugin <name>  Scaffold a new plugin
+  -h, --help                output usage information
 ```

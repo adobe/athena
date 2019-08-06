@@ -1,6 +1,9 @@
 {
   "name": "atena",
   "version": "1.0.0",
+  "scripts": {
+    "start": "node atena.js"
+  },
   "dependencies": {
     "autocannon": "4.0.0",
     "axios": "~0.18.0",
