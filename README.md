@@ -30,3 +30,9 @@ Options:
   * a test can depend on a suite version
 * when running tests specify api and api version
 * easy run plugins(utility functions) and assertions
+
+## FUTURE
+
+* cli to generate test yamls from open-api standard
+* cli to generate test yamls from envoy configuration
+* cli to generate test yamls from gateway json configuration
