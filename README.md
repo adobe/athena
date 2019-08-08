@@ -30,6 +30,19 @@ Options:
   * a test can depend on a suite version
 * when running tests specify api and api version
 * easy run plugins(utility functions) and assertions
+* engine selection: (since this is a unified platform)
+  * autocannon - wrk for performance
+  * chakram - for functional
+* define performance test model
+  * peek
+  * ramp up
+  * hooks
+  * cool down
+  * eventual assertions
+  * connections
+  * threads
+  * duration
+  * desired RPS
 
 ## FUTURE
 
