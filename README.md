@@ -47,9 +47,21 @@ Options:
   * threads
   * duration
   * desired RPS
+  * patterns
+    * how many connections and how much rps goes to what scenario
+    * patterns are like independent performance scenarios and can have peeks as well separate duration, separate number of threads.
 
 ## FUTURE
 
 * cli to generate test yamls from open-api standard
 * cli to generate test yamls from envoy configuration
 * cli to generate test yamls from gateway json configuration
+
+## Performance engine
+
+* start from cmd
+* start via rest interface
+* real time feedback on how much it is left of the test
+* reporting
+* persistance
+* grab scenarios from remote location s3 / blob / etc
