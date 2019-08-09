@@ -22,12 +22,16 @@ Options:
 * suites & tests need ability to read configuration from - configuration.yaml for each test
 * suites & tests need ability to read encrypted configuration
 * ability to run suites & tests in parallel
-* flag for fail fast
+* flag for fail fast 
+* flag for log level - for easy debugging
 * ability to run specific test / specific suite
 * version management - dependecy graph:
-  * a suite can depende on an api version
+  * a suite can depend on an api version
   * a test can depend on an api version
   * a test can depend on a suite version
+* a suite can have multiple tests
+* a test can be part of multiple suites
+* a test can run without beeing part of a suite
 * when running tests specify api and api version
 * easy run plugins(utility functions) and assertions
 * engine selection: (since this is a unified platform)
