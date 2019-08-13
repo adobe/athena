@@ -1,0 +1,32 @@
+name: "production"
+version: "1.0"
+description: ""
+mix:
+  - name: "apiKey"
+    weight: 10%
+    config:
+      host:
+      path:
+      port:
+      headers:
+      body:
+    hooks:
+      onInit:
+      onDestroy:
+      onRequest:
+      onResponse:
+  - name: "oauth"
+    weight: 20%
+    config:
+      host:
+      path:
+      port:
+      headers:
+      body:
+      pipelining:
+    hooks:
+      onInit:
+      onDestroy:
+      onRequest: >>> #you will receive this.pool from the metadata of scenario
+        this.headers["Authorization"] = generateRandomToken(`${this.pool:30}`)
+      onResponse:
