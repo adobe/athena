@@ -28,5 +28,5 @@ mix:
       onInit:
       onDestroy:
       onRequest: >>> #you will receive this.pool from the metadata of scenario
-        this.headers["Authorization"] = generateRandomToken(`${this.pool:30}`)
+        headers["Authorization"] = generateRandomToken(`${this.pool:30}`)
       onResponse:
