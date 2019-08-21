@@ -1,9 +1,7 @@
 name: isServiceToken
 type: plugin #/chakramProperty/chakramMethod
-context: global # contexts: global [suite] [test]
-# context: [suiteName] or [testName] for isolation
+context: global # contexts: global, [suiteName] or [testName] for isolation
 config:
   type: lib #/inline
-  value: ./path/to/lib #or inline function
-  exposes:
-    - serviceToken
+  path: plugins/generatedPlugin.js #or inline function
+  exposes: serviceToken

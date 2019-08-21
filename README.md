@@ -2,41 +2,38 @@
 
 A Testing Engine for APIs
 
-## Getting Started
-
-`node atena.js --tests-path custom_tests_path`
-
-```
-Usage: atena [options]
-
-Options:
-  -V, --version             output the version number
-  -t, --tests-path <path>   Specify the tests path.
-  -D, --debug               Enable debug logging.
-  -p, --make-plugin <name>  Scaffold a new plugin
-  -h, --help                output usage information
-```
-
 ## POC requirements
 
-* suites & tests need ability to read configuration from - configuration.yaml for each test
-* suites & tests need ability to read encrypted configuration
-* ability to run suites & tests in parallel
-* flag for fail fast 
-* flag for log level - for easy debugging
-* ability to run specific test / specific suite
-* version management - dependecy graph:
+- [x] a suite can have multiple tests
+- [x] a test can be part of multiple suites
+- [x] a test can run without being part of a suite
+- [x] ability to run specific test/suite
+- [x] flag for fail fast 
+- [x] flag for log level - for easy debugging
+
+**High Priority:**
+* [⏳ In Progress] plugin management - define and load plugins in different contexts
+
+* version management - dependency graph:
   * a suite can depend on an api version
   * a test can depend on an api version
   * a test can depend on a suite version
-* a suite can have multiple tests
-* a test can be part of multiple suites
-* a test can run without beeing part of a suite
+  
 * when running tests specify api and api version
-* easy run plugins(utility functions) and assertions
+
 * engine selection: (since this is a unified platform)
-  * autocannon - wrk for performance
+  * autocannon or wrk for performance
   * chakram - for functional
+  
+* suites & tests need ability to read encrypted configuration
+    * Using pem certificates
+    * Provisioned from Vault
+  
+**Low Priority:**
+
+* suites & tests need ability to read configuration from - configuration.yaml for each test
+* ability to run suites & tests in parallel
+* easy run plugins(utility functions) and assertions
 * define performance test model
   * peek
   * ramp up
@@ -65,3 +62,26 @@ Options:
 * reporting
 * persistance
 * grab scenarios from remote location s3 / blob / etc
+
+
+## Documentation
+
+### Getting Started
+
+`node atena.js --tests-path custom_tests_path`
+
+```
+Usage: atena [options]
+
+Options:
+  -V, --version             output the version number
+  -t, --tests-path <path>   Specify the tests path.
+  -D, --debug               Enable debug logging.
+  -p, --make-plugin <name>  Scaffold a new plugin.
+  -t, --make-test           Scaffold a new test.
+  -g, --grep <regex>        Run only specific tests.
+  -b, --bail                Fail fast after the first test failure.
+  -h, --help                output usage information
+
+```
+

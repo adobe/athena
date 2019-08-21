@@ -3,24 +3,23 @@ title: CC-Eco spec
 version: "2.0"
 description:
 type: spec
+
 dependecy:
   - name: cceco
     version: ">=5.2.1"
     type: api
+    
 hooks:
-  beforeEach: '''
+  beforeEach: >
     this.token = getServiceToken()
     this.host = "http://localhost:9191/get"
-  '''
   before:
   after:
   afterEach:
-  shouldSkip: #function to run before every test and check if it should run or not returns true or false
+  shouldSkip: # function to run before every test and check if it should run or not returns true or false
 config:
   timeout: 10
   #think of other stuff
 scenario: #will run given inside the test
-  given: '''
+  given: >
     this.host = "override.host"
-  '''
-

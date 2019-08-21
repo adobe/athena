@@ -17,8 +17,9 @@ exports.makeLogger = (cliArgs) => {
     logger.info = (...m) => console.log(chalk.blue(`ℹ️  INFO: `), ...m);
 
     logger.debug = (...m) => {
-        if (cliArgs.debug)
+        if (cliArgs.debug) {
             console.log(chalk.gray(`🐛 DEBUG: `), ...m);
+        }
     };
 
     return logger;
@@ -34,7 +35,11 @@ exports.getCliArgs = function () {
         .version(CONFIG.VERSION)
         .option('-t, --tests-path <path>', 'Specify the tests path.')
         .option('-D, --debug', 'Enable debug logging.')
-        .option('-p, --make-plugin <name>', 'Scaffold a new plugin')
+        .option('-p, --make-plugin <name>', 'Scaffold a new plugin.')
+        .option('-t, --make-test', 'Scaffold a new test.')
+        .option('-g, --grep <regex>', 'Run only specific tests.')
+        .option('-b, --bail', 'Fail fast after the first test failure.')
+        .option('-v, --version <number>', 'The suite or test version number to run.') // TODO: Not implemented.
         .parse(process.argv);
 
     return program;
@@ -64,4 +69,8 @@ exports.maybeCreateDirSync = (path) => {
     } catch (e) {
         console.error(`Could not create directory "${path}" due to the following error: \n`, e);
     }
+};
+
+exports.isSingleTest = (entity) => {
+    return entity.data && entity.data.type !== "spec";
 };

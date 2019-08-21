@@ -1,8 +1,8 @@
 name: ccecoTest
 description: description
 specRef:
-  - ccecoSpec #can miss
-  - mcSpec #one test can be part of multiple suites
+  - ccecoSpec # can miss
+  - mcSpec # one test can be part of multiple suites
 version: "1.1"
 dependency:
   - name: ccecoSpec
@@ -24,4 +24,4 @@ scenario:
   when: >
     const response = chakram.get(host);
   then: >
-    return expect(response).to.have.status(200);
+    expect(response).to.have.status(400);

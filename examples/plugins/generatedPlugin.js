@@ -1,3 +1,3 @@
 module.exports = function generatedPlugin() {
-    // TODO: Not implemented.
+    console.log('this is some test!');
 };

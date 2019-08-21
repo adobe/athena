@@ -1,14 +1,18 @@
+// Node dependencies.
 const path = require("path"),
-    fs = require("fs"),
-    jsYaml = require("js-yaml"),
+    fs = require("fs");
+
+// External dependencies.
+const jsYaml = require("js-yaml"),
     Mocha = require("mocha"),
     {xor, isUndefined, findIndex, find, isFunction} = require("lodash"),
     toSource = require("tosource");
 
-const CONFIG = require("./config");
-const {makeLogger, getCliArgs} = require("./utils");
-const {TYPES} = require("./enums");
-const ScaffoldManager = require("./scaffoldManager");
+// Project dependencies.
+const CONFIG = require("./config"),
+    {makeLogger, getCliArgs, isSingleTest} = require("./utils"),
+    {TYPES, COMMANDS, CONTEXTS, PLUGIN_TYPES} = require("./enums"),
+    ScaffoldManager = require("./scaffoldManager");
 
 class Atena {
     constructor(options) {
@@ -21,8 +25,7 @@ class Atena {
         this.mocha = new Mocha();
         this.log = makeLogger(this.cliArgs);
 
-        this.checkNodeVersion()
-            .setOptions(options)
+        this.setOptions(options)
             .handleScaffolding()
             .overrideDefaultMethods()
             .parseTestFiles()
@@ -33,17 +36,6 @@ class Atena {
     /**
      * PUBLIC
      */
-
-    checkNodeVersion = () => {
-        const [major, minor] = process.versions.node.split('.').map(parseFloat);
-
-        if (major < 7 || (major === 7 && minor <= 5)) {
-            this.log.error(`Atena requires Node 7.6 or greater!`);
-            process.exit();
-        }
-
-        return this;
-    };
 
     handleScaffolding = () => {
         let scaffoldCommandUsed = false;
@@ -59,18 +51,22 @@ class Atena {
             }
 
             if (isFunction(scaffold[commandName])) {
+                this.log.debug(`Scaffolding: Handling command "${commandName}".`)
+                scaffoldCommandUsed = true;
                 scaffold[commandName]();
-                scaffoldCommandUsed = true
             }
         };
 
-        // Handle the `makePlugin` scaffold command.
-        if (this.cliArgs.makePlugin) {
-            handleScaffoldCommand("makePlugin");
+        for (const COMMAND of Object.keys(COMMANDS)) {
+            const ACTION = COMMANDS[COMMAND];
+
+            if (this.cliArgs[ACTION]) {
+                handleScaffoldCommand(ACTION);
+            }
         }
 
-        // Check whether any scaffolding command was used and exit the
-        // process earlier.
+        // Check whether any scaffolding command was used
+        // and exit the process earlier.
         if (scaffoldCommandUsed) {
             process.exit(0);
         }
@@ -79,6 +75,20 @@ class Atena {
     };
 
     runTestSuites = () => {
+        const {grep, bail} = this.options;
+
+        // Check whether any grep pattern was used.
+        if (grep) {
+            this.log.debug(`Grep pattern enabled. Running only tests that match the "${grep}" pattern.`);
+            this.mocha.grep(grep);
+        }
+
+        // Check whether bail mode has been enabled.
+        if (bail) {
+            this.log.debug("Bailing mode enabled. Will fail fast after the first test failure.");
+            this.mocha.bail(bail);
+        }
+
         this.mocha.run((fail) => {
             process.exitCode = fail ? 1 : 0
         });
@@ -87,19 +97,19 @@ class Atena {
     };
 
     parseTestFiles = () => {
-        const _testFiles = fs.readdirSync(this.options.testsDirPath);
         const testFiles = [];
 
         // Parse each test file.
-        for (let testFileName of _testFiles) {
+        for (let testFileName of fs.readdirSync(this.options.testsDirPath)) {
             const testFile = {};
 
             testFile.filename = testFileName;
             testFile.path = path.resolve(this.options.testsDirPath, testFileName);
 
             // Skip directories.
-            if (fs.lstatSync(testFile.path).isDirectory())
+            if (fs.lstatSync(testFile.path).isDirectory()) {
                 continue;
+            }
 
             testFile.fileData = path.parse(testFile.path);
             testFile.data = jsYaml.safeLoad(fs.readFileSync(testFile.path), 'utf-8');
@@ -192,14 +202,13 @@ class Atena {
         const registeredSuites = this.registeredSuites;
         const mocha = this.mocha;
 
-        // Register specs
-        this.specs.forEach(($data) => {
+        function registerEntity($data) {
             const fileName = `${$data.fileData.name}.atena.js`;
 
             // Define the entity context.
-            const $entityContext = Object.create(null);
+            const $entityContext = {};
             $entityContext.toString = function () {
-                return generateEntityContext(maybeAsTestSuite(withTestCases($data)))
+                return generateEntityContext(maybeAsTestSuite(withTestCases($data)));
             };
 
             // Register the new suite.
@@ -207,41 +216,126 @@ class Atena {
 
             // Register the file with Mocha.
             mocha.addFile(fileName);
-        });
+        }
 
-        // TODO: Register individual tests.
+        // Register specs and tests.
+        [...this.specs, ...this.tests].forEach(registerEntity);
 
-        function generateEntityContext([$entity, $testSuite]) {
-            // TODO: Generate dependencies dynamically.
+
+        const generatePluginsRequire = (plugins) => {
+            // Assuming that 'plugins' is not empty.
+            return plugins.map(p => {
+                let {type, path: pluginPath, exposes} = p.data.config;
+
+                if (!type) {
+                    this.log.debug(`Plugin Parsing [${p.data.name}]: Plugin "type" missing, assuming "${PLUGIN_TYPES.LIB}".`);
+                    type = PLUGIN_TYPES.LIB;
+                }
+
+                if (!pluginPath) {
+                    this.log.error(`Plugin Parsing [${p.data.name}]: Plugin "path" missing.`);
+                    process.exit(0);
+                }
+
+                if (!exposes) {
+                    this.log.debug(`Plugin Parsing [${p.data.name}]: Plugin "exposes" missing, assuming "${p.data.name}".`);
+                    exposes = p.data.name;
+                }
+
+                return `const ${exposes} = require("${path.resolve(this.options.testsDirPath, pluginPath)}"); ${"\n"}`;
+            }).join("\n");
+        };
+
+        const maybeInjectPlugins = ($entity, globalContext = false) => {
+            const plugins = []; // Plugins required for the current context.
+
+            // Check whether the current entity provides any data.
+            if (!$entity.data || !$entity.data.name) {
+                this.log.warn(`Plugin Injection: Attempt to inject plugins failed as the current entity does not provide any data.`);
+                return;
+            }
+
+            // Check whether any plugins are parsed.
+            if (isUndefined(this.plugins)) {
+                this.log.info(`No plugins identified.`);
+                return;
+            }
+
+            // Function that checks whether a plugin has already been injected.
+            const pluginIsAlreadyInjected = (plugin) => findIndex(plugins, p => p.data.name === plugin.data.name) !== -1;
+
+            // Filter all plugins for this current context.
+            for (let idx in this.plugins) {
+                let plugin = this.plugins[idx];
+
+                // Check whether the plugin defines any data.
+                if (!plugin.data || !plugin.data.name) {
+                    this.log.warn(`Plugin Injection: Attempt to load plugin failed as data is missing.`);
+                    continue;
+                }
+
+                // Continue the loop if the plugin has already been injected.
+                if (pluginIsAlreadyInjected(plugin)) {
+                    this.log.debug(`Plugin Injection: Attempt to load plugin "${plugin.data.name}" failed as it's already injected.`);
+                    continue;
+                }
+
+                // Check whether the plugin needs to be injected inside the current context (extracted from the entity's data)
+                // or whether it should be included inside the global context.
+                if (
+                    (plugin.data.context === $entity.data.name ||
+                        (globalContext && plugin.data.context === CONTEXTS.GLOBAL))
+                ) {
+                    this.log.debug(`Plugin Injection: Successfully identified plugin "${plugin.data.name}" as required for injection inside the "${plugin.data.context}" context.`);
+                    plugins.push(plugin);
+                }
+            }
+
+            // If there are no plugins required for injection, return early.
+            if (!plugins.length) {
+                return '';
+            }
+
+            // Return the list of plugins that should be injected inside the current context.
+            return generatePluginsRequire(plugins);
+        };
+
+        const generateEntityContext = ([$entity, $testSuite]) => {
             return `
                 const assert = require('assert').ok,
                     chakram = require('chakram'),
                     expect = chakram.expect;
-
-                   ${$testSuite}
+                    
+                ${maybeInjectPlugins($entity, true)}
+                ${$testSuite}
             `;
-        }
+        };
 
-        function maybeAsTestSuite([$entity, $testCases]) {
+        const maybeAsTestSuite = ([$entity, $testCases]) => {
             // Maybe wrap the test cases into a test suite.
-            if (!$entity.data.type === "spec")
+            if ($entity.data.type !== "spec") {
                 return [$entity, $testCases];
+            }
 
             const $testSuite = `
                 describe("${$entity.data.name} [v${$entity.data.version}]", function() {
+                    ${maybeInjectPlugins($entity)}
                     ${$testCases}
                 });`;
 
             return [$entity, $testSuite];
-        }
+        };
 
-        function withTestCases($entity) {
+        const withTestCases = ($entity) => {
             const generateAssertions = (test) => {
-                // TODO: Check whether the scenario is missing, or any of the given, when or then stages is missing.
+                if (!test.data || !test.data.scenario) {
+                    return;
+                }
+
                 return `
                     ${test.data.scenario.given}
                     ${test.data.scenario.when}
-                    ${test.data.scenario.then}
+                    return ${test.data.scenario.then}
                 `;
             };
 
@@ -249,12 +343,17 @@ class Atena {
                 const {name, version} = test.data;
                 return `
                     it("${name} [v${version}]", function() {
+                        ${maybeInjectPlugins($entity)}
                         ${generateAssertions(test)}
                     });`;
             };
 
+            if (isSingleTest($entity)) {
+                return [$entity, generateTestCase($entity)]
+            }
+
             return [$entity, $entity.tests.map(generateTestCase).join("\n")];
-        }
+        };
 
         return this;
     };
