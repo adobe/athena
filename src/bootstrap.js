@@ -335,8 +335,10 @@ class Atena {
                 return `
                     ${test.data.scenario.given}
                     ${test.data.scenario.when}
-                    return ${test.data.scenario.then}
+                    return Promise.all([${test.data.scenario.then}])
                 `;
+
+                
             };
 
             const generateTestCase = (test) => {
