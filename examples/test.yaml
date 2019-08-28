@@ -1,6 +1,16 @@
 name: ccecoTest
 description: description
-specRef: ccecoSpec #can miss
+specRef:
+  - ccecoSpec # can miss
+  - mcSpec # one test can be part of multiple suites
+version: "1.1"
+dependency:
+  - name: ccecoSpec
+    version: ">=2.0"
+    type: specRef
+  - name: mcSpec
+    version: ">=1.0 <=3.2"
+    type: specRef
 hooks:
   shouldSkip:
   beforeMe:
@@ -9,6 +19,9 @@ config:
   timeout: 10 #think of other properties
   repeat: 10 #repeat 10 times
 scenario:
-  given:
-  when:
-  then:
+  given: >
+    const host = "https://google.com";
+  when: >
+    const response = chakram.get(host);
+  then: >
+    expect(response).to.have.status(400)

@@ -1,16 +1,23 @@
 {
   "name": "atena",
   "version": "1.0.0",
+  "scripts": {
+    "start": "node atena.js"
+  },
   "dependencies": {
     "autocannon": "4.0.0",
-    "js-yaml": "^3.13.1",
-    "chakram": "^1.5.0",
     "axios": "~0.18.0",
+    "chakram": "^1.5.0",
+    "commander": "^2.20.0",
+    "js-yaml": "^3.13.1",
+    "lodash": "^4.17.15",
     "mocha": "^6.2.0",
-    "mocha-parallel-tests": "^2.2.1"
+    "mocha-parallel-tests": "^2.2.1",
+    "tosource": "^1.0.0",
+    "yargs": "^13.3.0"
   },
   "engineStrict": true,
   "engines": {
-    "node": ">12.1.0"
+    "node": ">7.6.0"
   }
 }

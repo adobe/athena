@@ -1,0 +1,21 @@
+name: hanging test
+description: this test does not belong to any spec
+version: "1.1"
+dependency:
+  - name: mc
+    version: ">1.1"
+    type: api
+hooks:
+  shouldSkip:
+  beforeMe:
+  afterMe:
+config:
+  timeout: 10 # think of other properties
+  repeat: 10  #repeat 10 times
+scenario:
+  given: >
+    const host = "https://google.com";
+  when: >
+    const response = chakram.get(host);
+  then: >
+    expect(response).to.have.status(400)
