@@ -10,7 +10,7 @@ const jsYaml = require("js-yaml"),
 
 // Project dependencies.
 const CONFIG = require("./config"),
-    {makeLogger, getCliArgs, isSingleTest} = require("./utils"),
+    {makeLogger, getCliArgs, isSingleTest, parseAstExpressions} = require("./utils"),
     {TYPES, COMMANDS, CONTEXTS, PLUGIN_TYPES} = require("./enums"),
     ScaffoldManager = require("./scaffoldManager");
 
@@ -207,9 +207,7 @@ class Atena {
 
             // Define the entity context.
             const $entityContext = {};
-            $entityContext.toString = function () {
-                return generateEntityContext(maybeAsTestSuite(withTestCases($data)));
-            };
+            $entityContext.toString = () => generateEntityContext(maybeAsTestSuite(withTestCases($data)));
 
             // Register the new suite.
             registeredSuites.push({fileName, $data, $entity: $entityContext});
@@ -252,13 +250,13 @@ class Atena {
             // Check whether the current entity provides any data.
             if (!$entity.data || !$entity.data.name) {
                 this.log.warn(`Plugin Injection: Attempt to inject plugins failed as the current entity does not provide any data.`);
-                return;
+                return '';
             }
 
             // Check whether any plugins are parsed.
             if (isUndefined(this.plugins)) {
                 this.log.info(`No plugins identified.`);
-                return;
+                return '';
             }
 
             // Function that checks whether a plugin has already been injected.
@@ -276,7 +274,8 @@ class Atena {
 
                 // Continue the loop if the plugin has already been injected.
                 if (pluginIsAlreadyInjected(plugin)) {
-                    this.log.debug(`Plugin Injection: Attempt to load plugin "${plugin.data.name}" failed as it's already injected.`);
+                    // TODO: Add required context and existing context to log message.
+                    this.log.debug(`Plugin Injection: Attempt to load plugin "${plugin.data.name}" failed.`);
                     continue;
                 }
 
@@ -312,13 +311,15 @@ class Atena {
         };
 
         const maybeAsTestSuite = ([$entity, $testCases]) => {
+            const { name, type, version } = $entity.data;
+
             // Maybe wrap the test cases into a test suite.
-            if ($entity.data.type !== "spec") {
+            if (type !== "spec") {
                 return [$entity, $testCases];
             }
 
             const $testSuite = `
-                describe("${$entity.data.name} [v${$entity.data.version}]", function() {
+                describe("${name} ${version ? '[v' + version + ']' : ''}", function() {
                     ${maybeInjectPlugins($entity)}
                     ${$testCases}
                 });`;
@@ -328,23 +329,20 @@ class Atena {
 
         const withTestCases = ($entity) => {
             const generateAssertions = (test) => {
-                if (!test.data || !test.data.scenario) {
-                    return;
-                }
+                if (!test.data || !test.data.scenario) return '';
+                let { given, when, then } = test.data.scenario;
+                then = parseAstExpressions(then).map(e => e.replace(';', '')).join(',');
 
                 return `
-                    ${test.data.scenario.given}
-                    ${test.data.scenario.when}
-                    return Promise.all([${test.data.scenario.then}])
-                `;
-
-                
+                    ${given}
+                    ${when}
+                    return Promise.all([${then}])`;
             };
 
             const generateTestCase = (test) => {
                 const {name, version} = test.data;
                 return `
-                    it("${name} [v${version}]", function() {
+                    it("${name} ${version ? '[v' + version + ']' : ''}", function() {
                         ${maybeInjectPlugins($entity)}
                         ${generateAssertions(test)}
                     });`;

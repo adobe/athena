@@ -1,7 +1,11 @@
+// External dependencies.
 const chalk = require("chalk").default,
     program = require("commander"),
-    CONFIG = require("./config"),
-    fs = require("fs");
+    fs = require("fs"),
+    AstParser = require("acorn-loose");
+
+// Project dependencies.
+const CONFIG = require("./config");
 
 /**
  * Creates a logger instance.
@@ -69,6 +73,18 @@ exports.maybeCreateDirSync = (path) => {
     } catch (e) {
         console.error(`Could not create directory "${path}" due to the following error: \n`, e);
     }
+};
+
+/**
+ * Returns an array of found expressions within a script.
+ * @param script String The script.
+ * @returns Array The array of found expressions. An empty array, if none are found.
+ */
+exports.parseAstExpressions = (script) => {
+    const ast = AstParser.parse(script);
+    if (!ast.body || !script) return [];
+
+    return ast.body.map(e => script.substring(e.start, e.end)) || [];
 };
 
 exports.isSingleTest = (entity) => {
