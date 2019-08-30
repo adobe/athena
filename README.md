@@ -14,6 +14,10 @@ A Testing Engine for APIs
 **High Priority:**
 * [⏳ In Progress] plugin management - define and load plugins in different contexts
 
+* hooks before and after test phases(given when then) - this provides flexibility to apply different plugins or to reuse a test and extend it whith a few more checks
+
+* support adding a test to a suite that points to another test but you give custom config, or support meta info and configuration for tests based on the refauite dependency somehow we need to be able to change configs and hooks easily for a test that points to multiple suites - making 2 checks for a suite and one more check for another having one query param for a suite and a diferrent one for another
+
 * version management - dependency graph:
   * a suite can depend on an api version
   * a test can depend on an api version
