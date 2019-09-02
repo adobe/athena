@@ -1,23 +1,48 @@
-// Entity contexts
-exports.CONTEXTS = {
+// todo: enum values should be uppercase
+
+const CONTEXTS = {
   GLOBAL: "global"
 };
 
-// Entity types.
-exports.TYPES = {
-  SPEC: "spec",
+const ENTITY_TYPES = {
+  SUITE: "suite",
   TEST: "test",
-  PLUGIN: "plugin"
+  PLUGIN: "plugin",
+  FIXTURE: "fixture"
 };
 
-// Plugin types
-exports.PLUGIN_TYPES = {
+const TEST_TYPES = {
+  FUNCTIONAL: 'functional',
+  PERFORMANCE: 'performance'
+};
+
+const PLUGIN_TYPES = {
   LIB: "lib",
   INLINE: "inline"
 };
 
-// Scaffolding commands.
-exports.COMMANDS = {
+const COMMANDS = {
   MAKE_PLUGIN: "makePlugin",
   MAKE_TEST: "makeTest"
 };
+
+//
+// Cleanup
+//
+
+const ENGINES = {
+  CHAKRAM: "chakram"
+};
+
+const TAXONOMIES = {
+  FUNCTIONAL: "functional",
+  PERFORMANCE: "performance"
+};
+
+exports.CONTEXTS = CONTEXTS;
+exports.ENTITY_TYPES = ENTITY_TYPES;
+exports.TEST_TYPES = TEST_TYPES;
+exports.PLUGIN_TYPES = PLUGIN_TYPES;
+exports.COMMANDS = COMMANDS;
+exports.TAXONOMIES = TAXONOMIES;
+exports.ENGINES = ENGINES;

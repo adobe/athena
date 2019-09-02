@@ -1,7 +1,7 @@
 const fs = require("fs"),
     path = require("path");
 
-const {snakeToCamel, maybeCreateDirSync, makeLogger} = require("./utils");
+const {snakeToCamel, maybeCreateDirSync, makeLogger} = require("../utils");
 
 class ScaffoldManager {
     constructor(options) {
@@ -45,7 +45,7 @@ class ScaffoldManager {
         // Try to scaffold a new plugin.
         try {
             const finalPluginPath = path.resolve(pluginsDirPath, `${pluginName}.js`);
-            let pluginTemplate = fs.readFileSync(path.resolve(__dirname, "templates", "plugin.js"), "utf-8"); // TODO: Move this into config?
+            let pluginTemplate = fs.readFileSync(path.resolve(__dirname, "templates", "plugin.js"), "utf-8"); // todo: Move this into config?
             pluginTemplate = pluginTemplate.replace("$PLUGIN_NAME", pluginName);
             fs.writeFileSync(finalPluginPath, pluginTemplate, 'utf-8');
         } catch (e) {

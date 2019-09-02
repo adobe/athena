@@ -1,14 +1,12 @@
-name: ccecoSpec
-title: CC-Eco spec
-version: "2.0"
-description:
-type: spec
-
+type: suite
+name: ccecoSuite # required
+engine: chakram # required for top level suite, nested values are ignored.
+description: some string
+version: 2.0
 dependecy:
   - name: cceco
     version: ">=5.2.1"
     type: api
-    
 hooks:
   beforeEach: >
     this.token = getServiceToken()

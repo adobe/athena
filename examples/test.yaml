@@ -1,16 +1,16 @@
-name: ccecoTest
-description: description
-specRef:
-  - ccecoSpec # can miss
-  - mcSpec # one test can be part of multiple suites
+type: test
+name: ccecoTest # required
+description: this is the test description
+engine: chakram # assumed by default if type == test, inherited if none
+suiteRef:
+  - ccecoSuite # can miss
+  - mcSuite # one test can be part of multiple suites
 version: "1.1"
 dependency:
-  - name: ccecoSpec
+  - name: ccecoSuite
     version: ">=2.0"
-    type: specRef
-  - name: mcSpec
+  - name: mcSuite
     version: ">=1.0 <=3.2"
-    type: specRef
 hooks:
   shouldSkip:
   beforeMe:
@@ -23,5 +23,6 @@ scenario:
     const host = "https://google.com";
   when: >
     const response = chakram.get(host);
+    consoleFixture();
   then: >
-    expect(response).to.have.status(400)
+    expect(response).to.have.status(400);

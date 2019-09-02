@@ -1,6 +1,8 @@
 name: "production"
 version: "1.0"
 description: ""
+engine: autocannon
+type: test
 mix:
   - name: "apiKey"
     weight: 10%
