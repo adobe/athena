@@ -132,25 +132,21 @@ class ChakramEngine {
                 }
 
                 const promiseTpl = `new Promise(function(resolve) {
-                    /* Stage: {stage} */
-                    {stageContent}
-                })`;
+                                        /* Stage: {stage} */
+                                        {stageContent}
+                                    }.bind($context))`;
 
                 if (stage === "then") {
-                    let _parsedStageContent = parseAstExpressions(stageContent)
+                    let parsedStageContent = parseAstExpressions(stageContent)
                         .map(e => e.replace(';', ''))
                         .join(',');
 
-                    return promiseTpl.format({
-                        stage,
-                        stageContent: `resolve(Promise.all([${_parsedStageContent}]))`
-                    });
+                    stageContent = `resolve(Promise.all([${parsedStageContent}]))`;
+                } else {
+                    stageContent = `${stageContent} \n resolve();`;
                 }
 
-                return promiseTpl.format({
-                    stage,
-                    stageContent: `${stageContent} \n resolve();`
-                });
+                return promiseTpl.format({ stage, stageContent });
             })
             .join(',');
 
