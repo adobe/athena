@@ -5,7 +5,8 @@ const fs = require("fs"),
 // external
 const Mocha = require("mocha"),
     {find} = require("lodash"),
-    toSource = require("tosource");
+    toSource = require("tosource"),
+    jsBeautify = require("js-beautify");
 
 // project
 const {TAXONOMIES, ENGINES} = require("./../enums"),
@@ -108,25 +109,52 @@ class ChakramEngine {
             return '';
         }
 
-        const doFilter = this.pluginManager.doFilter;
-        let {given, when, then} = test.config.scenario;
+        const stagesOrder = [
+            "beforeGiven",  // todo: alias 'before'
+            "given",        // main stage
+            "afterGiven",
+            "beforeWhen",
+            "when",         // main stage
+            "afterWhen",
+            "beforeThen",
+            "then",         // main stage
+            "afterThen"     // todo: alias 'after'
+        ];
 
-        then = parseAstExpressions(then)
-            .map(e => e.replace(';', '')).join(',');
+        // todo: handle stage rejections properly
+        const stages = stagesOrder
+            .filter(stage => test.config.hooks[stage] || test.config.scenario[stage])
+            .map(function _makeContextBoundStage(stage) {
+                let stageContent = test.config.hooks[stage];
 
-        // todo: move filter names in enum
-        given = doFilter("chakramParseScenarioGiven", given, test);
-        when = doFilter("chakramParseScenarioWhen", when, test);
-        then = doFilter("chakramParseScenarioThen", then);
+                if (!stageContent) {
+                    stageContent = test.config.scenario[stage];
+                }
 
-        let ctxTpl = `{given}
-                   {when}
-                   return Promise.all([{then}])`;
+                const promiseTpl = `new Promise(function(resolve) {
+                    /* Stage: {stage} */
+                    {stageContent}
+                })`;
 
-        ctxTpl = doFilter("chakramParseScenarioAssertTemplate", ctxTpl, given, when, then);
-        const ctx = doFilter("chakramParseScenarioAssertContext", {given, when, then});
+                if (stage === "then") {
+                    let _parsedStageContent = parseAstExpressions(stageContent)
+                        .map(e => e.replace(';', ''))
+                        .join(',');
 
-        return ctxTpl.format(ctx);
+                    return promiseTpl.format({
+                        stage,
+                        stageContent: `resolve(Promise.all([${_parsedStageContent}]))`
+                    });
+                }
+
+                return promiseTpl.format({
+                    stage,
+                    stageContent: `${stageContent} \n resolve();`
+                });
+            })
+            .join(',');
+
+        return jsBeautify(`return Promise.all([${stages}])`);
     };
 
     _overrideDefaultMethods = () => {
@@ -162,11 +190,13 @@ class ChakramEngine {
             }
 
             return `
-                let $entity = ${toSource(entity)};
                 const assert = require('assert').ok,
                     chakram = require('chakram'),
                     expect = chakram.expect;
                     
+                const $entity = ${toSource(entity)};
+                const $context = this; // global context
+                                    
                 ${this.pluginManager.maybeInjectFixtures(null, true)}
                 ${entity.getContext()}`;
         }
