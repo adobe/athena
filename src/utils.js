@@ -68,6 +68,7 @@ function getParsedSettings(options = {}) {
     const cliArgs = getCliArgs();
 
     defaults.examplesDir = CONFIG.EXAMPLES_DIR;
+    defaults.basePath = CONFIG.BASEPATH;
     defaults.testsDir = cliArgs.testsPath;
     defaults.performance = false;
     defaults.functional = false;
@@ -84,9 +85,9 @@ function getParsedSettings(options = {}) {
     defaults.pluginsDir = cliArgs.pluginsDir || CONFIG.PLUGINS_DIR;
 
     // Define the proper paths for all the directories defined above.
-    defaults.examplesDirPath = path.resolve(__dirname, defaults.examplesDir);
-    defaults.testsDirPath = path.resolve(__dirname, defaults.testsDir);
-    defaults.pluginsDirPath = path.resolve(__dirname, defaults.testsDir, defaults.pluginsDir);
+    defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
+    defaults.testsDirPath = path.resolve(defaults.basePath, defaults.testsDir);
+    defaults.pluginsDirPath = path.resolve(defaults.basePath, defaults.testsDir, defaults.pluginsDir);
 
     return {...defaults, ...cliArgs, ...options};
 }
