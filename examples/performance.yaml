@@ -1,11 +1,12 @@
 name: perf
 description: someDescr
 version: "1.0"
+engine: autocannon
+type: test
 dependecy:
   - name: cceco
-    type: api
+    type: api # ??
     version: ">1.0"
-engine: "autocannon"
 hooks:
   shouldSkip:
   onInit:

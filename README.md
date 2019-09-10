@@ -4,31 +4,38 @@ A Testing Engine for APIs
 
 ## POC requirements
 
+**TODO: In Progress**
+
 - [x] a suite can have multiple tests
 - [x] a test can be part of multiple suites
 - [x] a test can run without being part of a suite
 - [x] ability to run specific test/suite
 - [x] flag for fail fast 
 - [x] flag for log level - for easy debugging
+- [x] refactor to entities
+- [x] refactor settings parsing
+- [x] adjust assertion parsing, make sure expressions are properly loaded
+- [x] add plugins hooks ⚠️ (unstable)
+- [x] add fixture support ⚠️ (unstable)
+- [ ] add model validation (joi/other lib)
+- [ ] decouple chakram-specific properties from the testEntity to chakramTestEntity
+- [ ] provide full (dynamic) plugins support
+- [ ] provide full (dynamic) fixture support
+- [ ] add unit tests for existing functionality
 
 **High Priority:**
-* [⏳ In Progress] plugin management - define and load plugins in different contexts
-
-* hooks before and after test phases(given when then) - this provides flexibility to apply different plugins or to reuse a test and extend it whith a few more checks
-
-* support adding a test to a suite that points to another test but you give custom config, or support meta info and configuration for tests based on the refauite dependency somehow we need to be able to change configs and hooks easily for a test that points to multiple suites - making 2 checks for a suite and one more check for another having one query param for a suite and a diferrent one for another
-
+* [⏳ In Progress] plugin management
+    * define plugins and adjust Athena's functionality on the fly
+    * define fixtures and inject them in certain contexts
+* model validation
 * version management - dependency graph:
   * a suite can depend on an api version
   * a test can depend on an api version
   * a test can depend on a suite version
-  
 * when running tests specify api and api version
-
 * engine selection: (since this is a unified platform)
   * autocannon or wrk for performance
   * chakram - for functional
-  
 * suites & tests need ability to read encrypted configuration
     * Using pem certificates
     * Provisioned from Vault
@@ -85,7 +92,48 @@ Options:
   -t, --make-test           Scaffold a new test.
   -g, --grep <regex>        Run only specific tests.
   -b, --bail                Fail fast after the first test failure.
+  -v, --version <number>    The suite or test version number to run.
+  -P, --performance         run performance tests
+  -F, --functional          run functional tests
   -h, --help                output usage information
 
 ```
 
+By default, Atena will run only functional tests with the following command;
+
+```
+node atena.js
+```
+
+The `--functional` flag can be used when you would like to run both **functional** and **performance** tests as well:
+
+```
+node atena.js --performance --functional
+```
+
+## Config Properties
+
+### Common
+
+The following properties are common to all entity types (`suite`, `test`):
+
+#### `type`
+* **Context:** `suite`,`test`
+* **Possible values:** `suite`,`test`
+
+The entity type.
+
+#### `engine`
+
+* **Context:** `suite`,`test`
+* **Possible values:** `chakram`, `autocannon`
+
+Required for top level suites and independent tests only. The `engine` property will be ignored for entities that are assigned to certain suites.
+
+## Plugins
+
+Plugins allow you to extend Athena's functionality.
+
+## Fixtures
+
+Fixtures are helper functions that can be injected in various contexts. 

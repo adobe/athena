@@ -1,15 +1,24 @@
+// Node dependencies
+const fs = require("fs"),
+    path = require("path");
+
+// External dependencies.
 const chalk = require("chalk").default,
     program = require("commander"),
-    CONFIG = require("./config"),
-    fs = require("fs");
+    AstParser = require("acorn-loose"),
+    {isUndefined} = require("lodash");
+
+// Project dependencies.
+const CONFIG = require("./config"),
+    {ENTITY_TYPES} = require("./enums");
 
 /**
  * Creates a logger instance.
- * @param cliArgs object The command line arguments.
  * @returns object The logger instance.
  */
-exports.makeLogger = (cliArgs) => {
+function makeLogger() {
     const logger = {};
+    const cliArgs = getCliArgs();
 
     logger.success = (...m) => console.log(chalk.green(`✅ SUCCESS: `), ...m);
     logger.error = (...m) => console.log(chalk.red(`🚫 ERROR: `), ...m);
@@ -23,13 +32,15 @@ exports.makeLogger = (cliArgs) => {
     };
 
     return logger;
-};
+}
+
+exports.makeLogger = makeLogger;
 
 /**
  * Returns the CLI arguments, if any.
  * @returns {commander.CommanderStatic | commander}
  */
-exports.getCliArgs = function () {
+function getCliArgs() {
     program
         .description(CONFIG.DESCRIPTION)
         .version(CONFIG.VERSION)
@@ -39,23 +50,63 @@ exports.getCliArgs = function () {
         .option('-t, --make-test', 'Scaffold a new test.')
         .option('-g, --grep <regex>', 'Run only specific tests.')
         .option('-b, --bail', 'Fail fast after the first test failure.')
-        .option('-v, --version <number>', 'The suite or test version number to run.') // TODO: Not implemented.
+        .option('-P, --performance', 'run performance tests')
+        .option('-F, --functional', 'run functional tests')
         .parse(process.argv);
 
     return program;
-};
+}
+
+exports.getCliArgs = getCliArgs;
+
+/**
+ * Returns the parsed settings based on the CLI args and defaults set.
+ * @returns object The parsed settings.
+ */
+function getParsedSettings(options = {}) {
+    const defaults = {};
+    const cliArgs = getCliArgs();
+
+    defaults.examplesDir = CONFIG.EXAMPLES_DIR;
+    defaults.basePath = CONFIG.BASEPATH;
+    defaults.testsDir = cliArgs.testsPath;
+    defaults.performance = false;
+    defaults.functional = false;
+
+    // Check whether the specified tests directory exists, otherwise use the default examples.
+    if (!fs.existsSync(defaults.testsDir)) {
+        if (!isUndefined(defaults.testsDir)) {
+            this.log.warn(`The specified tests directory does not exist: (${defaults.testsDir}). Using the example tests instead.`);
+        }
+        defaults.testsDir = defaults.examplesDir;
+    }
+
+    // Define the default plugins directory.
+    defaults.pluginsDir = cliArgs.pluginsDir || CONFIG.PLUGINS_DIR;
+
+    // Define the proper paths for all the directories defined above.
+    defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
+    defaults.testsDirPath = path.resolve(defaults.basePath, defaults.testsDir);
+    defaults.pluginsDirPath = path.resolve(defaults.basePath, defaults.testsDir, defaults.pluginsDir);
+
+    return {...defaults, ...cliArgs, ...options};
+}
+
+exports.getParsedSettings = getParsedSettings;
 
 /**
  * Turns a snake-case string to camelCase.
  * @param str string The string that needs to be converted.
  * @returns string The initial string, converted to camelCase.
  */
-exports.snakeToCamel = (str) => str.replace(
+const snakeToCamel = (str) => str.replace(
     /([-_][a-z])/g,
     (group) => group.toUpperCase()
         .replace('-', '')
         .replace('_', '')
 );
+
+exports.snakeToCamel = snakeToCamel;
 
 /**
  * Synchronously checks whether a directory path exists; if not, creates it.
@@ -71,6 +122,37 @@ exports.maybeCreateDirSync = (path) => {
     }
 };
 
-exports.isSingleTest = (entity) => {
-    return entity.data && entity.data.type !== "spec";
+/**
+ * Returns an array of found expressions within a script.
+ * @param script String The script.
+ * @returns Array The array of found expressions. An empty array, if none are found.
+ */
+exports.parseAstExpressions = (script) => {
+    const ast = AstParser.parse(script);
+    if (!ast.body || !script) return [];
+
+    return ast.body.map(e => script.substring(e.start, e.end)) || [];
 };
+
+/**
+ * Creates a new empty container.
+ * @returns Object An instance of the container.
+ */
+exports.makeContainer = () => {
+    function Container() {
+        this.entries = [];
+        this.add = (el) => this.entries.push(el);
+
+        return this;
+    }
+
+    return new Container();
+};
+
+// todo: factory? adjust enums to uppercase first though
+exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;
+exports.isTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.TEST;
+exports.isFixture = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.FIXTURE;
+
+// todo: deprecated, remove this
+exports.isSingleTest = (entity) => entity.data && entity.data.type !== "spec";

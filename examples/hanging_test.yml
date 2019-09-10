@@ -1,6 +1,8 @@
 name: hanging test
+type: test
 description: this test does not belong to any spec
 version: "1.1"
+engine: chakram
 dependency:
   - name: mc
     version: ">1.1"
@@ -14,8 +16,9 @@ config:
   repeat: 10  #repeat 10 times
 scenario:
   given: >
-    const host = "https://google.com";
+    this.host = "https://google.com";
   when: >
-    const response = chakram.get(host);
+    this.response = chakram.get(this.host);
   then: >
-    expect(response).to.have.status(400)
+    expect(this.response).to.have.status(200);
+    expect(this.response).to.have.status(200);
