@@ -5,26 +5,17 @@ engine: chakram # assumed by default if type == test, inherited if none
 suiteRef:
   - ccecoSuite # can miss
   - mcSuite # one test can be part of multiple suites
-version: "1.1"
 dependency:
   - name: ccecoSuite
-    version: ">=2.0"
   - name: mcSuite
-    version: ">=1.0 <=3.2"
 hooks:
   shouldSkip:
-  beforeGiven: > # the context can be altered in all hooks.
+  setup: > # the context can be altered in all hooks.
     console.log(`✅ Running beforeGiven!`);
     console.log(`this.host value is ${this.host}`);
-  afterGiven: >
-    this.host = "https://facebook.com"
-    console.log(`✅ Running afterGiven!`)
   beforeWhen: console.log(`✅ Running beforeWhen!`)
-  afterWhen: >
-    console.log(`this.host value is ${this.host}`);
-    console.log(`✅ Running afterWhen!`)
   beforeThen: console.log(`✅ Running beforeThen!`)
-  afterThen: console.log(`✅ Running afterThen!`)
+  teardown: console.log(`✅ Running afterThen!`)
 config:
   timeout: 10 #think of other properties
   repeat: 10 #repeat 10 times

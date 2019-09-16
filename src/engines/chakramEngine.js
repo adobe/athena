@@ -10,7 +10,7 @@ const Mocha = require("mocha"),
 
 // project
 const {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isSuite, isTest, makeLogger, parseAstExpressions} = require("./../utils");
+    {isSuite, isTest, makeLogger, parseAstExpressions, validateSchema} = require("./../utils");
 
 class ChakramEngine {
     constructor(settings, entityManager, pluginManager) {
@@ -66,7 +66,16 @@ class ChakramEngine {
 
     _deepParseEntities = (e) => {
         if (isTest(e)) {
+
             // todo: validate test schema
+            const validationResult = validateSchema(e.config);
+            
+            if (validationResult.error) {
+                validationResult.error.details.forEach(err => {
+                    console.log(`${e.name}  ${err.message} (path: ${err.path})`)
+                });
+            }
+
             e.setTaxonomy(this.taxonomy);
             e.setContext(this._generateTestContext(e));
 
@@ -75,6 +84,13 @@ class ChakramEngine {
 
         if (isSuite(e)) {
             // todo: validate suite schema
+            const validationResult = validateSchema(e.config);
+            if (validationResult.error) {
+                validationResult.error.details.forEach(err => {
+                    console.log(`${e.name}  ${err.message} (path: ${err.path})`)
+                });
+            }
+
             e.setTaxonomy(this.taxonomy);
 
             if (e.tests.length) {
@@ -110,33 +126,52 @@ class ChakramEngine {
         }
 
         const stagesOrder = [
-            "beforeGiven",  // todo: alias 'before'
-            "given",        // main stage
-            "afterGiven",
-            "beforeWhen",
-            "when",         // main stage
-            "afterWhen",
-            "beforeThen",
-            "then",         // main stage
-            "afterThen"     // todo: alias 'after'
+            {
+                "stage": "hooks",
+                "substage": ["beforeGiven", "before"]
+            },  // alias 'before'
+            {
+                "stage": "scenario",
+                "substage": ["given"]
+            },   // main stage
+            {
+                "stage": "hooks",
+                "substage": ["beforeWhen"]
+            },
+            {
+                "stage": "scenario",
+                "substage": ["when"]
+            },         // main stage
+            {
+                "stage": "hooks",
+                "substage": ["beforeThen"]
+            },
+            {
+                "stage": "scenario",
+                "substage": ["then"]
+            },         // main stage
+            {
+                "stage": "hooks",
+                "substage": ["afterThen", "after"]
+            }     // todo: alias 'after'
         ];
 
         // todo: handle stage rejections properly
         const stages = stagesOrder
-            .filter(stage => test.config.hooks[stage] || test.config.scenario[stage])
-            .map(function _makeContextBoundStage(stage) {
-                let stageContent = test.config.hooks[stage];
+            .filter(s =>
+                test.config[s.stage] &&
+                Object.keys(test.config[s.stage]).some(key => s.substage.includes(key)))
+            .map(function _makeContextBoundStage(s) {
 
-                if (!stageContent) {
-                    stageContent = test.config.scenario[stage];
-                }
+                let substage = Object.keys(test.config[s.stage]).filter(key => s.substage.includes(key))[0];
+                let stageContent = test.config[s.stage][substage];
 
                 const promiseTpl = `new Promise(function(resolve) {
-                                        /* Stage: {stage} */
+                                        /* Stage: {substage} */
                                         {stageContent}
                                     }.bind($context))`;
 
-                if (stage === "then") {
+                if (substage === "then") {
                     let parsedStageContent = parseAstExpressions(stageContent)
                         .map(e => e.replace(';', ''))
                         .join(',');
@@ -146,7 +181,7 @@ class ChakramEngine {
                     stageContent = `${stageContent} \n resolve();`;
                 }
 
-                return promiseTpl.format({ stage, stageContent });
+                return promiseTpl.format({ substage, stageContent });
             })
             .join(',');
 

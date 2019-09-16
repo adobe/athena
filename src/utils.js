@@ -6,11 +6,14 @@ const fs = require("fs"),
 const chalk = require("chalk").default,
     program = require("commander"),
     AstParser = require("acorn-loose"),
+    Joi = require("@hapi/joi"),
     {isUndefined} = require("lodash");
 
 // Project dependencies.
 const CONFIG = require("./config"),
-    {ENTITY_TYPES} = require("./enums");
+    {ENTITY_TYPES} = require("./enums"),
+    schemas = require("./schemas"),
+    log = makeLogger();
 
 /**
  * Creates a logger instance.
@@ -76,7 +79,7 @@ function getParsedSettings(options = {}) {
     // Check whether the specified tests directory exists, otherwise use the default examples.
     if (!fs.existsSync(defaults.testsDir)) {
         if (!isUndefined(defaults.testsDir)) {
-            this.log.warn(`The specified tests directory does not exist: (${defaults.testsDir}). Using the example tests instead.`);
+            log.warn(`The specified tests directory does not exist: (${defaults.testsDir}). Using the example tests instead.`);
         }
         defaults.testsDir = defaults.examplesDir;
     }
@@ -147,6 +150,12 @@ exports.makeContainer = () => {
     }
 
     return new Container();
+};
+
+exports.validateSchema = (entity)  => {
+    const schema = schemas[`${entity.type}`];
+    const validationResult = Joi.validate(entity, schema);
+    return validationResult;
 };
 
 // todo: factory? adjust enums to uppercase first though

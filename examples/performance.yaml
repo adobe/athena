@@ -1,14 +1,12 @@
 name: perf
 description: someDescr
-version: "1.0"
 engine: autocannon
 type: test
 dependecy:
   - name: cceco
     type: api # ??
-    version: ">1.0"
 hooks:
-  shouldSkip:
+  skip:
   onInit:
   onDestroy:
   onRequest:
@@ -26,7 +24,6 @@ config:
 scenario:
   pattern:
     ref: "prod"
-    version: "1.0"
     config:
       #needed config for pattern
     rampUp:
