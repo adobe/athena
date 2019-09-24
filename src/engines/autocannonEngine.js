@@ -7,12 +7,7 @@ const {TAXONOMIES, ENGINES} = require("./../enums"),
 
 class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
-        super(settings, entityManager, pluginManager);
-        // parse all performance tests
-        this._autoCannon = autocannon;
-        this.name = ENGINES.AUTOCANNON;
-        this.taxonomy = TAXONOMIES.PERFORMANCE;
-
+        super(settings, entityManager, pluginManager, TAXONOMIES.PERFORMANCE, ENGINES.AUTOCANNON, autocannon);
         // parse and register entities
         this.entities = this.entityManager
             .getAllBy("engine", this.name) // todo: naive query as plugins/fixtures may be included as well if the engine property is mistakenly provided.

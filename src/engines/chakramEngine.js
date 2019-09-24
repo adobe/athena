@@ -15,10 +15,7 @@ const {TAXONOMIES, ENGINES} = require("./../enums"),
 
 class ChakramEngine extends Engine{
     constructor(settings, entityManager, pluginManager) {
-        super(settings, entityManager, pluginManager);
-        this.engine = new Mocha();
-        this.name = ENGINES.CHAKRAM;
-        this.taxonomy = TAXONOMIES.FUNCTIONAL;
+        super(settings, entityManager, pluginManager, TAXONOMIES.FUNCTIONAL, ENGINES.CHAKRAM, new Mocha()) ;
         this.nativeMethods = {
             findPath: null,
             readFileSync: null
