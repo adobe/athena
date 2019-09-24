@@ -158,3 +158,4 @@ exports.isSingleTest = (entity) => entity.data && entity.data.type !== "spec";
 
 exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_TEST;
 exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PATTERN;
+exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_RUN;

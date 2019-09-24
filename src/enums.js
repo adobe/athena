@@ -10,7 +10,8 @@ const ENTITY_TYPES = {
   PLUGIN: "plugin",
   FIXTURE: "fixture",
   PATTERN: "pattern",
-  PERFORMANCE_TEST: "perfTest"
+  PERFORMANCE_TEST: "perfTest",
+  PERFORMANCE_RUN: "perfRun"
 };
 
 const TEST_TYPES = {

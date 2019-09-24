@@ -1,7 +1,7 @@
 const autocannon = require('autocannon');
 
 const {TAXONOMIES, ENGINES} = require("./../enums"),
-    {makeLogger, isPerformanceScenario} = require("./../utils");
+    {makeLogger, isPerformanceTest} = require("./../utils");
 
 class AutocannonEngine {
     constructor(settings, entityManager, pluginManager) {
@@ -23,12 +23,16 @@ class AutocannonEngine {
     }
 
     _deepParseEntities = (e) => {
-        if (isPerformanceScenario(e)) {
+        if (isPerformanceTest(e)) {
             e.setTaxonomy(this.taxonomy);
             e.setContext();
             return e;
         }
     };
+
+    _registerEntities = (e) => {
+      console.log(this);
+e    };
 
     run = () => {
         console.log("running performance tests...");
