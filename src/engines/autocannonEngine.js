@@ -26,6 +26,7 @@ class AutocannonEngine extends Engine {
 
     _registerEntities = (e) => {
       console.log(this);
+      return e;
     };
 
     run = () => {
