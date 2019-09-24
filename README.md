@@ -170,7 +170,7 @@ config:
 
 ### Dependencies
 
-All fixture dependencies are automatically detected and installed during runtime while using both ES5 or ES6 syntax. The following example represents a valid fixture without the need for you to manage the `package.json` file.
+All fixture dependencies are automatically detected and installed during runtime. The following example represents a valid fixture without the need for you to manage the `package.json` file.
 
 ```javascript
 const uuid = require("uuid/v1");
@@ -181,11 +181,5 @@ function uuidFixture() {
 
 module.exports = uuidFixture;
 ``` 
-
-If you'd like to use a specific version for a certain package, you can do so by suffixing the package name with the version number as follows:
-
-```javascript
-const uuid = require("uuid/v1@3.3.3");
-```
 
 > 💡 **Note:** If a test is marked as unstable during the pre-flight check, its dependencies will not be installed. 
