@@ -2,9 +2,10 @@ name: "production"
 version: "1.0"
 description: ""
 engine: autocannon
-type: test
+type: pattern
 mix:
-  - name: "apiKey"
+  - ref: "apiKey"
+    version: "1.0"
     weight: 10%
     config:
       host:

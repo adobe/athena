@@ -8,7 +8,9 @@ const ENTITY_TYPES = {
   SUITE: "suite",
   TEST: "test",
   PLUGIN: "plugin",
-  FIXTURE: "fixture"
+  FIXTURE: "fixture",
+  PATTERN: "pattern",
+  PERFORMANCE_TEST: "perfTest"
 };
 
 const TEST_TYPES = {
@@ -31,7 +33,8 @@ const COMMANDS = {
 //
 
 const ENGINES = {
-  CHAKRAM: "chakram"
+  CHAKRAM: "chakram",
+  AUTOCANNON: "autocannon"
 };
 
 const TAXONOMIES = {

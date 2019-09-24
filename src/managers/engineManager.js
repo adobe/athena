@@ -6,18 +6,36 @@ class EngineManager {
         this.settings = settings;
         this.pluginManager = pluginManager;
         this.entityManager = entityManager;
-
-        // todo: manage engines dynamically
-        // todo: check engine flags (--performance, --functional)
-
         this.chakramEngine = new ChakramEngine(
             this.settings,
             this.entityManager,
             this.pluginManager
         );
+        this.autoCannonEngine = new AutocannonEngine(
+            this.settings,
+            this.entityManager,
+            this.pluginManager
+        );
 
-        this.chakramEngine.run();
+        const {functional, performance} = this.settings;
+        // todo: manage engines dynamically
+        // todo: check engine flags (--performance, --functional)
+        if(functional) {
+            return this.chakramEngine.run();
+        }
+
+        if (performance) {
+            return this.autoCannonEngine.run();
+        }
+
+        this._dynamicStart();
     }
+
+    _dynamicStart = () => {
+        //TODO: right now it's exclusive might be worth running both engines in parallel in the future
+        console.log(this);
+    }
+
 }
 
 module.exports = EngineManager;

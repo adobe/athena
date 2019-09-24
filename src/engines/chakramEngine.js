@@ -203,6 +203,10 @@ class ChakramEngine {
         module.constructor._findPath = findPath;
         fs.readFileSync = readFileSync;
     };
+
+    hasTests = () => {
+        return this.entities.length > 0;
+    }
 }
 
 module.exports = ChakramEngine;

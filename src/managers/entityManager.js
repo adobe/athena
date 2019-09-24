@@ -12,12 +12,16 @@ const {
     isTest,
     isSuite,
     isFixture,
+    isPerformanceTest,
+    isPerformancePattern,
     makeLogger
 } = require("../utils");
 
 const SuiteEntity = require("../entities/suiteEntity"),
     TestEntity = require("../entities/testEntity"),
-    FixtureEntity = require("../entities/fixtureEntity");
+    FixtureEntity = require("../entities/fixtureEntity"),
+    PerformanceTestEntity = require("../entities/performanceTestEntity"),
+    PerformancePatternEntity = require("../entities/performancePatternEntity");
 
 class EntityManager {
     constructor(settings) {
@@ -35,6 +39,10 @@ class EntityManager {
 
     getSuiteBy = (attribute, value) => {
         return this.entities.entries.filter(e => isSuite(e) && e.config[attribute] === value)[0];
+    };
+
+    getPerformancePatternBy = (attribute, value) => {
+        return this.entities.entries.filter(e => isPerformancePattern(e) && e.config[attribute] === value)[0];
     };
 
     getAllBy = (attribute, value) => {
@@ -127,6 +135,27 @@ class EntityManager {
 
             const {name, path, config} = entity;
             this.entities.add(new FixtureEntity(name, path, config));
+        }
+
+        for (let entity of entities) {
+            if(!isPerformancePattern(entity)) {
+                continue;
+            }
+
+            const {name, path, config} = entity;
+            this.entities.add(new PerformancePatternEntity(name, path, config));
+        }
+
+        //parse performance scenarios
+        for (let entity of entities) {
+            if (!isPerformanceTest(entity)) {
+                continue;
+            }
+
+            const {name, path, config} = entity;
+            this.entities.add(new PerformanceTestEntity(name, path, config));
+
+            getPerformancePatternBy
         }
     };
 }
