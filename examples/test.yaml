@@ -8,14 +8,14 @@ suiteRef:
 dependency:
   - name: ccecoSuite
   - name: mcSuite
-hooks:
-  shouldSkip:
-  setup: > # the context can be altered in all hooks.
-    console.log(`✅ Running beforeGiven!`);
-    console.log(`this.host value is ${this.host}`);
-  beforeWhen: console.log(`✅ Running beforeWhen!`)
-  beforeThen: console.log(`✅ Running beforeThen!`)
-  teardown: console.log(`✅ Running afterThen!`)
+#hooks:
+#  shouldSkip:
+#  setup: > # the context can be altered in all hooks.
+#    console.log(`✅ Running beforeGiven!`);
+#    console.log(`this.host value is ${this.host}`);
+#  beforeWhen: console.log(`✅ Running beforeWhen!`)
+#  beforeThen: console.log(`✅ Running beforeThen!`)
+#  teardown: console.log(`✅ Running afterThen!`)
 config:
   timeout: 10 #think of other properties
   repeat: 10 #repeat 10 times

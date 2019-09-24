@@ -1,3 +1,7 @@
-module.exports = function() {
-    console.log('logging from fixture');
-};
+const uuid = require("uuid/v1");
+
+function uuidFixture() {
+    return uuid();
+}
+
+module.exports = uuidFixture;

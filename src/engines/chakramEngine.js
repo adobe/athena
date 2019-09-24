@@ -56,51 +56,33 @@ class ChakramEngine {
         this._destruct();
     };
 
-    _registerEntities = (e) => {
-        e.toString = e.getContext;
-        e.fileName = `${e.config.name}.atena.js`; // todo: use a setter.
-        this.engine.addFile(e.fileName);
+    _registerEntities = (entity) => {
+        entity.toString = entity.getContext;
+        entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
+        this.engine.addFile(entity.fileName);
 
-        return e;
+        return entity;
     };
 
-    _deepParseEntities = (e) => {
-        if (isTest(e)) {
+    _deepParseEntities = (entity) => {
+        if (isTest(entity)) {
+            entity.setTaxonomy(this.taxonomy);
+            entity.setContext(this._generateTestContext(entity));
 
-            // todo: validate test schema
-            const validationResult = validateSchema(e.config);
-            
-            if (validationResult.error) {
-                validationResult.error.details.forEach(err => {
-                    console.log(`${e.name}  ${err.message} (path: ${err.path})`)
-                });
-            }
-
-            e.setTaxonomy(this.taxonomy);
-            e.setContext(this._generateTestContext(e));
-
-            return e;
+            return entity;
         }
 
-        if (isSuite(e)) {
-            // todo: validate suite schema
-            const validationResult = validateSchema(e.config);
-            if (validationResult.error) {
-                validationResult.error.details.forEach(err => {
-                    console.log(`${e.name}  ${err.message} (path: ${err.path})`)
-                });
+        if (isSuite(entity)) {
+            entity.setTaxonomy(this.taxonomy);
+
+            if (entity.tests.length) {
+                entity.tests = entity.tests.map(this._deepParseEntities);
+                const testsCtx = entity.tests.map(t => t.getContext());
+                const suiteCtx = this._generateSuiteContext(entity, testsCtx.join('\n'));
+                entity.setContext(suiteCtx);
             }
 
-            e.setTaxonomy(this.taxonomy);
-
-            if (e.tests.length) {
-                e.tests = e.tests.map(this._deepParseEntities);
-                const testsCtx = e.tests.map(t => t.getContext());
-                const suiteCtx = this._generateSuiteContext(e, testsCtx.join('\n'));
-                e.setContext(suiteCtx);
-            }
-
-            return e;
+            return entity;
         }
     };
 
@@ -181,7 +163,7 @@ class ChakramEngine {
                     stageContent = `${stageContent} \n resolve();`;
                 }
 
-                return promiseTpl.format({ substage, stageContent });
+                return promiseTpl.format({substage, stageContent});
             })
             .join(',');
 

@@ -5,9 +5,11 @@ const fs = require("fs"),
 // External dependencies.
 const chalk = require("chalk").default,
     program = require("commander"),
+    argv = require("yargs").argv,
     AstParser = require("acorn-loose"),
     Joi = require("@hapi/joi"),
-    {isUndefined} = require("lodash");
+    {isUndefined} = require("lodash"),
+    ora = require("ora");
 
 // Project dependencies.
 const CONFIG = require("./config"),
@@ -24,9 +26,13 @@ function makeLogger() {
     const cliArgs = getCliArgs();
 
     logger.success = (...m) => console.log(chalk.green(`✅ SUCCESS: `), ...m);
-    logger.error = (...m) => console.log(chalk.red(`🚫 ERROR: `), ...m);
     logger.warn = (...m) => console.log(chalk.yellow(`⚠️  WARN: `), ...m);
     logger.info = (...m) => console.log(chalk.blue(`ℹ️  INFO: `), ...m);
+
+    logger.error = (...m) => {
+        console.log(chalk.red(`🚫 ERROR: `), ...m);
+        process.exit(1);
+    };
 
     logger.debug = (...m) => {
         if (cliArgs.debug) {
@@ -152,10 +158,43 @@ exports.makeContainer = () => {
     return new Container();
 };
 
-exports.validateSchema = (entity)  => {
-    const schema = schemas[`${entity.type}`];
-    const validationResult = Joi.validate(entity, schema);
-    return validationResult;
+exports.validateSchema = (entity)  => { // 'Entity' type.
+    const {value, error} = Joi.validate(
+        entity.getConfig(),
+        schemas[`${entity.getType()}`]
+    );
+
+    if (error) {
+        throw new Error(`${error} inside "${entity.getFileName()}"`);
+    }
+
+    return value;
+};
+
+exports.startSpinner = (message) => {
+    const spinner = ora();
+    spinner.text = message;
+    spinner.start();
+
+    return spinner;
+};
+
+exports.getPackageInstallCommand = (packageName) => {
+    let manager = 'npm';
+
+    if (argv.yarn) {
+        manager = 'yarn';
+    }
+
+    let command = null;
+
+    if (manager === 'npm') {
+        command = `npm install ${packageName} --save`;
+    } else if (manager === 'yarn') {
+        command = `yarn add ${packageName}`;
+    }
+
+    return command;
 };
 
 // todo: factory? adjust enums to uppercase first though
