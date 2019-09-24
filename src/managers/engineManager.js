@@ -32,8 +32,14 @@ class EngineManager {
     }
 
     _dynamicStart = () => {
-        //TODO: right now it's exclusive might be worth running both engines in parallel in the future
-        console.log(this);
+        //TODO: right now is one after another
+        if(this.chakramEngine.hasTests()) {
+            this.chakramEngine.run();
+        }
+
+        if(this.autoCannonEngine.hasTests()) {
+            this.autoCannonEngine.run();
+        }
     }
 
 }

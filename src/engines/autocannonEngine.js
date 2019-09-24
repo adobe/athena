@@ -1,16 +1,15 @@
 const autocannon = require('autocannon');
 
-const {TAXONOMIES, ENGINES} = require("./../enums"),
-    {makeLogger, isPerformanceTest} = require("./../utils");
+const Engine = require ("./engine");
 
-class AutocannonEngine {
+const {TAXONOMIES, ENGINES} = require("./../enums"),
+    {isPerformanceTest} = require("./../utils");
+
+class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
+        super(settings, entityManager, pluginManager);
         // parse all performance tests
         this._autoCannon = autocannon;
-        this.entityManager = entityManager;
-        this.pluginManager = pluginManager;
-        this.settings = settings;
-        this.log = makeLogger();
         this.name = ENGINES.AUTOCANNON;
         this.taxonomy = TAXONOMIES.PERFORMANCE;
 
@@ -32,7 +31,7 @@ class AutocannonEngine {
 
     _registerEntities = (e) => {
       console.log(this);
-e    };
+    };
 
     run = () => {
         console.log("running performance tests...");
