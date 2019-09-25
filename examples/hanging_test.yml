@@ -1,14 +1,12 @@
 name: hanging test
 type: test
 description: this test does not belong to any spec
-version: "1.1"
 engine: chakram
 dependency:
   - name: mc
-    version: ">1.1"
     type: api
 hooks:
-  shouldSkip:
+  skip:
   beforeMe:
   afterMe:
 config:

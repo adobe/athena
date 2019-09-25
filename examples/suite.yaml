@@ -2,10 +2,8 @@ type: suite
 name: ccecoSuite # required
 engine: chakram # required for top level suite, nested values are ignored.
 description: some string
-version: 2.0
 dependecy:
   - name: cceco
-    version: ">=5.2.1"
     type: api
 hooks:
   beforeEach: >
@@ -14,7 +12,7 @@ hooks:
   before:
   after:
   afterEach:
-  shouldSkip: # function to run before every test and check if it should run or not returns true or false
+  skip: # function to run before every test and check if it should run or not returns true or false
 config:
   timeout: 10
   #think of other stuff
