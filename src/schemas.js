@@ -8,7 +8,7 @@ const schemaTest =
         description: Joi.string(),
         engine: Joi.string().alphanum(),
         hooks: Joi.object().keys({
-            skipIf: Joi.string(),
+            skip: Joi.string(),
             setup: Joi.string(),
             beforeWhen: Joi.string(),
             beforeThen: Joi.string(),

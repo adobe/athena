@@ -9,7 +9,7 @@ dependency:
   - name: ccecoSuite
   - name: mcSuite
 hooks:
-  shouldSkip:
+  skip:
   setup: > # the context can be altered in all hooks.
     console.log(`✅ Running beforeGiven!`);
     console.log(`this.host value is ${this.host}`);
