@@ -97,7 +97,6 @@ function getParsedSettings(options = {}) {
     defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
     defaults.testsDirPath = path.resolve(defaults.basePath, defaults.testsDir);
     defaults.pluginsDirPath = path.resolve(defaults.basePath, defaults.testsDir, defaults.pluginsDir);
-
     return {...defaults, ...cliArgs, ...options};
 }
 
@@ -195,6 +194,12 @@ exports.getPackageInstallCommand = (packageName) => {
     }
 
     return [command, manager];
+}
+
+exports.validateSchema = (entity)  => {
+    const schema = schemas[`${entity.type}`];
+    const validationResult = Joi.validate(entity, schema);
+    return validationResult;
 };
 
 // todo: factory? adjust enums to uppercase first though
@@ -204,3 +209,7 @@ exports.isFixture = (entity) => entity && entity.config && entity.config.type ==
 
 // todo: deprecated, remove this
 exports.isSingleTest = (entity) => entity.data && entity.data.type !== "spec";
+
+exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_TEST;
+exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PATTERN;
+exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_RUN;

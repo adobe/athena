@@ -1,7 +1,7 @@
 name: perf
 description: someDescr
 engine: autocannon
-type: test
+type: perfTest
 dependecy:
   - name: cceco
     type: api # ??
@@ -23,25 +23,27 @@ config:
   rps: 3000
 scenario:
   pattern:
-    ref: "prod"
-    config:
-      #needed config for pattern
-    rampUp:
-      every: 10s #or fixed
-      rps: 10
-      connections: 10
-      threads:
-      fixed: 30s #or every
-    coolDown:
-      every: 10s #or fixed
-      rps: 10
-      threads:
-      connections: 10
-      fixed: 30s #or every
-    spike:
-      every: 10s #or fixed
-      rps: 10
-      threads:
-      connections: 10
-      fixed: 30s #or every if fixed you need to specify after
-      after: 30s
+    - ref: "prod"
+      version: "1.0"
+      config:
+        #needed config for pattern
+      rampUp:
+        every: 10s #or fixed
+        rps: 10
+        connections: 10
+        threads:
+        fixed: 30s #or every
+      coolDown:
+        every: 10s #or fixed
+        rps: 10
+        threads:
+        connections: 10
+        fixed: 30s #or every
+      spike:
+        every: 10s #or fixed
+        rps: 10
+        threads:
+        connections: 10
+        fixed: 30s #or every if fixed you need to specify after
+        after: 30s
+

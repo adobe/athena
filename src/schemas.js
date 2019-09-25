@@ -1,6 +1,5 @@
 const Joi = require("@hapi/joi");
 
-
 const schemaTest =
     Joi.object().keys({
         type: Joi.string().alphanum().equal("test"),
@@ -8,7 +7,7 @@ const schemaTest =
         description: Joi.string(),
         engine: Joi.string().alphanum(),
         hooks: Joi.object().keys({
-            skipIf: Joi.string(),
+            skip: Joi.string(),
             setup: Joi.string(),
             beforeWhen: Joi.string(),
             beforeThen: Joi.string(),
@@ -21,20 +20,14 @@ const schemaTest =
         })
     });
 
-// todo: improve suite schema.
 const schemaSuite =
     Joi.object().keys({
         type: Joi.string().alphanum().equal("suite"),
         name: Joi.string(),
-        engine: Joi.string().alphanum().valid("chakram", "autocannon").required(),
         description: Joi.string(),
-        hooks: Joi.object(),
-        config: Joi.object(),
-        scenario: Joi.object(),
-        fixtures: Joi.array()
-        // variables: Joi.object().keys()
+        engine: Joi.string().alphanum(),
+        variables: Joi.object().keys()
     });
-
 
 const schemaFixture = Joi.object().keys({
     name: Joi.string().required(),
