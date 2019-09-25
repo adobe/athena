@@ -13,7 +13,8 @@ const {
     makeLogger,
     makeContainer,
     startSpinner,
-    getPackageInstallCommand
+    getPackageInstallCommand,
+    isTest,
 } = require("../utils");
 
 // todo: load dynamically
@@ -34,6 +35,7 @@ class PluginsManager {
         this.fixtures = makeContainer();
         this.filters = makeContainer();
         this.log = makeLogger();
+        this.settings = settings;
 
         this.entityManager = entityManager;
 
@@ -73,13 +75,30 @@ class PluginsManager {
     };
 
     maybeInjectFixtures = (entity, global = false) => {
-        if (!this.fixtures.length) {
+        const noFixturesAvailable = !this.fixtures.entries.length;
+        const entityFixturesMissing = !entity || !entity.config || !entity.config.fixtures;
+
+        if (noFixturesAvailable || entityFixturesMissing) {
             return;
         }
 
-        const context = global ? "global" : entity.config.name;
-        const fixtures = this.fixtures.entries.filter(f => f.config.context === context);
-        return fixtures.map(f => `const ${f.config.config.exposes} = require("${path.resolve("examples", f.config.config.path)}");`).join('');
+        // todo: get all parent suite fixtures.
+
+        const finalRequire = [];
+
+        for (let fixture of this.fixtures.entries) {
+            const entityRequiresFixture = entity.config.fixtures.indexOf(fixture.config.name) !== -1;
+
+            // todo: if it's in global scope, and already included, skip.
+            // todo: if it's a test and its parent suite already included it, skip.
+
+            if (entityRequiresFixture) {
+                const fixturePath = path.resolve(this.settings.testsDir, fixture.getSourcePath());
+                finalRequire.push(`const ${fixture.config.name} = require("${fixturePath}");`);
+            }
+        }
+
+        return finalRequire.join('');
     };
 
     _parseFixtures = () => {
@@ -113,6 +132,7 @@ class PluginsManager {
         try {
             const fp = fixture.getModulePath();
             const content = fs.readFileSync(fp, "utf-8");
+
             packages = detective(content, {
                 parse: {
                     sourceType: "module"
@@ -142,8 +162,8 @@ class PluginsManager {
     _installMissingModules = (usedPackages) => {
         for (let module of usedPackages) {
             const [packageName] = module;
-            const spinner = startSpinner(`Installing ${packageName}...\n`);
-            const cmd = getPackageInstallCommand(packageName);
+            const [cmd, manager] = getPackageInstallCommand(packageName);
+            const spinner = startSpinner(`Installing "${packageName}" using ${manager} ...\n`);
 
             try {
                 execSync(cmd, {encoding: 'utf8'});

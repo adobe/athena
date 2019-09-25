@@ -30,7 +30,8 @@ const schemaSuite =
         description: Joi.string(),
         hooks: Joi.object(),
         config: Joi.object(),
-        scenario: Joi.object()
+        scenario: Joi.object(),
+        fixtures: Joi.array()
         // variables: Joi.object().keys()
     });
 

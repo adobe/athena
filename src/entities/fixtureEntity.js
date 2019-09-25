@@ -21,6 +21,10 @@ class FixtureEntity extends Entity {
 
         return null;
     };
+
+    getSourcePath = () => {
+        return this.config.config.source;
+    }
 }
 
 module.exports = FixtureEntity;

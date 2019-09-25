@@ -194,7 +194,7 @@ exports.getPackageInstallCommand = (packageName) => {
         command = `yarn add ${packageName}`;
     }
 
-    return command;
+    return [command, manager];
 };
 
 // todo: factory? adjust enums to uppercase first though
