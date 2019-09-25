@@ -1,23 +1,11 @@
-name: "production"
+name: "prod"
 version: "1.0"
 description: ""
 engine: autocannon
-type: test
+type: pattern
 mix:
-  - name: "apiKey"
-    weight: 10%
-    config:
-      host:
-      path:
-      port:
-      headers:
-      body:
-    hooks:
-      onInit:
-      onDestroy:
-      onRequest:
-      onResponse:
-  - name: "oauth"
+  - ref: "apiKey"
+    version: "1.0"
     weight: 20%
     config:
       host:

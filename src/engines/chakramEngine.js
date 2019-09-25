@@ -2,6 +2,7 @@
 const fs = require("fs"),
     path = require("path");
 
+const Engine = require("./engine");
 // external
 const Mocha = require("mocha"),
     {find} = require("lodash"),
@@ -10,17 +11,11 @@ const Mocha = require("mocha"),
 
 // project
 const {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isSuite, isTest, makeLogger, parseAstExpressions} = require("./../utils");
+    {isSuite, isTest, parseAstExpressions} = require("./../utils");
 
-class ChakramEngine {
+class ChakramEngine extends Engine{
     constructor(settings, entityManager, pluginManager) {
-        this.engine = new Mocha();
-        this.name = ENGINES.CHAKRAM;
-        this.taxonomy = TAXONOMIES.FUNCTIONAL;
-        this.settings = settings;
-        this.entityManager = entityManager;
-        this.pluginManager = pluginManager;
-        this.log = makeLogger();
+        super(settings, entityManager, pluginManager, TAXONOMIES.FUNCTIONAL, ENGINES.CHAKRAM, new Mocha()) ;
         this.nativeMethods = {
             findPath: null,
             readFileSync: null
@@ -203,6 +198,7 @@ class ChakramEngine {
         module.constructor._findPath = findPath;
         fs.readFileSync = readFileSync;
     };
+
 }
 
 module.exports = ChakramEngine;
