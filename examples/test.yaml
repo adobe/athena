@@ -2,6 +2,8 @@ type: test
 name: ccecoTest # required
 description: this is the test description
 engine: chakram # assumed by default if type == test, inherited if none
+fixtures:
+  - isServiceToken
 suiteRef:
   - ccecoSuite # can miss
   - mcSuite # one test can be part of multiple suites
@@ -22,6 +24,7 @@ config:
 scenario:
   given: >
     this.host = "https://google.com";
+    isServiceToken()
   when: >
     this.response = chakram.get(this.host);
   then: >

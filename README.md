@@ -136,4 +136,50 @@ Plugins allow you to extend Athena's functionality.
 
 ## Fixtures
 
-Fixtures are helper functions that can be injected in various contexts. 
+Fixtures are helper functions that can be injected in various contexts.
+
+### Configuration
+
+Fixtures need to be defined and configured first via `yaml` files in order to be used inside tests. The following configuration options are available while defining fixtures:
+
+#### `name`
+
+*(Required)* The fixture name in `camelCase`, which will also act as the provisioned function name.
+
+#### `type`
+
+*(Required)* The module type (`fixture`).
+
+#### `config:type`
+
+*(Required)* The fixture type. Allowed values: `lib`, `inline`.
+
+#### `config:source`
+
+*(Required)* The fixture source path if `config:type` is set to `lib`. The fixture implementation if the `config:type` is set to `inline`.
+
+The following is an example of a valid fixture definition:
+
+```yaml
+name: getUUID
+type: fixture
+config:
+  type: lib
+  source: fixtures/getUUIDFixture.js
+```
+
+### Dependencies
+
+All fixture dependencies are automatically detected and installed during runtime. The following example represents a valid fixture without the need for you to manage the `package.json` file.
+
+```javascript
+const uuid = require("uuid/v1");
+
+function uuidFixture() {
+    return uuid();
+}
+
+module.exports = uuidFixture;
+``` 
+
+> 💡 **Note:** If a test is marked as unstable during the pre-flight check, its dependencies will not be installed. 

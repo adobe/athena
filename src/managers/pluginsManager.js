@@ -1,9 +1,21 @@
 // node
 const path = require("path"),
-    {isArray} = require("lodash");
+    fs = require("fs"),
+    _require = require("child_process"),
+    execSync = _require.execSync;
+
+// external
+const {isArray, pullAll, uniq} = require("lodash"),
+    detective = require("detective");
 
 // project
-const {makeLogger, makeContainer} = require("../utils");
+const {
+    makeLogger,
+    makeContainer,
+    startSpinner,
+    getPackageInstallCommand,
+    isTest,
+} = require("../utils");
 
 // todo: load dynamically
 const customPlugin = require("./../../examples/plugins/generatedPlugin");
@@ -23,8 +35,11 @@ class PluginsManager {
         this.fixtures = makeContainer();
         this.filters = makeContainer();
         this.log = makeLogger();
+        this.settings = settings;
 
-        this.fixtures.add(...entityManager.getAllFixtures());
+        this.entityManager = entityManager;
+
+        this._parseFixtures();
 
         // todo: parse plugins dynamically
         customPlugin(this);
@@ -60,11 +75,105 @@ class PluginsManager {
     };
 
     maybeInjectFixtures = (entity, global = false) => {
-        const context = global ? "global" : entity.config.name;
-        const fixtures = this.fixtures.entries.filter(f => f.config.context === context);
-        // todo: validate fixture
+        const noFixturesAvailable = !this.fixtures.entries.length;
+        const entityFixturesMissing = !entity || !entity.config || !entity.config.fixtures;
 
-        return fixtures.map(f => `const ${f.config.config.exposes} = require("${path.resolve("examples", f.config.config.path)}");`).join('');
+        if (noFixturesAvailable || entityFixturesMissing) {
+            return;
+        }
+
+        // todo: get all parent suite fixtures.
+
+        const finalRequire = [];
+
+        for (let fixture of this.fixtures.entries) {
+            const entityRequiresFixture = entity.config.fixtures.indexOf(fixture.config.name) !== -1;
+
+            // todo: if it's in global scope, and already included, skip.
+            // todo: if it's a test and its parent suite already included it, skip.
+
+            if (entityRequiresFixture) {
+                const fixturePath = path.resolve(this.settings.testsDir, fixture.getSourcePath());
+                finalRequire.push(`const ${fixture.config.name} = require("${fixturePath}");`);
+            }
+        }
+
+        return finalRequire.join('');
+    };
+
+    _parseFixtures = () => {
+        let fixtures = this.entityManager.getAllFixtures();
+        const usedPackages = fixtures.map(this._parseUsedPackages).filter(String);
+
+        if (usedPackages.length) {
+            const spinner = startSpinner(`Installing ${usedPackages.length} fixtures module${usedPackages.length === 1 ? '' : 's'} ...\n`);
+
+            try {
+                this._installMissingModules(usedPackages);
+            } catch (error) {
+                this.log.error(error);
+            } finally {
+                spinner.stop();
+            }
+        }
+
+        this.fixtures.add(...fixtures);
+    };
+
+    _parseUsedPackages = (fixture) => { // FixtureEntity
+        let packages = [];
+        let installedPackages = [];
+        const pkg = JSON.parse(fs.readFileSync("package.json"));
+
+        if (pkg && pkg.dependencies) {
+            installedPackages = Object.keys(pkg.dependencies);
+        }
+
+        try {
+            const fp = fixture.getModulePath();
+            const content = fs.readFileSync(fp, "utf-8");
+
+            packages = detective(content, {
+                parse: {
+                    sourceType: "module"
+                }
+            });
+
+            packages = packages
+                .filter(this._isValidPackage)
+                .map(this._sanitizePackage);
+        } catch (error) {
+            this.log.error(`Could not parse "${fixture.getFileName()}".`, error);
+        }
+
+        return uniq(pullAll(packages, installedPackages));
+    };
+
+    _isValidPackage = (pkg) => {
+        const regex = new RegExp('^([a-z0-9-_]{1,})$');
+
+        return regex.test(pkg.name);
+    };
+
+    _sanitizePackage = (pkg) => {
+        return pkg.split('/')[0]; // remove nested references
+    };
+
+    _installMissingModules = (usedPackages) => {
+        for (let module of usedPackages) {
+            const [packageName] = module;
+            const [cmd, manager] = getPackageInstallCommand(packageName);
+            const spinner = startSpinner(`Installing "${packageName}" using ${manager} ...\n`);
+
+            try {
+                execSync(cmd, {encoding: 'utf8'});
+                this.log.success(`Successfully installed "${packageName}".`)
+            } catch (error) {
+                this.log.error(error);
+            } finally {
+                spinner.stop();
+            }
+        }
     };
 }
 

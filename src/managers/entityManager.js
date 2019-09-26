@@ -19,7 +19,7 @@ const {
 } = require("../utils");
 
 const SuiteEntity = require("../entities/suiteEntity"),
-    TestEntity = require("../entities/testEntity"),
+    {ChakramTest} = require("../entities/testEntity"),
     FixtureEntity = require("../entities/fixtureEntity"),
     PerformanceTestEntity = require("../entities/performanceTestEntity"),
     PerformancePatternEntity = require("../entities/performancePatternEntity"),
@@ -62,8 +62,6 @@ class EntityManager {
         const entitiesList = fs.readdirSync(testsDirPath);
         const entities = [];
 
-        // todo: use one single for loop
-
         // parse all entities
         for (let entityFileName of entitiesList) {
             const entity = {};
@@ -75,22 +73,47 @@ class EntityManager {
                 continue;
             }
 
+            // parse config
             entity.config = jsYaml.safeLoad(
                 fs.readFileSync(entity.path),
                 "utf-8"
             );
 
             entities.push(entity);
-        }
+            const {name, path: entityPath, config} = entity;
 
-        // parse suites
-        for (let entity of entities) {
-            if (!isSuite(entity)) {
-                continue;
+            // parse suites
+            if (isSuite(entity)) {
+                const suite = new SuiteEntity(
+                    name,
+                    entityPath,
+                    config
+                );
+
+                try {
+                    suite.validate();
+                    this.entities.add(suite);
+                } catch (error) {
+                    this.log.error(error);
+                }
+
             }
 
-            const {name, path, config} = entity;
-            this.entities.add(new SuiteEntity(name, path, config));
+            // parse fixtures
+            if (isFixture(entity)) {
+                const fixture = new FixtureEntity(
+                    name,
+                    entityPath,
+                    config
+                );
+
+                try {
+                    fixture.validate();
+                    this.entities.add(fixture);
+                } catch (error) {
+                    this.log.error(error)
+                }
+            }
         }
 
         // parse tests
@@ -101,7 +124,14 @@ class EntityManager {
 
             let {suiteRef} = entity.config;
             const {name, path, config} = entity;
-            const testEntity = new TestEntity(name, path, config);
+            const testEntity = new ChakramTest(name, path, config);
+
+            // todo: validate test schema
+            try {
+                // testEntity.validate();
+            } catch (error) {
+                this.log.error(error);
+            }
 
             // test as indie entity
             if (!suiteRef) {
@@ -109,9 +139,7 @@ class EntityManager {
                 continue;
             }
 
-            if (isString(suiteRef)) {
-                suiteRef = [suiteRef];
-            }
+            if (isString(suiteRef)) suiteRef = [suiteRef];
 
             suiteRef.forEach(suiteName => {
                 let suite = this.getSuiteBy("name", suiteName);
@@ -185,7 +213,6 @@ class EntityManager {
             }
 
             this.entities.add(performanceTestEntity);
-
         }
     };
 }
