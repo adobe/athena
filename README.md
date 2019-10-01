@@ -1,4 +1,4 @@
-# Atena
+# Athena
 
 A Testing Engine for APIs
 
