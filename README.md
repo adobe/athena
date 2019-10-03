@@ -1,4 +1,4 @@
-# Atena
+# Athena
 
 A Testing Engine for APIs
 
@@ -17,7 +17,7 @@ A Testing Engine for APIs
 - [x] adjust assertion parsing, make sure expressions are properly loaded
 - [x] add plugins hooks ⚠️ (unstable)
 - [x] add fixture support ⚠️ (unstable)
-- [ ] add model validation (joi/other lib)
+- [x] add model validation (joi)
 - [ ] decouple chakram-specific properties from the testEntity to chakramTestEntity
 - [ ] provide full (dynamic) plugins support
 - [ ] provide full (dynamic) fixture support
@@ -79,10 +79,10 @@ A Testing Engine for APIs
 
 ### Getting Started
 
-`node atena.js --tests-path custom_tests_path`
+`node athena.js --tests-path custom_tests_path`
 
 ```
-Usage: atena [options]
+Usage: athena [options]
 
 Options:
   -V, --version             output the version number
@@ -99,16 +99,16 @@ Options:
 
 ```
 
-By default, Atena will run only functional tests with the following command;
+By default, Athena will run only functional tests with the following command;
 
 ```
-node atena.js
+node athena.js
 ```
 
 The `--functional` flag can be used when you would like to run both **functional** and **performance** tests as well:
 
 ```
-node atena.js --performance --functional
+node athena.js --performance --functional
 ```
 
 ## Config Properties

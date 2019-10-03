@@ -9,7 +9,7 @@ const {COMMANDS} = require("./enums"),
 
 format.extend(String.prototype, {});
 
-class Atena {
+class Athena {
     constructor(options) {
         this.log = makeLogger();
         this.settings = getParsedSettings(options);
@@ -55,4 +55,4 @@ class Atena {
     };
 }
 
-exports = module.exports = Atena;
+exports = module.exports = Athena;

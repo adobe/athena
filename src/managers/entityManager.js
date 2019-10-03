@@ -58,9 +58,19 @@ class EntityManager {
     // private
 
     _parseEntities = () => {
-        const {testsDirPath} = this.settings;
-        const entitiesList = fs.readdirSync(testsDirPath);
+        const {testPath} = this.settings;
+        let entitiesList = [];
+        let testsDirPath;
+        if (fs.lstatSync(testPath).isFile()) {
+            testsDirPath = path.dirname(testPath);
+            entitiesList = [path.basename(testPath)];
+        } else {
+            testsDirPath = testPath;
+            entitiesList = fs.readdirSync(testPath);
+        }
+
         const entities = [];
+        entityList.push("fixture.yaml")
 
         // parse all entities
         for (let entityFileName of entitiesList) {
@@ -91,7 +101,8 @@ class EntityManager {
                 );
 
                 try {
-                    suite.validate();
+                    let result = suite.validate();
+                    console.log(result);
                     this.entities.add(suite);
                 } catch (error) {
                     this.log.error(error);
@@ -108,7 +119,8 @@ class EntityManager {
                 );
 
                 try {
-                    fixture.validate();
+                    let result = fixture.validate();
+                    console.log(result);
                     this.entities.add(fixture);
                 } catch (error) {
                     this.log.error(error)
@@ -128,7 +140,7 @@ class EntityManager {
 
             // todo: validate test schema
             try {
-                // testEntity.validate();
+                testEntity.validate();
             } catch (error) {
                 this.log.error(error);
             }
