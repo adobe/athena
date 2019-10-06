@@ -1,6 +1,5 @@
 name: isServiceToken
-type: fixture #/plugin/chakramProperty/chakramMethod
-#context: ccecoTest # contexts: global, [suiteName] or [testName] for isolation
+type: fixture
 config:
   type: lib
   source: fixtures/consoleFixture.js

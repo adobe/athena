@@ -1,14 +1,16 @@
 const path = require("path");
-const {validateSchema} = require("./../utils");
+const {validateSchema, makeLogger} = require("./../utils");
+const {ALLOWED_ENTITY_TYPES} = require("./../enums");
 
 class Entity {
     constructor(name, filePath, config) {
         this.name = name;
         this.config = config;
         this.fileData = null;
-        this.type = null;
+        this._type = null;
         this.context = null;
         this.taxonomy = null;
+        this.log = makeLogger();
 
         if (filePath) {
             this.fileData = path.parse(filePath)
@@ -16,7 +18,11 @@ class Entity {
     }
 
     validate = () => {
-        validateSchema(this);
+        try {
+            validateSchema(this)
+        } catch (error) {
+            this.log.error(error);
+        }
     };
 
     setContext = (context) => {
@@ -32,7 +38,15 @@ class Entity {
     };
 
     getType = () => {
-        return this.type;
+        return this._type;
+    };
+
+    setType = (type) => {
+        // if (ALLOWED_ENTITY_TYPES.indexOf(type) === -1) {
+        //     this.log.error(`Could not set type ${type} for entity "${this.name} as it's invald."`);
+        // }
+
+        this._type = type;
     };
 
     getFileName = () => {

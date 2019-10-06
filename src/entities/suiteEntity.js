@@ -4,8 +4,11 @@ const Entity = require("./entity"),
 class SuiteEntity extends Entity {
     constructor(name, path, config) {
         super(name, path, config);
-        this.type = ENTITY_TYPES.SUITE;
+
         this.tests = [];
+
+        this.setType(ENTITY_TYPES.SUITE);
+        this.validate();
     }
 
     addTest = (test) => {

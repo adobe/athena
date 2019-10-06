@@ -1,17 +1,23 @@
-const Entity = require("./entity");
-
-const {ENTITY_TYPES} = require('./../enums');
+const Entity = require("./entity"),
+    {ENTITY_TYPES} = require('./../enums');
 
 class PerformanceTestEntity extends Entity {
     constructor(name, path, config) {
         super(name, path, config);
-        this.type = ENTITY_TYPES.PERFORMANCE_TEST;
-        this.patterns = [];
+
+        this.perfPatterns = [];
+
+        this.setType(ENTITY_TYPES.PERFORMANCE_TEST);
+        this.validate();
     }
 
     addPatterns = (pattern) => {
-        this.patterns.push(pattern);
-    }
+        this.perfPatterns.push(pattern);
+    };
+
+    hasPerfPatterns = () => {
+        return Boolean(this.perfPatterns.length);
+    };
 }
 
 module.exports = PerformanceTestEntity;

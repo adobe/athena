@@ -1,17 +1,17 @@
-// Node dependencies
+// Node
 const fs = require("fs"),
     path = require("path");
 
-// External dependencies.
+// External
 const chalk = require("chalk").default,
-    program = require("commander"),
     argv = require("yargs").argv,
     AstParser = require("acorn-loose"),
     Joi = require("@hapi/joi"),
-    {isUndefined} = require("lodash"),
-    ora = require("ora");
+    {isUndefined, remove} = require("lodash"),
+    ora = require("ora"),
+    yargs = require("yargs");
 
-// Project dependencies.
+// Project
 const CONFIG = require("./config"),
     {ENTITY_TYPES} = require("./enums"),
     schemas = require("./schemas"),
@@ -23,7 +23,6 @@ const CONFIG = require("./config"),
  */
 function makeLogger() {
     const logger = {};
-    const cliArgs = getCliArgs();
 
     logger.success = (...m) => console.log(chalk.green(`✅ SUCCESS: `), ...m);
     logger.warn = (...m) => console.log(chalk.yellow(`⚠️  WARN: `), ...m);
@@ -35,7 +34,7 @@ function makeLogger() {
     };
 
     logger.debug = (...m) => {
-        if (cliArgs.debug) {
+        if (yargs.argv.debug) {
             console.log(chalk.gray(`🐛 DEBUG: `), ...m);
         }
     };
@@ -44,26 +43,31 @@ function makeLogger() {
 }
 
 exports.makeLogger = makeLogger;
+exports.log = log;
 
 /**
  * Returns the CLI arguments, if any.
  * @returns {commander.CommanderStatic | commander}
  */
-function getCliArgs() {
-    program
-        .description(CONFIG.DESCRIPTION)
-        .version(CONFIG.VERSION)
-        .option('-t, --tests-path <path>', 'Specify the tests path.')
-        .option('-D, --debug', 'Enable debug logging.')
-        .option('-p, --make-plugin <name>', 'Scaffold a new plugin.')
-        .option('-t, --make-test', 'Scaffold a new test.')
-        .option('-g, --grep <regex>', 'Run only specific tests.')
-        .option('-b, --bail', 'Fail fast after the first test failure.')
-        .option('-P, --performance', 'run performance tests')
-        .option('-F, --functional', 'run functional tests')
-        .parse(process.argv);
+// function getCliArgs() {
+//     program
+//         .description(CONFIG.DESCRIPTION)
+//         .version(CONFIG.VERSION)
+//         .option('-t, --tests-path <path>', 'Specify the tests path.')
+//         .option('-D, --debug', 'Enable debug logging.')
+//         .option('-p, --make-plugin <name>', 'Scaffold a new plugin.')
+//         .option('-t, --make-test', 'Scaffold a new test.')
+//         .option('-g, --grep <regex>', 'Run only specific tests.')
+//         .option('-b, --bail', 'Fail fast after the first test failure.')
+//         .option('-P, --performance', 'run performance tests')
+//         .option('-F, --functional', 'run functional tests')
+//         .parse(process.argv);
+//
+//     return program;
+// }
 
-    return program;
+function getCliArgs() {
+    return {};
 }
 
 exports.getCliArgs = getCliArgs;
@@ -97,7 +101,14 @@ function getParsedSettings(options = {}) {
     defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
     defaults.testsDirPath = path.resolve(defaults.basePath, defaults.testsDir);
     defaults.pluginsDirPath = path.resolve(defaults.basePath, defaults.testsDir, defaults.pluginsDir);
-    return {...defaults, ...cliArgs, ...options};
+
+    if (options.performance) {
+        options.functional = false;
+    }
+
+    const final = {...defaults, ...cliArgs, ...options};
+
+    return final;
 }
 
 exports.getParsedSettings = getParsedSettings;
@@ -150,6 +161,7 @@ exports.makeContainer = () => {
     function Container() {
         this.entries = [];
         this.add = (el) => this.entries.push(el);
+        this.remove = (el) => remove(this.entries, (el) => el === el);
 
         return this;
     }
@@ -157,17 +169,25 @@ exports.makeContainer = () => {
     return new Container();
 };
 
-exports.validateSchema = (entity)  => { // 'Entity' type.
-    const {value, error} = Joi.validate(
-        entity.getConfig(),
-        schemas[`${entity.getType()}`]
-    );
+exports.validateSchema = (entity) => { // 'Entity' type.
+    const skipSchemaValidation = true; // todo: take this from args
+    if (skipSchemaValidation) {
+        return
+    }
 
-    if (error) {
+    const entityConf = entity.getConfig();
+    const entityType = entity.getType();
+    const schema = schemas[entityType];
+
+    let validationResult = null;
+
+    try {
+        validationResult = Joi.validate(entityConf, schema);
+    } catch (error) {
         throw new Error(`${error} inside "${entity.getFileName()}"`);
     }
 
-    return value;
+    return validationResult;
 };
 
 exports.startSpinner = (message) => {
@@ -194,13 +214,19 @@ exports.getPackageInstallCommand = (packageName) => {
     }
 
     return [command, manager];
-}
-
-exports.validateSchema = (entity)  => {
-    const schema = schemas[`${entity.type}`];
-    const validationResult = Joi.validate(entity, schema);
-    return validationResult;
 };
+
+// Removed empty properties from an object.
+exports.removeEmpty = obj =>
+    Object.keys(obj)
+        .filter(k => obj[k] != null)
+        .reduce(
+            (newObj, k) =>
+                typeof obj[k] === "object"
+                    ? {...newObj, [k]: removeEmpty(obj[k])}
+                    : {...newObj, [k]: obj[k]},
+            {}
+        );
 
 // todo: factory? adjust enums to uppercase first though
 exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;
@@ -210,6 +236,6 @@ exports.isFixture = (entity) => entity && entity.config && entity.config.type ==
 // todo: deprecated, remove this
 exports.isSingleTest = (entity) => entity.data && entity.data.type !== "spec";
 
-exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_TEST;
-exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PATTERN;
-exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.PERFORMANCE_RUN;
+exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.type === "perfRun";
+exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === "perfTest";
+exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === "perfPattern";

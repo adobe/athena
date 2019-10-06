@@ -22,6 +22,31 @@ config:
   keepalive: true
   rps: 3000
 scenario:
+  run:
+    - ref: "prod"
+      version: "1.0"
+      config: # Default config for perfRuns
+        url: "http://35.246.128.128/"
+        socketPath: "" # not implemented
+        connections: ""
+        duration: ""
+        amount: "" # overrides duration
+        timeout: ""
+        pipelining: ""
+        bailout: ""
+        method: ""
+        title: ""
+        body: ""
+        headers: "" # object
+        maxConnectionRequests: ""
+        connectionRate: ""
+        overallRate: ""
+        reconnectRate: ""
+        requests: # Array of objects.
+        idReplacement: "" # Not supported yet
+        forever: "" # bool
+        servername: ""
+        excludeErrorStats: "" # boolean
   pattern:
     - ref: "prod"
       version: "1.0"
