@@ -1,13 +1,18 @@
-const Entity = require("./entity");
-const {ENTITY_TYPES} = require('./../enums');
-const {getParsedSettings} = require('./../utils');
+// node
 const path = require("path"),
     fs = require("fs");
+
+// project
+const Entity = require("./entity"),
+    {ENTITY_TYPES} = require('./../enums'),
+    {getParsedSettings} = require('./../utils');
 
 class FixtureEntity extends Entity {
     constructor(name, path, config) {
         super(name, path, config);
-        this.type = ENTITY_TYPES.FIXTURE;
+
+        this.setType(ENTITY_TYPES.FIXTURE);
+        this.validate();
     }
 
     getModulePath = () => {

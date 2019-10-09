@@ -4,9 +4,8 @@ description: ""
 engine: autocannon
 type: perfRun
 config:
-  path:
-  headers:
-  body:
+  url: http://34.65.37.184/
+  connections: 1000
 hooks:
   onInit:
   onDestroy:

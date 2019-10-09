@@ -2,7 +2,6 @@
 const fs = require("fs"),
     path = require("path");
 
-const Engine = require("./engine");
 // external
 const Mocha = require("mocha"),
     {find} = require("lodash"),
@@ -10,12 +9,21 @@ const Mocha = require("mocha"),
     jsBeautify = require("js-beautify");
 
 // project
-const {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isSuite, isTest, makeLogger, parseAstExpressions, validateSchema} = require("./../utils");
+const Engine = require("./engine"),
+    {TAXONOMIES, ENGINES} = require("./../enums"),
+    {isSuite, isTest, parseAstExpressions} = require("./../utils");
 
-class ChakramEngine extends Engine{
+class ChakramEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
-        super(settings, entityManager, pluginManager, TAXONOMIES.FUNCTIONAL, ENGINES.CHAKRAM, new Mocha()) ;
+        super(
+            settings,
+            entityManager,
+            pluginManager,
+            TAXONOMIES.FUNCTIONAL,
+            ENGINES.CHAKRAM,
+            new Mocha()
+        );
+
         this.nativeMethods = {
             findPath: null,
             readFileSync: null
@@ -30,6 +38,8 @@ class ChakramEngine extends Engine{
             .filter(e => e !== undefined) // todo: fix this
             .map(this._registerEntities); // todo: map only once dummy
     };
+
+    // public
 
     run = () => {
         const {grep, bail} = this.settings;
@@ -51,6 +61,8 @@ class ChakramEngine extends Engine{
         this._destruct();
     };
 
+    // private
+
     _registerEntities = (entity) => {
         entity.toString = entity.getContext;
         entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
@@ -66,7 +78,7 @@ class ChakramEngine extends Engine{
 
             return entity;
         }
-  
+
         if (isSuite(entity)) {
             entity.setTaxonomy(this.taxonomy);
 
@@ -158,7 +170,7 @@ class ChakramEngine extends Engine{
                     stageContent = `${stageContent} \n resolve();`;
                 }
 
-                return promiseTpl.format({ substage, stageContent });
+                return promiseTpl.format({substage, stageContent});
             })
             .join(',');
 
@@ -215,7 +227,6 @@ class ChakramEngine extends Engine{
         module.constructor._findPath = findPath;
         fs.readFileSync = readFileSync;
     };
-
 }
 
 module.exports = ChakramEngine;

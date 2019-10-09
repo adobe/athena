@@ -40,11 +40,24 @@ class EntityManager {
     };
 
     getSuiteBy = (attribute, value) => {
-        return this.entities.entries.filter(e => isSuite(e) && e.config[attribute] === value)[0];
+        let foundSuite = null;
+
+        const onlyEntitiesByAttribute = (e) => {
+            return isSuite(e) && e.config[attribute] === value;
+        };
+
+        const foundSuites = this.filterEntities(onlyEntitiesByAttribute);
+
+        if (foundSuites.length) {
+            foundSuite = foundSuites[0];
+        }
+
+        return foundSuite;
     };
 
+    // todo: fix undefined returns
     getAllBy = (attribute, value) => {
-        return this.entities.entries.filter(function (e) {
+        return this.filterEntities(function (e) {
             if (e.config && e.config[attribute] && e.config[attribute] === value) {
                 return e;
             }
@@ -52,14 +65,18 @@ class EntityManager {
     };
 
     getAllFixtures = () => {
-        return this.entities.entries.filter((e) => isFixture(e));
+        return this.filterEntities(isFixture);
+    };
+
+    filterEntities = (predicate) => {
+        return this.entities.entries.filter(predicate);
     };
 
     // private
 
     _parseEntities = () => {
         const {testsDirPath} = this.settings;
-        const entitiesList = fs.readdirSync(testsDirPath);
+        const entitiesList = fs.readdirSync(testsDirPath); // todo: check first and throw
         const entities = [];
 
         // parse all entities
@@ -82,56 +99,49 @@ class EntityManager {
             entities.push(entity);
             const {name, path: entityPath, config} = entity;
 
+            // todo: for functional tests, suites are parsed first and the
+            // tests are then associated. this is not the case for performance
+            // tests where the dependency chain is handled backwards. maybe we
+            // should follow a more consistent pattern in order to avoid any
+            // confusion.
+
             // parse suites
             if (isSuite(entity)) {
-                const suite = new SuiteEntity(
+                this.entities.add(new SuiteEntity(
                     name,
                     entityPath,
                     config
-                );
-
-                try {
-                    suite.validate();
-                    this.entities.add(suite);
-                } catch (error) {
-                    this.log.error(error);
-                }
-
+                ));
             }
 
             // parse fixtures
             if (isFixture(entity)) {
-                const fixture = new FixtureEntity(
+                this.entities.add(new FixtureEntity(
                     name,
                     entityPath,
                     config
-                );
+                ));
+            }
 
-                try {
-                    fixture.validate();
-                    this.entities.add(fixture);
-                } catch (error) {
-                    this.log.error(error)
-                }
+            // parse performance runs
+            if (isPerformanceRun(entity)) {
+                this.entities.add(new PerformanceRunEntity(
+                    name,
+                    entityPath,
+                    config
+                ));
             }
         }
 
-        // parse tests
+        // parse functional tests
         for (let entity of entities) {
             if (!isTest(entity)) {
                 continue;
             }
 
             let {suiteRef} = entity.config;
-            const {name, path, config} = entity;
-            const testEntity = new ChakramTest(name, path, config);
-
-            // todo: validate test schema
-            try {
-                // testEntity.validate();
-            } catch (error) {
-                this.log.error(error);
-            }
+            const {name, path: entityPath, config} = entity;
+            const testEntity = new ChakramTest(name, entityPath, config);
 
             // test as indie entity
             if (!suiteRef) {
@@ -139,7 +149,9 @@ class EntityManager {
                 continue;
             }
 
-            if (isString(suiteRef)) suiteRef = [suiteRef];
+            if (isString(suiteRef)) {
+                suiteRef = [suiteRef];
+            }
 
             suiteRef.forEach(suiteName => {
                 let suite = this.getSuiteBy("name", suiteName);
@@ -153,62 +165,79 @@ class EntityManager {
             });
         }
 
-        // parse fixtures
+        // parse performance patterns
         for (let entity of entities) {
-            if (!isFixture(entity)) {
+            if (!isPerformancePattern(entity)) {
                 continue;
             }
 
-            const {name, path, config} = entity;
-            this.entities.add(new FixtureEntity(name, path, config));
-        }
-
-        //parse performance runs
-        for (let entity of entities) {
-            if(!isPerformanceRun(entity)) {
-                continue;
-            }
-
-            const {name, path, config} = entity;
-            this.entities.add(new PerformanceRunEntity(name, path, config));
-        }
-
-        //parse performance patterns
-        for (let entity of entities) {
-            if(!isPerformancePattern(entity)) {
-                continue;
-            }
-
-            const {name, path, config} = entity;
+            const {name, path: entityPath, config} = entity;
             const {mix} = config;
-            const performancePatternEntity = new PerformancePatternEntity(name, path, config);
+
+            const performancePatternEntity = new PerformancePatternEntity(
+                name,
+                entityPath,
+                config
+            );
 
             if (mix.length > 0) {
                 mix.forEach((perfRunRef) => {
-                    //TODO: need to implement version as well
-                    const entity = this.entities.entries.filter(e => isPerformanceRun(e) && e.config.name === perfRunRef.ref)[0];
-                    performancePatternEntity.addPerformanceRun(entity);
+                    // todo: handle versioning as well.
+
+                    const onlyAssociatedPerfRuns = (e) => {
+                        return isPerformanceRun(e) &&
+                            e.config.name === perfRunRef.ref;
+                    };
+
+                    const foundEntity = this.filterEntities(onlyAssociatedPerfRuns)[0];
+
+                    if (foundEntity) {
+                        performancePatternEntity.addPerformanceRun(foundEntity);
+                        this.entities.remove(foundEntity); // cleanup
+                    } else {
+                        // todo: log
+                    }
                 });
             }
+
             this.entities.add(performancePatternEntity);
         }
 
-        //parse performance scenarios
+        // parse performance scenarios
         for (let entity of entities) {
             if (!isPerformanceTest(entity)) {
                 continue;
             }
 
-            const {name, path, config} = entity;
+            const {name, path: entityPath, config} = entity;
             const {pattern} = config.scenario;
 
-            const performanceTestEntity = new PerformanceTestEntity(name, path, config);
+            const performanceTestEntity = new PerformanceTestEntity(
+                name,
+                entityPath,
+                config
+            );
 
-            if(pattern.length > 0) {
+            // Parse performance patterns associated with the performance test.
+            if (pattern && pattern.length > 0) {
                 pattern.forEach((perfPattern) => {
-                    //TODO: need to implement version as well
-                    const entity = this.entities.entries.filter(e => isPerformancePattern(e) && e.config.name === perfPattern.ref)[0];
-                    performanceTestEntity.addPatterns(entity);
+                    // todo: handle versioning as well.
+
+                    const onlyAssociatedPerfPatterns = (e) => {
+                        return isPerformancePattern(e) &&
+                            e.config.name === perfPattern.ref;
+                    };
+
+                    // Parse performance patterns.
+                    const foundPerfPatternEntity = this.filterEntities(onlyAssociatedPerfPatterns)[0];
+
+                    if (foundPerfPatternEntity) {
+                        // todo: add all of them, not just one?
+                        performanceTestEntity.addPatterns(foundPerfPatternEntity);
+                        this.entities.remove(foundPerfPatternEntity); // cleanup
+                    } else {
+                        // todo: log
+                    }
                 })
             }
 

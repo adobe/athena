@@ -4,8 +4,10 @@ const Entity = require("./entity"),
 class TestEntity extends Entity {
     constructor(name, path, config) {
         super(name, path, config);
-        this.type = ENTITY_TYPES.TEST;
-        this.status = null;
+
+        this.setType(ENTITY_TYPES.TEST);
+
+        this.validate();
     }
 }
 

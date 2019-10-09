@@ -4,13 +4,19 @@ const Entity = require("./entity"),
 class PerformancePattern extends Entity {
     constructor(name, path, config) {
         super(name, path, config);
-        this.type = ENTITY_TYPES.PATTERN;
         this.perfRuns = [];
+
+        this.setType(ENTITY_TYPES.PATTERN);
+        this.validate();
     }
 
     addPerformanceRun = (perfRun) => {
         this.perfRuns.push(perfRun);
-    }
+    };
+
+    hasPerfRuns = () => {
+        return Boolean(this.perfRuns.length);
+    };
 }
 
 module.exports = PerformancePattern;

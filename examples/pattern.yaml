@@ -2,7 +2,7 @@ name: "prod"
 version: "1.0"
 description: ""
 engine: autocannon
-type: pattern
+type: perfPattern
 mix:
   - ref: "apiKey"
     version: "1.0"
