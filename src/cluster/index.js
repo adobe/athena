@@ -4,7 +4,8 @@ const {uniqueNamesGenerator} = require("unique-names-generator"),
     getPort = require("get-port"),
     nanoid = require('nanoid');
 
-const {makeLogger} = require("./../utils");
+const {makeLogger} = require("./../utils"),
+    commands = require("./commands");
 
 const log = makeLogger();
 
@@ -21,25 +22,23 @@ const COMMANDS = {
 };
 
 class Cluster {
-    constructor(settings) {
-        this.settings = settings;
+    constructor(athena) {
+        this.athena = athena;
+        this.settings = this.athena.getSettings();
 
         // props
         this.manager = null;
         this.agent = null;
 
-
         this.addr = null;
         this.agents = [];
-
-        log.debug(`Initializing new Athena cluster...`);
     }
 
     // public
 
     init = () => {
         this.manager = new ManagerNode(this.settings);
-        process.on("message", this._handleCommand);
+        process.on("message", this._handleCallCommand);
     };
 
     join = () => {
@@ -54,7 +53,7 @@ class Cluster {
         return this.agent !== null;
     };
 
-    _handleCommand = (command) => {
+    _handleCallCommand = (command) => {
         if (!command || !command.type) {
             log.warn(`Could not parse the command!`);
         }
@@ -64,6 +63,7 @@ class Cluster {
         switch (command.type) {
             case COMMANDS.RUN_PERF:
                 log.info(`Delegating a new performance job to the cluster...`);
+                this._clusterRunPerformance();
                 break;
             case COMMANDS.RUN_FUNC:
                 log.info(`Delegating a new functional job to the cluster...`);
@@ -75,6 +75,16 @@ class Cluster {
                 log.info(`Requesting the status of all agents...`);
                 break;
         }
+    };
+
+    _clusterRunPerformance = () => {
+        // get all perf tests from the entity manager.
+        let perfTests = this.athena.getPerformanceTests();
+        // serialize them.
+        perfTests = JSON.stringify(perfTests);
+
+        // delegate cluster command.
+        this.manager.delegateClusterCommand();
     }
 }
 

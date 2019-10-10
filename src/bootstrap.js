@@ -35,6 +35,10 @@ class Atena {
 
     };
 
+    getSettings = () => {
+        return this.settings;
+    };
+
     // private
 
     // todo: this should be handled separately by a scaffold manager.

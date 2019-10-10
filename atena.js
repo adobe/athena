@@ -148,7 +148,7 @@ should.initAthena = should.initCluster || should.runTests;
 
     if (should.initCluster) {
         const Cluster = require("./src/cluster");
-        cluster = new Cluster(settings);
+        cluster = new Cluster(athena);
     }
 
     // command: node athena.js cluster --init --addr <IP>
@@ -204,8 +204,6 @@ should.initAthena = should.initCluster || should.runTests;
 
     // command: node athena.js cluster run --[performance/functional]
     if (should.delegateClusterCommand) {
-        // todo: parse commands and delegate appropriately
-
         commands.callClusterCommand("RUN_PERF");
 
         return;

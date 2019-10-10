@@ -1,23 +1,36 @@
-const pm2 = require("pm2"),
-    {find} = require("lodash");
+// External
+const pm2 = require("pm2");
 
-function callClusterCommand(command) {
-    (async function () {
-        pm2.connect(function () {
-            pm2.sendDataToProcessId({
-                type: 'RUN_PERF',
-                data: {
-                    some: 'data'
-                },
-                id: 0,
-                topic: 'topic'
-            }, function (err, res) {
-                process.exit(0);
-            });
-        });
+const MESSAGE_TOPIC = "ATHENA_CLUSTER_COMMAND";
 
-        console.log("sent packet!!!");
-    })();
+const _makeMessage = (type, data) => {
+    return {
+        id: 0,
+        topic: MESSAGE_TOPIC,
+        type,
+        data
+    };
+};
+
+const _sendManagerCommand = (messageType, data) => {
+    const _handleError = (error) => {
+        if (error) {
+            throw error;
+        }
+
+        process.exit(0);
+    };
+
+    pm2.sendDataToProcessId(
+        _makeMessage(messageType, {data}),
+        _handleError
+    );
+};
+
+function callClusterCommand(messageType, data) {
+    pm2.connect(() => {
+        _sendManagerCommand(messageType, data)
+    });
 }
 
 module.exports = {
