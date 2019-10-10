@@ -25,63 +25,6 @@ class Atena {
             this.pluginManager,
             this.entityManager
         );
-
-        const requiredCommands = (...commands) => {
-            return this.settings._.every(cmd => commands.indexOf(cmd) !== -1);
-        };
-
-        const shouldInitCluster = requiredCommands("cluster") && this.settings.init;
-        const shouldJoinCluster = requiredCommands("cluster") && this.settings.join;
-        const shouldRunTests = requiredCommands("run");
-        const shouldPrintPerformanceTree = requiredCommands("preview") && this.settings.performance;
-        const shouldPrintFunctionalTree = requiredCommands("preview") && this.settings.functional;
-
-        if (shouldInitCluster || shouldJoinCluster) {
-            const Cluster = require("./cluster");
-            this.cluster = new Cluster(this.settings);
-        }
-
-        if (shouldPrintPerformanceTree) {
-            log.debug(`Pretty printing performance tests dependency chain...`);
-            // todo: not implemented
-
-            return;
-        }
-
-        if (shouldPrintFunctionalTree) {
-            log.debug(`Pretty printing functional tests dependency chain...`);
-            // todo: not implemented
-
-            return;
-        }
-
-        if (shouldInitCluster) {
-            this.cluster.init();
-
-            return;
-        }
-
-        if (shouldJoinCluster) {
-            this.cluster.join();
-
-            return;
-        }
-
-        if (shouldRunTests) {
-            const {functional, performance} = this.settings;
-            const shouldRunOnlyFunctionalTests = functional && !performance && ChakramEngine.hasTests();
-            const shouldRunOnlyPerformanceTests = performance && !functional && AutocannonEngine.hasTests();
-
-            if (shouldRunOnlyFunctionalTests) {
-                log.debug(`⚙️ Running only functional tests...`);
-                return ChakramEngine.run();
-            }
-
-            if (shouldRunOnlyPerformanceTests) {
-                log.debug(`⚡️ Running only performance tests...`);
-                return AutocannonEngine.run();
-            }
-        }
     }
 
     runPerformanceTests = () => {

@@ -8,6 +8,18 @@ const {makeLogger} = require("./../utils");
 
 const log = makeLogger();
 
+const COMMANDS = {
+    // Manager -> Agents
+    RUN_PERF: "RUN_PERF",
+    RUN_FUNC: "RUN_FUNC",
+    REQ_REPORT: "REQ_REPORT",
+    REQ_STATUS: "REQ_STATUS",
+
+    // Agent(s) -> Manager
+    PROC_REPORT: "PROC_REPORT",
+    PROC_STATUS: "PROC_STATUS",
+};
+
 class Cluster {
     constructor(settings) {
         this.settings = settings;
@@ -27,6 +39,7 @@ class Cluster {
 
     init = () => {
         this.manager = new ManagerNode(this.settings);
+        process.on("message", this._handleCommand);
     };
 
     join = () => {
@@ -40,6 +53,29 @@ class Cluster {
     isAgent = () => {
         return this.agent !== null;
     };
+
+    _handleCommand = (command) => {
+        if (!command || !command.type) {
+            log.warn(`Could not parse the command!`);
+        }
+
+        log.info(`Handling the "${command.type}" command.`);
+
+        switch (command.type) {
+            case COMMANDS.RUN_PERF:
+                log.info(`Delegating a new performance job to the cluster...`);
+                break;
+            case COMMANDS.RUN_FUNC:
+                log.info(`Delegating a new functional job to the cluster...`);
+                break;
+            case COMMANDS.REQ_REPORT:
+                log.info(`Requesting the last job report from all agents...`);
+                break;
+            case COMMANDS.REQ_STATUS:
+                log.info(`Requesting the status of all agents...`);
+                break;
+        }
+    }
 }
 
 class GenericNode {
@@ -257,7 +293,7 @@ class ManagerNode extends GenericNode {
 
 class AgentNode extends GenericNode {
     constructor() {
-        super()
+        super();
 
         // props
         this._sock = null;
