@@ -25,14 +25,17 @@ class Atena {
             this.pluginManager,
             this.entityManager
         );
+
+        this.autocannon = AutocannonEngine;
+        this.chakram = ChakramEngine;
     }
 
     runPerformanceTests = () => {
-
+        this.autocannon.run();
     };
 
     runFunctionalTests = () => {
-
+        this.chakram.run();
     };
 
     getSettings = () => {
