@@ -6,9 +6,10 @@ A Performance and Functional Testing Engine for APIs with a major afinity for me
 
 * [Performance engine](#performance-engine)
   * [Deployment model](#deployment-model)
-    * [1. Sidecar for k8s architecture](#1-sidecar-for-k8s)
-    * [2. Sidecar for docker images](#2-sidecar-for-docker-images)
-    * [3. Standalone cluster](#3-standalone-cluster)
+    * [Sidecar](#sidecar)
+      * [1. Sidecar for k8s architecture](#1-sidecar-for-k8s)
+      * [2. Sidecar for docker images](#2-sidecar-for-docker-images)
+    * [Standalone cluster](#standalone-cluster)
   * [CI/CD model](#cicd-model)
     * [1. Git hooks](#1-git-hooks)
     * [2. REST Control Plane](#2-sidecar-for-docker-images)
@@ -130,21 +131,23 @@ module.exports = uuidFixture;
 
 ### Deployment model
 
+#### Sidecar
+
 ![Sidecar deployment model](https://github.com/adobe/athena/blob/master/IMG_2142.jpg "Sidecar deployment model")
 
-#### 1. Sidecar for k8s
+##### 1. Sidecar for k8s
 
 Injected as a separate pod inside a node via k8s hooks and k8s controller, modifies iptables
 so all inbound and outbound traffic goes through the athena sidecar, for checks and 
 traffic proxying athena uses an envoy proxy that it configures for outbound traffic 
 proxyig.
 
-#### 2. Sidecar for docker images
+##### 2. Sidecar for docker images
 
 Via a docker compose configuration - and bash scripting athena acts as a sidecar for 
 individual docker images, the approach is the same like for k8s cluster.
 
-#### 3. Standalone cluster
+#### Standalone cluster
 
 Individual athena nodes that generate requests to diferrent endpoints in different patterns
 and scenarios
