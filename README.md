@@ -16,6 +16,7 @@ A Testing Engine for APIs
   * [Capabilities](#capabilities)
     * [1. White-box performance testing](#1-white-box-performance-testing---only-in-sidecar-deployment-model)
     * [2. Black-box performance testing](#2-black-box-performance-testing---in-both-sidecar-and-standalone-cluster-deployment-model)
+  * [Support](#support)
 
 
 ## Getting Started
