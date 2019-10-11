@@ -194,10 +194,12 @@ Athena performance engine supports:
 4. cool downs
 5. pipelining
 6. hooks
-  1. onInit
-  2. onRequest
-  3. onResponse
-  4. onDestroy
+    1. onInit
+    2. onRequest
+    3. onResponse
+    4. onDestroy
+7. mokup responses
+8. fault injection
 
 
 
