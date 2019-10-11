@@ -20,7 +20,7 @@ const pm2 = require('pm2'),
     dotenv = require("dotenv");
 
 // Project
-const {getParsedSettings} = require("./src/utils"),
+const {getParsedSettings, log} = require("./src/utils"),
     Athena = require("./src/bootstrap"),
     commands = require("./src/cluster/commands");
 
@@ -30,7 +30,11 @@ dotenv.config();
 let athena = null,
     cluster = null,
     settings = null,
-    should = {};
+    should = {},
+    _process = process;
+
+// Constants
+const APP_NAME = "athena";
 
 // CLI commands and flags.
 let options = yargs
@@ -137,6 +141,7 @@ const requiredCommands = (...commands) => {
 should.initClusterInForeground = requiredCommands("cluster") && settings.init && settings.foreground;
 should.initClusterInBackground = requiredCommands("cluster") && settings.init && !settings.foreground;
 should.joinCluster = requiredCommands("cluster") && settings.join;
+should.joinClusterInForeground = should.joinCluster && settings.foreground;
 should.initCluster = should.initClusterInBackground || should.initClusterInForeground || should.joinCluster;
 should.delegateClusterCommand = requiredCommands("cluster") && settings.run;
 should.runFunctionalTests = requiredCommands("run") && settings.functional;
@@ -157,8 +162,21 @@ should.initAthena = should.initCluster || should.runTests;
 
     // command: node athena.js cluster --init --addr <IP>
     if (should.initClusterInBackground) {
-        const _process = process;
-        const APP_NAME = "athena";
+        if (!settings.addr) {
+            log.error(`The --addr is required when initializing a new Athena cluster.`);
+        }
+
+        let args = [
+            "cluster",
+            "--init",
+            `--addr ${settings.addr}`,
+            "--foreground"
+        ];
+
+        if (settings.debug) {
+            args.push("--debug");
+        }
+
         pm2.connect(function (err) {
             if (err) {
                 console.error(err);
@@ -169,7 +187,7 @@ should.initAthena = should.initCluster || should.runTests;
                 await pm2.start({
                     name: APP_NAME,
                     script: path.resolve(__dirname, "atena.js"),
-                    args: `cluster --init --addr ${settings.addr} --foreground --debug`, // todo: disable debug mode
+                    args: args.join(' '),
                     exec_mode: "cluster",
                     instances: 1
                 }, function (error, res) {
@@ -204,11 +222,70 @@ should.initAthena = should.initCluster || should.runTests;
         return;
     }
 
-    // command: node athena.js cluster --join --token <TOKEN> <IP>
-    if (should.joinCluster) {
+    // command: node athena.js cluster --join --foreground --token <TOKEN> --addr <IP>:<PORT>
+    if (should.joinClusterInForeground) {
+        log.info(`Attempting to join a new cluster...`);
         cluster.join();
 
         return;
+    }
+
+    // command: node athena.js cluster --join --token <TOKEN> --addr <IP>:<PORT>
+    if (should.joinCluster) {
+        if (!settings.token) {
+            log.error(`The --token is required when joining a new Athena cluster.`);
+        }
+
+        if (!settings.addr) {
+            log.error(`The --addr is required when joining a new Athena cluster.`)
+        }
+
+        let args = [
+            "cluster",
+            "--join",
+            `--token ${settings.token}`,
+            `--addr ${settings.addr}`,
+            "--foreground"
+        ];
+
+        if (settings.debug) {
+            args.push("--debug");
+        }
+
+        pm2.connect(function (err) {
+            if (err) {
+                console.error(err);
+                process.exit(2);
+            }
+
+            (async function () {
+                await pm2.start({
+                    name: APP_NAME,
+                    script: path.resolve(__dirname, "atena.js"),
+                    args: args.join(' '),
+                    exec_mode: "cluster",
+                    instances: 1
+                }, function (error, res) {
+                    if (error) {
+                        throw error
+                    }
+
+                    pm2.flush(APP_NAME, (err, res) => {
+                        if (err) {
+                            throw err;
+                        }
+                    });
+
+                    pm2.describe(0, (err, proc) => {
+                        setTimeout(() => {
+                            console.log(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
+                            pm2.disconnect();
+                            _process.exit(0);
+                        }, 1000);
+                    });
+                });
+            })();
+        });
     }
 
     // command: node athena.js cluster --run --[performance/functional]
