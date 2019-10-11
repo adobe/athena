@@ -130,6 +130,8 @@ module.exports = uuidFixture;
 
 ### Deployment model
 
+![Sidecar deployment model](https://photos.app.goo.gl/YaFhZ246o6FmzD3M6 "Sidecar deployment model")
+
 #### 1. Sidecar for k8s
 
 Injected as a separate pod inside a node via k8s hooks and k8s controller, modifies iptables
