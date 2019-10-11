@@ -42,7 +42,11 @@ class Cluster {
     };
 
     join = () => {
-        // todo: not implemented
+        this.agent = new AgentNode(this.settings);
+
+        console.log(`Joining...`);
+
+        this.agent.joinCluster();
     };
 
     isManager = () => {
@@ -300,13 +304,13 @@ class ManagerNode extends GenericNode {
         log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}!`);
 
         sock.on('data', this._handleIncomingAgentData);
-        sock.on('close', (data) => {
-            this._handleRemoveAgent(data, sock)
-        });
+        // sock.on('close', (data) => {
+        //     this._handleRemoveAgent(data, sock)
+        // });
     };
 
     _handleIncomingAgentData = (data) => {
-        // todo: not implemented
+        console.log(data);
     };
 
     _handleRemoveAgent = (data, sock) => {
@@ -324,8 +328,10 @@ class ManagerNode extends GenericNode {
 }
 
 class AgentNode extends GenericNode {
-    constructor() {
+    constructor(settings) {
         super();
+
+        this.settings = settings;
 
         // props
         this._socket = null;
@@ -338,6 +344,33 @@ class AgentNode extends GenericNode {
     getSocket = () => {
         return this._socket;
     };
+
+    joinCluster = () => {
+        const token = this.settings.token; // todo: auth
+        const [host, port] = this.settings.addr.split(':');
+        const _self = this;
+
+        console.log(`Connecting to ${host}:${port}`);
+
+        const socket = new net.Socket();
+
+        // todo: run with PM2
+        socket.connect(port, host, function () {
+            const status = _self.describe();
+            const message = makeMessage(COMMANDS.PROC_STATUS, status);
+            socket.write(JSON.stringify(message));
+        });
+
+        socket.on('data', (data) => {
+            console.log(`Server says: ${data}`);
+        });
+
+        socket.on('close', () => {
+            console.log(`connection closed`);
+        });
+    };
+
+
 }
 
 module.exports = Cluster;

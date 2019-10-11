@@ -136,9 +136,9 @@ const requiredCommands = (...commands) => {
 // Define conditions.
 should.initClusterInForeground = requiredCommands("cluster") && settings.init && settings.foreground;
 should.initClusterInBackground = requiredCommands("cluster") && settings.init && !settings.foreground;
-should.initCluster = should.initClusterInBackground || should.initClusterInForeground;
-should.delegateClusterCommand = requiredCommands("cluster") && settings.run;
 should.joinCluster = requiredCommands("cluster") && settings.join;
+should.initCluster = should.initClusterInBackground || should.initClusterInForeground || should.joinCluster;
+should.delegateClusterCommand = requiredCommands("cluster") && settings.run;
 should.runFunctionalTests = requiredCommands("run") && settings.functional;
 should.runPerformanceTests = requiredCommands("run") && settings.performance;
 should.runTests = should.runFunctionalTests || should.runPerformanceTests;
