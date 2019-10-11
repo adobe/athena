@@ -1,6 +1,6 @@
 # Athena
 
-A Testing Engine for APIs
+A Performance and Functional Testing Engine for APIs with a major afinity for mesh architectures
 
 ## Table of contents
 
