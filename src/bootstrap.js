@@ -42,6 +42,10 @@ class Atena {
         return this.settings;
     };
 
+    getPerformanceTests = () => {
+        return this.autocannon.getPerformanceTests();
+    };
+
     // private
 
     // todo: this should be handled separately by a scaffold manager.

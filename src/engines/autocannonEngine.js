@@ -30,6 +30,19 @@ class AutocannonEngine extends Engine {
     }
 
     run = () => {
+        const finalConfig = this.getPerformanceTests();
+        const engine = autocannon(finalConfig, this._handleTestFinish);
+
+        process.once("SIGINT", () => {
+            engine.stop();
+        });
+
+        autocannon.track(engine, {
+            renderProgressBar: true
+        });
+    };
+
+    getPerformanceTests = () => {
         // todo: add support for multiple tests.
         const perfTest = this.entities[0];
         const perfPattern = perfTest.perfPatterns[0];
@@ -41,21 +54,11 @@ class AutocannonEngine extends Engine {
         const perfPatternConfig = removeEmpty(perfPattern.config.config || {});
         const perfRunConfig = removeEmpty(perfRun.config.config || {});
 
-        const finalConfig = {
+        return {
             ...perfTestConfig,
             ...perfPatternConfig,
             ...perfRunConfig
         };
-
-        const engine = autocannon(finalConfig, this._handleTestFinish);
-
-        process.once("SIGINT", () => {
-            engine.stop();
-        });
-
-        autocannon.track(engine, {
-            renderProgressBar: true
-        });
     };
 
     _getTestConfig = (test) => { // todo: flatten test object

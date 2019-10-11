@@ -100,6 +100,10 @@ let options = yargs
             describe: "whether to run the cluster in foreground (internal)",
             type: "boolean",
             default: false
+        },
+        "run": {
+            describe: "", // todo:
+            type: "boolean"
         }
     })
     .command("preview", "pretty print the structure of a tests suite", {
@@ -133,7 +137,7 @@ const requiredCommands = (...commands) => {
 should.initClusterInForeground = requiredCommands("cluster") && settings.init && settings.foreground;
 should.initClusterInBackground = requiredCommands("cluster") && settings.init && !settings.foreground;
 should.initCluster = should.initClusterInBackground || should.initClusterInForeground;
-should.delegateClusterCommand = requiredCommands("cluster", "run") && !should.initCluster;
+should.delegateClusterCommand = requiredCommands("cluster") && settings.run;
 should.joinCluster = requiredCommands("cluster") && settings.join;
 should.runFunctionalTests = requiredCommands("run") && settings.functional;
 should.runPerformanceTests = requiredCommands("run") && settings.performance;
@@ -173,8 +177,13 @@ should.initAthena = should.initCluster || should.runTests;
                         throw error
                     }
 
+                    pm2.flush(APP_NAME, (err, res) => {
+                        if (err) {
+                            throw err;
+                        }
+                    });
+
                     pm2.describe(0, (err, proc) => {
-                        // todo: improve this
                         setTimeout(() => {
                             console.log(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
                             pm2.disconnect();
@@ -202,12 +211,12 @@ should.initAthena = should.initCluster || should.runTests;
         return;
     }
 
-    // command: node athena.js cluster run --[performance/functional]
-    // if (should.delegateClusterCommand) {
-    //     commands.callClusterCommand("RUN_PERF");
-    //
-    //     return;
-    // }
+    // command: node athena.js cluster --run --[performance/functional]
+    if (should.delegateClusterCommand) {
+        commands.callClusterCommand("RUN_PERF");
+
+        return;
+    }
 
     // command: node athena.js run --performance
     if (should.runPerformanceTests) {

@@ -5,7 +5,7 @@ const {uniqueNamesGenerator} = require("unique-names-generator"),
     nanoid = require('nanoid');
 
 const {makeLogger} = require("./../utils"),
-    commands = require("./commands");
+    {makeMessage} = require("./commands");
 
 const log = makeLogger();
 
@@ -80,11 +80,12 @@ class Cluster {
     _clusterRunPerformance = () => {
         // get all perf tests from the entity manager.
         let perfTests = this.athena.getPerformanceTests();
+
         // serialize them.
         perfTests = JSON.stringify(perfTests);
 
         // delegate cluster command.
-        this.manager.delegateClusterCommand();
+        this.manager.delegateClusterCommand(COMMANDS.RUN_PERF, perfTests);
     }
 }
 
@@ -209,6 +210,27 @@ class ManagerNode extends GenericNode {
         this._socket.on('connection', this._handleNewAgentConnection)
     };
 
+    delegateClusterCommand = (command, data) => {
+        // get the TCP server
+        const socket = this.getSocket();
+
+        // prepare the message
+        const message = makeMessage(command, data);
+
+        // send it to all workers
+        const agents = this.getAgents();
+
+        if (!agents.length) {
+            log.warn(`Could not delegate command. There are currently no agents in this cluster.`);
+            return;
+        }
+
+        agents.forEach(agent => {
+            const sock = agent.getSocket();
+            sock.write(message);
+        });
+    };
+
     getSocket = () => {
         return this._socket;
     };
@@ -272,8 +294,8 @@ class ManagerNode extends GenericNode {
 
     _handleNewAgentConnection = (sock) => {
         const Agent = new AgentNode(this.settings);
-        Agent.setSock(sock);
-        this.agents.push(Agent);
+        Agent.setSocket(sock);
+        this.addAgent(Agent);
         const {remoteAddress, remotePort} = sock;
         log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}!`);
 
@@ -289,7 +311,7 @@ class ManagerNode extends GenericNode {
 
     _handleRemoveAgent = (data, sock) => {
         let index = this.agents.findIndex(function (agent) {
-            const agentSock = agent.getSock();
+            const agentSock = agent.getSocket();
             return agentSock.remoteAddress === sock.remoteAddress && agentSock.remotePort === sock.remotePort;
         });
 
@@ -306,15 +328,15 @@ class AgentNode extends GenericNode {
         super();
 
         // props
-        this._sock = null;
+        this._socket = null;
     }
 
-    setSock = (sock) => {
-        this._sock = sock;
+    setSocket = (sock) => {
+        this._socket = sock;
     };
 
-    getSock = () => {
-        return this._sock;
+    getSocket = () => {
+        return this._socket;
     };
 }
 

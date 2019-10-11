@@ -3,11 +3,11 @@ const pm2 = require("pm2");
 
 const MESSAGE_TOPIC = "ATHENA_CLUSTER_COMMAND";
 
-const _makeMessage = (type, data) => {
+function makeMessage(command, data) {
     return {
         id: 0,
         topic: MESSAGE_TOPIC,
-        type,
+        type: command,
         data
     };
 };
@@ -22,7 +22,7 @@ const _sendManagerCommand = (messageType, data) => {
     };
 
     pm2.sendDataToProcessId(
-        _makeMessage(messageType, {data}),
+        makeMessage(messageType, {data}),
         _handleError
     );
 };
@@ -35,4 +35,5 @@ function callClusterCommand(messageType, data) {
 
 module.exports = {
     callClusterCommand,
+    makeMessage
 };
