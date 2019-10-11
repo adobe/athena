@@ -302,11 +302,11 @@ class ManagerNode extends GenericNode {
         this.addAgent(Agent);
         const {remoteAddress, remotePort} = sock;
         log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}!`);
-
+        sock.setEncoding("utf8");
         sock.on('data', this._handleIncomingAgentData);
-        // sock.on('close', (data) => {
-        //     this._handleRemoveAgent(data, sock)
-        // });
+        sock.on("close", data => {
+            this._handleRemoveAgent(data, sock);
+        });
     };
 
     _handleIncomingAgentData = (data) => {
@@ -314,16 +314,17 @@ class ManagerNode extends GenericNode {
     };
 
     _handleRemoveAgent = (data, sock) => {
-        let index = this.agents.findIndex(function (agent) {
+        const agents = this.getAgents();
+        let index = agents.findIndex(function (agent) {
             const agentSock = agent.getSocket();
             return agentSock.remoteAddress === sock.remoteAddress && agentSock.remotePort === sock.remotePort;
         });
 
         if (index !== -1) {
-            this.agents.splice(index, 1);
+            agents.splice(index, 1);
         }
 
-        log.warn(`Closed connection with Athena agent: ${sock.remoteAddr}:${sock.remotePort}!`);
+        log.warn(`Closed connection with Athena agent: ${sock.remoteAddress}:${sock.remotePort}!`);
     };
 }
 

@@ -105,7 +105,7 @@ class AutocannonEngine extends Engine {
             console.error(`There was a problem while running the performance test!\n${error}`);
         }
 
-        // console.info(`The test has finished! Here are the results:\n${JSON.stringify(results, null, 1)}`);
+        console.log(results);
     };
 
     _deepParseEntities = (entity) => {

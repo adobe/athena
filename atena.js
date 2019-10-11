@@ -203,7 +203,7 @@ should.initAthena = should.initCluster || should.runTests;
 
                     pm2.describe(0, (err, proc) => {
                         setTimeout(() => {
-                            console.log(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
+                            log.info(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
                             pm2.disconnect();
                             _process.exit(0);
                         }, 1000);
