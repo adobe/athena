@@ -198,7 +198,7 @@ Athena performance engine supports:
     2. onRequest
     3. onResponse
     4. onDestroy
-7. mokup responses
+7. mockup responses
 8. fault injection
 
 
