@@ -180,6 +180,23 @@ watch ongoing tests and see reports.
 
   1. validate calls
   2. prerequisite request preparation
+  
+### Support
+
+The configuration is yaml based and the code supported is javascript. The framework is based on **wrk engine** that can produce **>150000rps on one single machine**.
+
+Athena performance engine supports:
+
+1. patterns
+2. spikes
+3. ramp ups
+4. cool downs
+5. pipelining
+6. hooks
+  1. onInit
+  2. onRequest
+  3. onResponse
+  4. onDestroy
 
 
 
