@@ -108,3 +108,62 @@ module.exports = uuidFixture;
 ``` 
 
 > 💡 **Note:** If a test is marked as unstable during the pre-flight check, its dependencies will not be installed. 
+
+## Performance Engine
+
+### Deployment model
+
+#### 1. Sidecar for k8s
+
+Injected as a separate pod inside a node via k8s hooks and k8s controller, modifies iptables
+so all inbound and outbound traffic goes through the athena sidecar, for checks and 
+traffic proxying athena uses an envoy proxy that it configures for outbound traffic 
+proxyig.
+
+#### 2. Sidecar for docker images
+
+Via a docker compose configuration - and bash scripting athena acts as a sidecar for 
+individual docker images, the approach is the same like for k8s cluster.
+
+#### 3. Standalone cluster
+
+Individual athena nodes that generate requests to diferrent endpoints in different patterns
+and scenarios
+
+### CI/CD model
+
+#### 1. Git hooks
+
+Athena can be configured to listen to git hooks and run tests in any folder that contain 
+a file called .perf.athena
+
+#### 2. REST API
+
+Athena has a simple control plane rest server that can be used to store patterns scenarios 
+and tests and also can be used to start stop different tests and collect data about a specific
+test
+
+#### 3. UI configuration (in progress)
+
+Athena has also an ui in which a user can configure tests patterns and scenario and Can
+watch ongoing tests and see reports.
+
+
+### Capabilities
+
+#### 1. White box performance testing - only in sidecar deployment model
+  a. redundancy check
+  b. fault tolerance check
+  c. network latency checks
+  d. fault injection capabilities
+  e. validate response data
+  f. prerequisite request preparation
+
+#### 2. Black box performance testing - in both sidecar and standalone cluster deployment model
+  a. validate calls
+  b. prerequisite request preparation
+
+
+
+
+
