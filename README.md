@@ -133,42 +133,36 @@ module.exports = uuidFixture;
 
 #### Sidecar
 
-![Sidecar deployment model](https://github.com/adobe/athena/blob/master/IMG_2142.jpg "Sidecar deployment model")
+##### 1. Sidecar for Kubernetes
 
-##### 1. Sidecar for k8s
+![Sidecar deployment model](./assets/img/athena_sidecar.png "Sidecar deployment model")
 
-Injected as a separate pod inside a node via k8s hooks and k8s controller, modifies iptables
-so all inbound and outbound traffic goes through the athena sidecar, for checks and 
-traffic proxying athena uses an envoy proxy that it configures for outbound traffic 
-proxyig.
+Injected as a separate pod inside a node via k8s hooks and k8s controller, modifies iptables so all inbound and outbound traffic goes through the athena sidecar, for checks and traffic proxying athena uses an envoy proxy that it configures for outbound traffic proxyig.
 
-##### 2. Sidecar for docker images
+##### 2. Sidecar for Docker Images
 
-Via a docker compose configuration - and bash scripting athena acts as a sidecar for 
-individual docker images, the approach is the same like for k8s cluster.
+Via a docker compose configuration - and bash scripting athena acts as a sidecar for individual docker images, the approach is the same like for k8s cluster.
 
-#### Standalone cluster
+#### Standalone Cluster
 
-Individual athena nodes that generate requests to diferrent endpoints in different patterns
-and scenarios
+Individual athena nodes that generate requests to diferrent endpoints in different patterns and scenarios.
+
+![Standalone Cluster](./assets/img/athena_cluster_setup.png "Standalone cluster.")
+
 
 ### CI/CD model
 
 #### 1. Git hooks
 
-Athena can be configured to listen to git hooks and run tests in any folder that contain 
-a file called .perf.athena
+Athena can be configured to listen to git hooks and run tests in any folder that contain a file called .perf.athena
 
 #### 2. REST API
 
-Athena has a simple control plane rest server that can be used to store patterns scenarios 
-and tests and also can be used to start stop different tests and collect data about a specific
-test
+Athena has a simple control plane rest server that can be used to store patterns scenarios and tests and also can be used to start stop different tests and collect data about a specific test
 
 #### 3. UI configuration (in progress)
 
-Athena has also an ui in which a user can configure tests patterns and scenario and Can
-watch ongoing tests and see reports.
+Athena has also an ui in which a user can configure tests patterns and scenario and Can watch ongoing tests and see reports.
 
 
 ### Capabilities
