@@ -2,6 +2,22 @@
 
 A Testing Engine for APIs
 
+## Table of contents
+
+* [Performance engine](#performance-engine)
+  * [Deployment model](#deployment-model)
+    * [1. Sidecar for k8s architecture](#1-sidecar-for-k8s)
+    * [2. Sidecar for docker images](#2-sidecar-for-docker-images)
+    * [3. Standalone cluster](#3-standalone-cluster)
+  * [CI/CD model](#cicd-model)
+    * [1. Git hooks](#1-git-hooks)
+    * [2. REST Control Plane](#2-sidecar-for-docker-images)
+    * [3. UI based](#3-ui-configuration-in-progress)
+  * [Capabilities](#capabilities)
+    * [1. White-box performance testing](#1-white-box-performance-testing---only-in-sidecar-deployment-model)
+    * [2. Black-box performance testing](#2-black-box-performance-testing---in-both-sidecar-and-standalone-cluster-deployment-model)
+
+
 ## Getting Started
 
 `node atena.js --tests-path custom_tests_path`
@@ -152,16 +168,18 @@ watch ongoing tests and see reports.
 ### Capabilities
 
 #### 1. White box performance testing - only in sidecar deployment model
-  a. redundancy check
-  b. fault tolerance check
-  c. network latency checks
-  d. fault injection capabilities
-  e. validate response data
-  f. prerequisite request preparation
+
+  1. redundancy check
+  2. fault tolerance check
+  3. network latency checks
+  4. fault injection capabilities
+  5. validate response data
+  6. prerequisite request preparation
 
 #### 2. Black box performance testing - in both sidecar and standalone cluster deployment model
-  a. validate calls
-  b. prerequisite request preparation
+
+  1. validate calls
+  2. prerequisite request preparation
 
 
 
