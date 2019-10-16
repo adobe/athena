@@ -149,7 +149,6 @@ Individual athena nodes that generate requests to diferrent endpoints in differe
 
 ![Standalone Cluster](./assets/img/athena_cluster_setup.png "Standalone cluster.")
 
-
 ### CI/CD model
 
 #### 1. Git hooks
@@ -200,6 +199,13 @@ Athena performance engine supports:
 7. mockup responses
 8. fault injection
 
+### Contributing
+
+Contributions are welcomed! Read the [Contributing Guide](./CONTRIBUTING.md) for more information.
+
+### Licensing
+
+This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
 
 
 
