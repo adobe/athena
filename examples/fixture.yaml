@@ -1,3 +1,4 @@
+
 type: fixture # todo: rename to "function"
 name: isServiceToken
 config:
