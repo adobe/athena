@@ -10,15 +10,19 @@ const {makeLogger} = require("./../utils"),
 const log = makeLogger();
 
 const COMMANDS = {
+
+    // Intra-Cluster
+
     // Manager -> Agents
     RUN_PERF: "RUN_PERF",
     RUN_FUNC: "RUN_FUNC",
+
     REQ_REPORT: "REQ_REPORT",
     REQ_STATUS: "REQ_STATUS",
 
     // Agent(s) -> Manager
-    PROC_REPORT: "PROC_REPORT",
-    PROC_STATUS: "PROC_STATUS",
+    RES_REPORT: "RES_REPORT",
+    RES_STATUS: "RES_STATUS",
 };
 
 class Cluster {
@@ -43,9 +47,6 @@ class Cluster {
 
     join = () => {
         this.agent = new AgentNode(this.settings);
-
-        console.log(`Joining...`);
-
         this.agent.joinCluster();
     };
 
@@ -82,14 +83,55 @@ class Cluster {
     };
 
     _clusterRunPerformance = () => {
-        // get all perf tests from the entity manager.
-        let perfTests = this.athena.getPerformanceTests();
+        this.manager.delegateClusterCommand(
+            COMMANDS.RUN_PERF,
+            JSON.stringify(this.athena.getPerformanceTests())
+        );
 
-        // serialize them.
-        perfTests = JSON.stringify(perfTests);
+        const intervals = [];
+        const failSafe = 30;
+        const agents = this.manager.getAgents();
 
-        // delegate cluster command.
-        this.manager.delegateClusterCommand(COMMANDS.RUN_PERF, perfTests);
+        const AGENT_STATUS = {
+            READY: "READY",
+            BUSY: "BUSY",
+            ERROR: "ERROR"
+        };
+
+        const JOB_STATUS = {
+            FINISHED: "FINISHED",
+            PENDING: "PENDING",
+            UNSTABLE: "UNSTABLE"
+        };
+
+        for (let agent of agents) {
+            const currentAgentID = agent.getId();
+            let failIndex = 0;
+            let isOverPolling = false;
+
+            intervals[currentAgentID] = setInterval(async function () {
+                const newAgentStatus = await cluster.getAgentStatus(currentAgentID);
+                const isOverFailSafe = failIndex === failSafe;
+                isOverPolling = isOverFailSafe && newAgentStatus !== AGENT_STATUS.OK;
+                const shouldCeasePolling = isOverPolling && isOverFailSafe;
+
+                agent.setStatus(newAgentStatus);
+
+                let report = await cluster.getAgentReport(currentAgentID);
+
+                if (report) {
+                    await storage.save(report);
+                } else {
+                    // todo: handle report issue
+                }
+
+                failIndex++;
+
+                if (newAgentStatus === AGENT_STATUS.OK || shouldCeasePolling) {
+                    clearInterval(intervals[agentiD]);
+                }
+            }, 1000);
+        }
     }
 }
 
@@ -231,7 +273,7 @@ class ManagerNode extends GenericNode {
 
         agents.forEach(agent => {
             const sock = agent.getSocket();
-            sock.write(message);
+            sock.write(JSON.stringify(message));
         });
     };
 
@@ -370,8 +412,6 @@ class AgentNode extends GenericNode {
             console.log(`connection closed`);
         });
     };
-
-
 }
 
 module.exports = Cluster;

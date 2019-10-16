@@ -4,7 +4,7 @@ description: ""
 engine: autocannon
 type: perfRun
 config:
-  url: http://34.65.37.184/
+  url: http://localhost/headers
   connections: 1000
 hooks:
   onInit:

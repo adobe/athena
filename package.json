@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "node atena.js",
-    "test": "mocha ./tests/**/*.test.js"
+    "test": "mocha ./tests/**/*.test.js",
+    "create-cluster": "node atena.js cluster --init --addr 0.0.0.0 --foreground"
   },
   "dependencies": {
     "@hapi/joi": "^15.1.1",
@@ -17,6 +18,7 @@
     "joi": "^14.3.1",
     "js-beautify": "^1.10.2",
     "js-yaml": "^3.13.1",
+    "knex": "^0.19.5",
     "lodash": "^4.17.15",
     "mocha": "^6.2.0",
     "mocha-parallel-tests": "^2.2.1",

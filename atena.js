@@ -290,19 +290,20 @@ should.initAthena = should.initCluster || should.runTests;
 
     // command: node athena.js cluster --run --[performance/functional]
     if (should.delegateClusterCommand) {
+        log.info(`Preparing to run a new cluster job...`);
         commands.callClusterCommand("RUN_PERF");
 
         return;
     }
 
-    // command: node athena.js run --performance
+    // command: node athena.js --run --performance
     if (should.runPerformanceTests) {
         athena.runPerformanceTests();
 
         return;
     }
 
-    // command: node athena.js run --functional
+    // command: node athena.js --run --functional
     if (should.runFunctionalTests) {
         athena.runFunctionalTests();
     }

@@ -26,9 +26,9 @@ scenario:
     - ref: "prod"
       version: "1.0"
       config: # Default config for perfRuns
-        url: "http://35.246.128.128/"
+        url: "http://localhost/"
         socketPath: "" # not implemented
-        connections: ""
+        connections: 100
         duration: ""
         amount: "" # overrides duration
         timeout: ""
