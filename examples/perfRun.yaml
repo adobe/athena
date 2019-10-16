@@ -1,8 +1,8 @@
-type: perfRun
 name: "apiKey"
 version: "1.0"
 description: ""
 engine: autocannon
+type: perfRun
 config:
   url: http://localhost/headers
   connections: 1000

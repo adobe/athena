@@ -1,11 +1,10 @@
-type: perfTest
 name: perf
-version: "1.0"
 description: someDescr
 engine: autocannon
-dependecy: # todo: rename to dependsOn
+type: perfTest
+dependecy:
   - name: cceco
-    type: api
+    type: api # ??
 hooks:
   skip:
   onInit:
@@ -24,7 +23,7 @@ config:
   rps: 3000
 scenario:
   run:
-    - ref: "prod" # todo rename to "perfPattern"
+    - ref: "prod"
       version: "1.0"
       config: # Default config for perfRuns
         url: "http://localhost/"
@@ -48,6 +47,11 @@ scenario:
         forever: "" # bool
         servername: ""
         excludeErrorStats: "" # boolean
+  pattern:
+    - ref: "prod"
+      version: "1.0"
+      config:
+        #needed config for pattern
       rampUp:
         every: 10s #or fixed
         rps: 10
@@ -67,3 +71,4 @@ scenario:
         connections: 10
         fixed: 30s #or every if fixed you need to specify after
         after: 30s
+

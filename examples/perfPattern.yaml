@@ -1,10 +1,10 @@
-type: perfPattern
 name: "prod"
 version: "1.0"
 description: ""
 engine: autocannon
+type: perfPattern
 mix:
-  - ref: "apiKey" # todo: rename to "perfRun"
+  - ref: "apiKey"
     version: "1.0"
     weight: 20%
     config:
@@ -17,6 +17,6 @@ mix:
     hooks:
       onInit:
       onDestroy:
-      onRequest: > # you will receive this.pool from the metadata of scenario
+      onRequest: > #you will receive this.pool from the metadata of scenario
         headers["Authorization"] = generateRandomToken(`${this.pool:30}`)
       onResponse:

@@ -1,11 +1,10 @@
-# todo: apiVersion
-type: test # todo: rename to kind
+type: test
 name: ccecoTest # required
 description: this is the test description
-engine: chakram # assumed by default if type == test (todo: inherited if none)
+engine: chakram # assumed by default if type == test, inherited if none
 fixtures:
   - isServiceToken
-suiteRef: # todo: rename to "suite"
+suiteRef:
   - ccecoSuite # can miss
   - mcSuite # one test can be part of multiple suites
 dependency:
@@ -20,8 +19,8 @@ hooks:
   beforeThen: console.log(`✅ Running beforeThen!`)
   teardown: console.log(`✅ Running afterThen!`)
 config:
-  timeout: 10 # think of other properties
-  repeat: 10 # repeat 10 times
+  timeout: 10 #think of other properties
+  repeat: 10 #repeat 10 times
 scenario:
   given: >
     this.host = "https://google.com";

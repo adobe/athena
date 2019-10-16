@@ -1,18 +1,17 @@
-type: test
 name: hanging test
-version: "1.0"
+type: test
 description: this test does not belong to any spec
 engine: chakram
-dependency: # todo: rename to dependsOn
+dependency:
   - name: mc
     type: api
 hooks:
   skip:
-  beforeEach:
-  afterEach:
+  beforeMe:
+  afterMe:
 config:
-  timeout: 10 # todo: think of other properties
-  repeat: 10  # repeat 10 times
+  timeout: 10 # think of other properties
+  repeat: 10  #repeat 10 times
 scenario:
   given: >
     this.host = "https://google.com";
