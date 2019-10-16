@@ -3,7 +3,7 @@ module.exports = function generatedPlugin(Atena) {
         if (test.config.name === "ccecoTest") {
             return `
                 const host = "https://facebook.com"
-                console.log("🔥 Switched host to " + host + " from a plugin" )
+                console.log("🔥 Switched host to " + host + " from a plugin")
              `;
         }
 
