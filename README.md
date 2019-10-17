@@ -1,6 +1,8 @@
+<div style="margin-bottom: -10px">
 <p align="center" style="margin: 0 !important;">
-  <img src="./assets/img/logo.jpg" width="250" style="margin-bottom: -25px;"/>
+  <img src="./assets/img/logo.jpg" width="250" />
 </p>
+</div>
 
 <p align="center">A Performance and Functional Testing Engine for APIs</p>
 
@@ -62,12 +64,13 @@
 
 * Increase confidence in each release by using an integrated testing framework (performance/functional).
 * Allow support for defining tests in a modular, but configurable way using `YAML` files.
-* Aggregate test results and provide in-depth reports via [Elasticsearch](https://www.elastic.co) and [Kibana](https://www.elastic.co/products/kibana).
+* Aggregate test results and provide in-depth reports via [Elasticsearch](https://www.elastic.co) and predefined [Kibana](https://www.elastic.co/products/kibana) dashboards.
 * Provide support for tests version management.
 * Run tests independent of their location.
 * Allow support for defining assertions in a programmatic way *(functional)*.
 * Allow support for easily extending the core functionality of the framework through plugins.
 * Allow support for defining reusable fixture modules among tests.
+* Allow support for creating complex performance mix patterns using functional tests. *(on the roadmap)*
 
 > **📝Note:** A thorough list of upcoming features is available in the [Roadmap](#roadmap).
 
@@ -96,6 +99,8 @@ Athena supports clustering out of the box via multiple deployment strategies. It
 
 **Reporting and aggregation** inside the cluster is also provided out of the box. The cluster manager constantly monitors the cluster state, pending and running jobs and aggregates all data inside [Elasticsearch](https://www.elastic.co). The complete state of the cluster (available agents, previous job reports, etc) can be easily visualised in custom [Kibana](https://www.elastic.co/products/kibana) dashboards.
 
+**Management via a UI Dashboard** provides an easy to use solution for defining test suites as well as managing previous test runs. *(roadmap feature)*
+
 
 #### Creating a new Cluster
 
@@ -109,7 +114,7 @@ Creating a standalone cluster can be achieved using the following command:
 node athena.js cluster --init --addr 0.0.0.0
 ```
 
-Once the cluster manager is bootstrapped, you will see a standard message and the necessary instructions in order to join the cluster from another node.
+Once the cluster manager is bootstrapped, you will see a standard message and the necessary instructions in order to join the cluster from another node. There is no need to specify as port, as Athena will automatically assign one in the `5000-5100` range.
 
 ```bash
 ℹ️  INFO:  Creating a new Athena cluster on: 0.0.0.0:5000 ...
@@ -160,29 +165,29 @@ Athena allows you to define and specify various flexible performance testing sce
 Performance tests within Athena are composed from 3 types of modules that can be defined in individual `yaml` configuration files and can be used to compose complex performace tests.
 
 1. **Performance Runs** - The most granular unit of work in performance tests. They allow you to define a standard or linear performance test.
-1. **Performance Patterns** - Allow to define complex weighted pattern mixes and are composed from multiple performance runs.
-1. **Performance Tests** - Provide support for defining complex scenarios composed from multiple performance patterns and control the `rampUp`, `coolDown` and `spike` behavior.
+1. **Performance Patterns** - Are composed from multiple performance runs and allow you to define complex weighted pattern mixes.
+1. **Performance Tests** - Are composed from performance patterns and provide support for defining complex scenarios while controlling the `rampUp`, `coolDown` and `spike` behavior.
 
 <img src="./assets/img/athena_perf_test_modules.png" width="300px" style="display: table; margin: 0 auto;">
 
 #### Hooks
 
-All performance test definitions support multiple hooks that can be used to dynamically manipulate a test's behavior.
+All performance test definitions support multiple hooks that can be used to dynamically manipulate a test's behavior. When a hook is used, the assigned function will receive the test's current context, which can be used for further decisions.
 
 ##### `skip`
-*TBD*
+Whether to skip the current test or not. The value can be provided dynamically via a fixture function.
 
 ##### `onInit`
-*TBD*
+Runs when the test is first initialised.
 
 ##### `onRequest`
-*TBD*
+Runs before the HTTP request.
 
 ##### `onResponse`
-*TBD*
+Runs when the HTTP response is received.
 
 ##### `onDestroy`
-*TBD*
+Runs when the test case has finished.
 
 #### Mockup Responses
 
@@ -244,16 +249,16 @@ The following config properties are available for performance patterns.
 name: string
 version: string
 description: string
-engine: autocannon  # required
-type: perfPattern   # required
+engine: autocannon      # required
+type: perfPattern       # required
 pattern:
-  - ref: string     # the performance run reference   
+  - ref: string         # the performance run reference   
     version: string
-    weight: string  # percentage (eg. 20%)
-    config:         # object
-                    # see perf. run config for example.
-    hooks:          # object
-                    # see perf. run hooks for example.
+    weight: string      # percentage (eg. 20%)
+    config:             # object
+                        # see perf. run config for example.
+    hooks:              # object
+                        # see perf. run hooks for example.
 ```
 
 ##### Tests
@@ -263,11 +268,11 @@ The following config properties are available for complete performance tests def
 ```yaml
 name: string
 description: string
-engine: autocannon  # required
-type: perfTest      # required
-hooks:              # object
+engine: autocannon      # required
+type: perfTest          # required
+hooks:                  # object
     # ...
-config:             # object
+config:                 # object
     # ...
 scenario:
   pattern:
@@ -276,23 +281,23 @@ scenario:
       config:
         # granular config control 
       rampUp:
-        every: 10s # or fixed
+        every: 10s      # or fixed
         rps: 10
         connections: 10
         threads:
-        fixed: 30s # or every
+        fixed: 30s      # or every
       coolDown:
-        every: 10s # or fixed
+        every: 10s      # or fixed
         rps: 10
         threads:
         connections: 10
-        fixed: 30s # or every
+        fixed: 30s      # or every
       spike:
-        every: 10s # or fixed
+        every: 10s      # or fixed
         rps: 10
         threads:
         connections: 10
-        fixed: 30s # or every if fixed you need to specify after
+        fixed: 30s      # or "every". if "fixed", you need to specify "after"
         after: 30s
 ```
 
@@ -300,7 +305,15 @@ scenario:
 #### Entities
 
 ##### Tests
-At a granular level, functional tests are YAML files that follow a specification, a Gherkin-like schema (`given` - variables and prerequisites for the API call, `when` - the API call itself, `then` - the validation of expected outcomes) and allow for hooks (`setup`, `beforeWhen`, `beforeThen`, `teardown`). Hooks are simply sections where additional preparations or cleanup can be done (e.g. obtaining an authentication token before using it within a request or setting and resetting resource states). The order in which these sections will be executed is:
+At a granular level, functional tests must also be defined via `yaml` files that follow a specification, a Gherkin-like schema:
+
+ * `given` - Variables and prerequisites for the API call.
+ * `when` - The API call itself.
+ * `then` - The validation of expected outcomes.
+
+ Functional tests also support hooks, which are simply sections where additional preparations or cleanup can be done *(e.g. obtaining an authentication token before using it within a request or setting and resetting resource states)*.
+
+The order in which these sections will be executed is:
 * `setup`
 * `given`
 * `beforeWhen`
@@ -309,7 +322,8 @@ At a granular level, functional tests are YAML files that follow a specification
 * `then`
 * `teardown`
 
-Test example:
+**Test Example:**
+
 ```yaml
 type: test
 name: Sample test
@@ -329,7 +343,9 @@ scenario:
 ```
 
 ##### Suites
-In order to organize relevent tests together and employ hierarchical configurations, suites are used. These can flexibly override any or all the hook/scenario items for the tests grouped under them, as in the following example:
+
+You can organize tests together and employ hierarchical configurations via suites. These can flexibly override any or all the hook/scenario items for the tests grouped under them, as in the following example:
+
 ```yaml
 type: suite
 name: sampleSuite
@@ -355,8 +371,6 @@ scenario:  # affects scenario for all suite tests (with lower precedence)
     when: console.log("override when")
     then: console.log("override then")
 ```
-
-#### Configuration
 
 ### Plugins and Fixtures
 
@@ -396,7 +410,9 @@ config:
 
 ##### Plugins
 
-> TBD
+Plugins allow you to extend Athena's core functionality via setup actions and filters. Using plugins, you can intercept Athena's behaviour at specific times or even override it completely.
+
+> **📝Note:** A thorough list of available filters and actions is in the works.
 
 ##### Dependencies
 
@@ -418,31 +434,32 @@ module.exports = uuidFixture;
 
 - [ ] RESTful API.
 - [ ] Web-based dashboard UI for managing suites, tests and the cluster.
+- [ ] Ability to run functional tests as complex performance mix patterns.
 - [ ] Support for Git hooks.
 - [ ] Extended storage support for multiple adapters.
 - [ ] Sidecar for Kubernetes.
 
 #### Sidecar for Kubernetes
 
-Injected as a separate pod inside a node via Kubernetes hooks and Kubernetes controller, modifies iptables so all inbound and outbound traffic goes through the athena sidecar, for checks and traffic proxying athena uses an envoy proxy that it configures for outbound traffic proxyig.
+Injected as a separate pod inside a node via Kubernetes hooks and Kubernetes controller, modifies `iptables` so all inbound and outbound traffic goes through the Atheena sidecar, for checks and traffic proxying athena uses an envoy proxy that it configures for outbound traffic proxying.
 
 ![Sidecar deployment model](./assets/img/athena_sidecar.png "Sidecar deployment model")
 
 #### Sidecar for Docker Images
 
-Via a Docker Compose configuration and bash scripting Athena acts as a sidecar for individual docker images, the approach is the same like for Kubernetes cluster.
+Via a Docker Compose configuration and bash scripting, Athena acts as a sidecar for individual Docker images. The approach is the same for a Kubernetes cluster.
 
 #### Git Hooks
 
-Athena can be configured to listen to Git hooks and run tests in any directory that contain a file called .perf.athena.
+Athena can be configured to listen to Git hooks and run tests in any directory that contains a file called `.perf.athena`.
 
-#### REST API
+#### RESTful API
 
-Athena has a simple control plane RESTful server that can be used to store patterns scenarios and tests and cal also be used to start/stop different tests and collect metrics about a specific test or suite.
+Athena has a simple control plane and a powerful RESTful web server that can be used to manage suites of tests. Using the API, you can start/stop different tests as well as manage the collected metrics about a specific test or suite run.
 
-#### Management via UI Dashboard (in progress)
+#### Management via UI Dashboard
 
-Configuration management should be handled via a web-based custom dashboard UI.
+Configuration management should be handled via a web-based custom dashboard UI that takes advantage of the exposed RESTful API.
 
 ### Troubleshooting
 
