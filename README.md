@@ -1,8 +1,12 @@
-<h2>Athena</h2>
+<p align="center">
+  <img src="./assets/img/logo.jpg" width="250" style="margin-bottom: -25px;"/>
+</p>
 
-A Performance and Functional Testing Engine for APIs
+<p align="center">A Performance and Functional Testing Engine for APIs</p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<p align="center">
+  <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" />
+</p>
 
 - [About](#about)
   - [What can Athena do?](#what-can-athena-do)
@@ -293,7 +297,6 @@ scenario:
 ```
 
 ### Functional Tests
-
 #### Entities
 
 ##### Tests
