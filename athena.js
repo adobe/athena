@@ -161,7 +161,7 @@ should.initAthena = should.initCluster || should.runTests;
             (async function () {
                 await pm2.start({
                     name: "athena",
-                    script: path.resolve(__dirname, "atena.js"),
+                    script: path.resolve(__dirname, "athena.js"),
                     args: `cluster --init --addr ${settings.addr} --foreground`,
                     exec_mode: "cluster",
                     instances: 1

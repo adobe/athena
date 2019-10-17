@@ -10,8 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-module.exports = function generatedPlugin(Atena) {
-    Atena.addFilter("chakramParseScenarioGiven", function (given, test) { // demo with multiple args
+module.exports = function generatedPlugin(Athena) {
+    Athena.addFilter("chakramParseScenarioGiven", function (given, test) { // demo with multiple args
         if (test.config.name === "ccecoTest") {
             return `
                 const host = "https://facebook.com"
@@ -22,7 +22,7 @@ module.exports = function generatedPlugin(Atena) {
         return given;
     }, 10);
 
-    Atena.addFilter("chakramParseScenarioThen", function (then) {
+    Athena.addFilter("chakramParseScenarioThen", function (then) {
         return `${then}`;
     }, 10);
 };

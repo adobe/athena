@@ -294,11 +294,70 @@ scenario:
 
 ### Functional Tests
 
+#### Entities
+
+##### Tests
+At a granular level, functional tests are YAML files that follow a specification, a Gherkin-like schema (`given` - variables and prerequisites for the API call, `when` - the API call itself, `then` - the validation of expected outcomes) and allow for hooks (`setup`, `beforeWhen`, `beforeThen`, `teardown`). Hooks are simply sections where additional preparations or cleanup can be done (e.g. obtaining an authentication token before using it within a request or setting and resetting resource states). The order in which these sections will be executed is:
+* `setup`
+* `given`
+* `beforeWhen`
+* `when`
+* `beforeThen`
+* `then`
+* `teardown`
+
+Test example:
+```yaml
+type: test
+name: Sample test
+engine: chakram
+scenario:
+  given: >
+    host = "https://httpbin.org/get"
+    params = {
+      headers: {
+        "accept: application/json"
+      }
+    };
+  when: >
+    response = chakram.get(host, params)
+  then: >
+    expect(response).to.have.status(200)
+```
+
+##### Suites
+In order to organize relevent tests together and employ hierarchical configurations, suites are used. These can flexibly override any or all the hook/scenario items for the tests grouped under them, as in the following example:
+```yaml
+type: suite
+name: sampleSuite
+engine: chakram
+hooks:  # affects hooks for all suite tests (with lower precedence)
+  setup: console.log("override setup")
+  beforeWhen: console.log("override beforeWhen")
+  beforeThen: console.log("override beforeThen")
+  teardown: console.log("override teardown")
+  tests:  # affects hooks only for simpleTest (with higher precedence)
+    - ref: simpleTest
+      setup: console.log("override setup")
+      beforeWhen: console.log("override beforeWhen")
+      beforeThen: console.log("override beforeThen")
+      teardown: console.log("override teardown")
+scenario:  # affects scenario for all suite tests (with lower precedence)
+  given: console.log("override given")
+  when: console.log("override when")
+  then: console.log("override then")
+  tests:  # affects scenario only for simpleTest (with higher precedence)
+  - ref: simpleTest
+    given: console.log("override given")
+    when: console.log("override when")
+    then: console.log("override then")
+```
+
 #### Configuration
 
 ### Plugins and Fixtures
 
-Fixtures are helper functions that can be injected in various contexts. Plugins allow you to extend Athena's functionality.
+Fixtures are helper functions that can be injected in various contexts. Plugins allow you to extend Athena's functionality. A limited set of out-of-the-box plugins will be provided by the framework, but users can define pretty much any functionality over what is already offered (for now, there is a cryptographic utility, but more are in the works).
 
 #### Configuration
 

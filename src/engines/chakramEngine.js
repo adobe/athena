@@ -77,7 +77,7 @@ class ChakramEngine extends Engine {
 
     _registerEntities = (entity) => {
         entity.toString = entity.getContext;
-        entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
+        entity.fileName = `${entity.config.name}.athena.js`; // todo: use a setter.
         this.engine.addFile(entity.fileName);
 
         return entity;
@@ -201,7 +201,7 @@ class ChakramEngine extends Engine {
         function findPathOverride(...args) {
             let fileName = path.basename(args[0]);
 
-            if (fileName.indexOf(".atena.") !== -1) {
+            if (fileName.indexOf(".athena.") !== -1) {
                 return fileName;
             }
 
@@ -211,7 +211,7 @@ class ChakramEngine extends Engine {
         function readFileSyncOverride(...args) {
             let fileName = path.basename(args[0]);
 
-            if (fileName.indexOf(".atena.") === -1) {
+            if (fileName.indexOf(".athena.") === -1) {
                 return this.nativeMethods.readFileSync(...args);
             }
 
