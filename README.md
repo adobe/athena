@@ -467,7 +467,8 @@ TBD
 
 ### Frequently Asked Questions
 
-TBD
+* 🤔**Question:** In terms of performance, how does Athena compare with any other load testing tool?
+  * 💬 **Answer:** Behind the scenes, Athena uses the [Autocannon](https://github.com/mcollina/autocannon) load testing engine which is able to deliver more load even than `wrk` and `wrk2`. We've benchmarked three load testing tools *(Autocannon, WRK2 and Gatling)* and published our results in [this short article](https://medium.com/@nicolae.vasile/performance-engine-benchmarks-autocannon-vs-wrk2-vs-gatling-d644359af380) on Medium.
 
 ### Contributing
 
