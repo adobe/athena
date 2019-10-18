@@ -1,11 +1,12 @@
 // External
-const pm2 = require("pm2");
+const pm2 = require("pm2"),
+    nanoid = require("nanoid");
 
 const MESSAGE_TOPIC = "ATHENA_CLUSTER_COMMAND";
 
 function makeMessage(command, data) {
     return {
-        id: 0,
+        id: nanoid(12),
         topic: MESSAGE_TOPIC,
         type: command,
         data
@@ -21,10 +22,13 @@ const _sendManagerCommand = (messageType, data) => {
         process.exit(0);
     };
 
-    pm2.sendDataToProcessId(
-        makeMessage(messageType, {data}),
-        _handleError
-    );
+    pm2.list(function (err, list) {
+        pm2.sendDataToProcessId(
+            list[0].pm2_env.pm_id,
+            makeMessage(messageType, {data}),
+            _handleError
+        );
+    });
 };
 
 function callClusterCommand(messageType, data) {

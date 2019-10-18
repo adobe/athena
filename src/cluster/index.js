@@ -5,17 +5,22 @@ const {uniqueNamesGenerator} = require("unique-names-generator"),
     nanoid = require('nanoid');
 
 const {makeLogger} = require("./../utils"),
-    {makeMessage} = require("./commands");
+    {makeMessage} = require("./commands"),
+    Storage = require("./../storage");
 
 const log = makeLogger();
+const storage = new Storage();
+
+// todo: do some flag checks
+storage.migrate();
 
 const COMMANDS = {
 
     // Intra-Cluster
 
     // Manager -> Agents
-    RUN_PERF: "RUN_PERF",
-    RUN_FUNC: "RUN_FUNC",
+    REQ_RUN_PERF: "REQ_RUN_PERF",
+    REQ_RUN_FUNC: "REQ_RUN_FUNC",
 
     REQ_REPORT: "REQ_REPORT",
     REQ_STATUS: "REQ_STATUS",
@@ -23,6 +28,20 @@ const COMMANDS = {
     // Agent(s) -> Manager
     RES_REPORT: "RES_REPORT",
     RES_STATUS: "RES_STATUS",
+
+    REQ_PROC_JOB_RES: "REQ_PROC_JOB_RES"
+};
+
+const AGENT_STATUS = {
+    READY: "READY",
+    BUSY: "BUSY",
+    ERROR: "ERROR"
+};
+
+const JOB_STATUS = {
+    FINISHED: "FINISHED",
+    PENDING: "PENDING",
+    UNSTABLE: "UNSTABLE"
 };
 
 class Cluster {
@@ -41,12 +60,12 @@ class Cluster {
     // public
 
     init = () => {
-        this.manager = new ManagerNode(this.settings);
+        this.manager = new ManagerNode(this.athena, this.settings);
         process.on("message", this._handleCallCommand);
     };
 
     join = () => {
-        this.agent = new AgentNode(this.settings);
+        this.agent = new AgentNode(this.athena, this.settings);
         this.agent.joinCluster();
     };
 
@@ -66,11 +85,11 @@ class Cluster {
         log.info(`Handling the "${command.type}" command.`);
 
         switch (command.type) {
-            case COMMANDS.RUN_PERF:
+            case COMMANDS.REQ_RUN_PERF:
                 log.info(`Delegating a new performance job to the cluster...`);
                 this._clusterRunPerformance();
                 break;
-            case COMMANDS.RUN_FUNC:
+            case COMMANDS.REQ_RUN_FUNC:
                 log.info(`Delegating a new functional job to the cluster...`);
                 break;
             case COMMANDS.REQ_REPORT:
@@ -83,55 +102,69 @@ class Cluster {
     };
 
     _clusterRunPerformance = () => {
+        // send the perf tests to all workers
         this.manager.delegateClusterCommand(
-            COMMANDS.RUN_PERF,
+            COMMANDS.REQ_RUN_PERF,
             JSON.stringify(this.athena.getPerformanceTests())
         );
 
-        const intervals = [];
-        const failSafe = 30;
-        const agents = this.manager.getAgents();
+        // await for RES_REQ_RUN_PERF
 
-        const AGENT_STATUS = {
-            READY: "READY",
-            BUSY: "BUSY",
-            ERROR: "ERROR"
-        };
+        // Message model received by the cluster manager.
+        const resMessage = makeMessage(
+            "RES_REQ_RUN_PERF",
+            {
+                status: "ACK"
+            }
+        );
 
-        const JOB_STATUS = {
-            FINISHED: "FINISHED",
-            PENDING: "PENDING",
-            UNSTABLE: "UNSTABLE"
-        };
+        // Once the message is received, set the existing agent as BUSY
 
-        for (let agent of agents) {
-            const currentAgentID = agent.getId();
-            let failIndex = 0;
-            let isOverPolling = false;
+        // Wait for the notification once the perf run was completed
+        const reqMessage = makeMessage(
+            "REQ_PROC_STATUS", // request from the agent to process its status.
+            {
+                status: "READY",
+                last_job: "JOB ID"
+            }
+        );
 
-            intervals[currentAgentID] = setInterval(async function () {
-                const newAgentStatus = await cluster.getAgentStatus(currentAgentID);
-                const isOverFailSafe = failIndex === failSafe;
-                isOverPolling = isOverFailSafe && newAgentStatus !== AGENT_STATUS.OK;
-                const shouldCeasePolling = isOverPolling && isOverFailSafe;
+        // Save the perf run in database
 
-                agent.setStatus(newAgentStatus);
 
-                let report = await cluster.getAgentReport(currentAgentID);
 
-                if (report) {
-                    await storage.save(report);
-                } else {
-                    // todo: handle report issue
-                }
-
-                failIndex++;
-
-                if (newAgentStatus === AGENT_STATUS.OK || shouldCeasePolling) {
-                    clearInterval(intervals[agentiD]);
-                }
-            }, 1000);
-        }
+        // const intervals = [];
+        // const failSafe = 30;
+        // const agents = this.manager.getAgents();
+        //
+        // for (let agent of agents) {
+        //     const currentAgentID = agent.getId();
+        //     let failIndex = 0;
+        //     let isOverPolling = false;
+        //
+        //     intervals[currentAgentID] = setInterval(async function () {
+        //         const newAgentStatus = await cluster.getAgentStatus(currentAgentID);
+        //         const isOverFailSafe = failIndex === failSafe;
+        //         isOverPolling = isOverFailSafe && newAgentStatus !== AGENT_STATUS.READY;
+        //         const shouldCeasePolling = isOverPolling && isOverFailSafe;
+        //
+        //         agent.setStatus(newAgentStatus);
+        //
+        //         let report = await cluster.getAgentReport(currentAgentID);
+        //
+        //         if (report) {
+        //             await storage.save(report);
+        //         } else {
+        //             // todo: handle report issue
+        //         }
+        //
+        //         failIndex++;
+        //
+        //         if (newAgentStatus === AGENT_STATUS.READY || shouldCeasePolling) {
+        //             clearInterval(intervals[agentiD]);
+        //         }
+        //     }, 1000);
+        // }
     }
 }
 
@@ -141,10 +174,12 @@ class GenericNode {
 
         this._enumerableProps = [
             "_id",
-            "_name"
+            "_name",
+            "_status"
         ];
         this._id = null;
         this._name = null;
+        this._status = null;
 
         this.setID(this._generateUUID());
         this.setName(this._generateNodeName());
@@ -164,6 +199,14 @@ class GenericNode {
 
     getName = () => {
         return this._name;
+    };
+
+    getStatus = () => {
+        return this._status;
+    };
+
+    setStatus = (status) => {
+        this._status = status;
     };
 
     describe = () => {
@@ -212,8 +255,10 @@ class GenericNode {
 }
 
 class ManagerNode extends GenericNode {
-    constructor(settings) {
+    constructor(athena, settings) {
         super(settings);
+
+        this.athena = athena;
 
         // props
         this._addr = null;
@@ -228,7 +273,7 @@ class ManagerNode extends GenericNode {
         this.setAccessToken(accessToken);
 
         (async () => {
-            const port = await getPort({port: getPort.makeRange(5000, 5999)});
+            const port = await getPort({port: getPort.makeRange(5000, 5100)});
 
             this.setPort(port);
             this.createTCPServer();
@@ -339,11 +384,12 @@ class ManagerNode extends GenericNode {
     };
 
     _handleNewAgentConnection = (sock) => {
-        const Agent = new AgentNode(this.settings);
+        const Agent = new AgentNode(this.athena, this.settings);
         Agent.setSocket(sock);
         this.addAgent(Agent);
         const {remoteAddress, remotePort} = sock;
-        log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}!`);
+        log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}`);
+
         sock.setEncoding("utf8");
         sock.on('data', this._handleIncomingAgentData);
         sock.on("close", data => {
@@ -351,8 +397,44 @@ class ManagerNode extends GenericNode {
         });
     };
 
-    _handleIncomingAgentData = (data) => {
-        console.log(data);
+    _handleIncomingAgentData = (message) => {
+        // todo: store cluster log
+        // todo: each message should have a unique ID
+
+        const TCP_DATA_TYPES = {
+            NEW_AGENT_CONNECTED: "NEW_AGENT_CONNECTED"
+        };
+
+        try {
+            message = JSON.parse(message);
+        } catch (e) {
+            log.warn(`Could not parse incoming agent message!`);
+            return;
+        }
+
+        const {data} = message;
+
+        if (!data) {
+            log.warn(`Invalid data from agent!`);
+            return;
+        }
+
+        this._handleNewAgentJoinedCluster(data);
+
+        // switch (message.type) {
+        //     case TCP_DATA_TYPES.NEW_AGENT_CONNECTED:
+        //
+        //         break;
+        //     default:
+        //         log.warn(`Unknown incoming agent data type!`);
+        // }
+    };
+
+    _handleNewAgentJoinedCluster = (data) => {
+        // todo: validate data
+        (async function () {
+            await storage.store("autocannon", "agent", data);
+        })();
     };
 
     _handleRemoveAgent = (data, sock) => {
@@ -361,6 +443,24 @@ class ManagerNode extends GenericNode {
             const agentSock = agent.getSocket();
             return agentSock.remoteAddress === sock.remoteAddress && agentSock.remotePort === sock.remotePort;
         });
+
+        const agent = agents[index];
+
+        (async function () {
+            await storage.deleteByQuery({
+                index: "autocannon",
+                type: "agent",
+                body: {
+                    query: {
+                        match: {
+                            body: {
+                                id: agent.getId()
+                            }
+                        }
+                    }
+                }
+            });
+        })();
 
         if (index !== -1) {
             agents.splice(index, 1);
@@ -371,9 +471,10 @@ class ManagerNode extends GenericNode {
 }
 
 class AgentNode extends GenericNode {
-    constructor(settings) {
+    constructor(athena, settings) {
         super();
 
+        this.athena = athena;
         this.settings = settings;
 
         // props
@@ -396,9 +497,11 @@ class AgentNode extends GenericNode {
         console.log(`Connecting to ${host}:${port}`);
 
         const socket = new net.Socket();
+        this.setSocket(socket);
 
         // todo: run with PM2
         socket.connect(port, host, function () {
+            _self.setStatus(AGENT_STATUS.READY);
             const status = _self.describe();
             const message = makeMessage(COMMANDS.PROC_STATUS, status);
             socket.write(JSON.stringify(message));
@@ -406,12 +509,56 @@ class AgentNode extends GenericNode {
 
         socket.on('data', (data) => {
             console.log(`Server says: ${data}`);
+
+            // todo: try catch
+            data = JSON.parse(data);
+
+            // process message type (assuming REQ_REQ_RUN_PERF)
+            switch (data.type) {
+                case COMMANDS.REQ_RUN_PERF:
+                    this._handleReqRunPerf(data);
+                    break;
+                // todo: handle all command types
+                default:
+                    break;
+            }
         });
 
         socket.on('close', () => {
-            console.log(`connection closed`);
+            console.log(`connection closed from agent`);
         });
     };
+
+    _handleReqRunPerf = (data) => {
+        const socket = this.getSocket();
+        const perfTest = data.data;
+
+        // respond with RES_REQ_RUN_PERF + job ID
+        const resRunPerfMessage = makeMessage(
+            COMMANDS.RES_RUN_PERF,
+            {
+                status: "ACK"
+            }
+        );
+
+        socket.write(resRunPerfMessage);
+        this.setStatus(AGENT_STATUS.BUSY);
+
+        // run performance tests
+        const results = this._runPerformanceTest(perfTest);
+
+        // respond with REQ_PROC_STATUS + job id
+        const reqProcessJobResults = makeMessage(
+            COMMANDS.REQ_PROC_JOB_RES,
+            results
+        );
+        socket.write(reqProcessJobResults)
+        this.setStatus(AGENT_STATUS.READY)
+    }
+
+    _runPerformanceTest = (test) => {
+
+    }
 }
 
 module.exports = Cluster;

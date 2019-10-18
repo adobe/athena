@@ -4,9 +4,10 @@
   "scripts": {
     "start": "node atena.js",
     "test": "mocha ./tests/**/*.test.js",
-    "create-cluster": "node atena.js cluster --init --addr 0.0.0.0 --foreground"
+    "create-cluster": "./scripts/create_cluster.sh"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^7.4.0",
     "@hapi/joi": "^15.1.1",
     "acorn-loose": "^7.0.0",
     "autocannon": "^4.0.0",
@@ -25,6 +26,7 @@
     "nanoid": "^2.1.2",
     "ora": "^4.0.0",
     "pm2": "^3.5.1",
+    "shx": "^0.3.2",
     "string-format": "^2.0.0",
     "tosource": "^1.0.0",
     "unique-names-generator": "^3.0.0",

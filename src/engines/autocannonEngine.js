@@ -29,9 +29,12 @@ class AutocannonEngine extends Engine {
         this.entities = perfEntities.map(this._deepParseEntities);
     }
 
-    run = () => {
-        const finalConfig = this.getPerformanceTests();
-        const engine = autocannon(finalConfig, this._handleTestFinish);
+    run = (testsConfig = null) => {
+        if (!testsConfig) {
+            testsConfig = this.getPerformanceTests();
+        }
+
+        const engine = autocannon(testsConfig, this._handleTestFinish);
 
         process.once("SIGINT", () => {
             engine.stop();

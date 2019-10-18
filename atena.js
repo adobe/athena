@@ -26,6 +26,10 @@ const {getParsedSettings, log} = require("./src/utils"),
 
 dotenv.config();
 
+process.on('uncaughtException', function (error) {
+    log.error(error);
+});
+
 // Properties
 let athena = null,
     cluster = null,
@@ -173,8 +177,11 @@ should.initAthena = should.initCluster || should.runTests;
             "--foreground"
         ];
 
+        let maybeWatch = false;
+
         if (settings.debug) {
             args.push("--debug");
+            maybeWatch = true;
         }
 
         pm2.connect(function (err) {
@@ -185,11 +192,14 @@ should.initAthena = should.initCluster || should.runTests;
 
             (async function () {
                 await pm2.start({
-                    name: APP_NAME,
+                    name: `${APP_NAME}-manager`,
                     script: path.resolve(__dirname, "atena.js"),
                     args: args.join(' '),
                     exec_mode: "cluster",
-                    instances: 1
+                    instances: 1,
+                    watch: maybeWatch,
+                    output: path.resolve(__dirname, "out.log"),
+                    error: path.resolve(__dirname, "error.log"),
                 }, function (error, res) {
                     if (error) {
                         throw error
@@ -224,7 +234,6 @@ should.initAthena = should.initCluster || should.runTests;
 
     // command: node athena.js cluster --join --foreground --token <TOKEN> --addr <IP>:<PORT>
     if (should.joinClusterInForeground) {
-        log.info(`Attempting to join a new cluster...`);
         cluster.join();
 
         return;
@@ -248,8 +257,11 @@ should.initAthena = should.initCluster || should.runTests;
             "--foreground"
         ];
 
+        let maybeWatch = false;
+
         if (settings.debug) {
             args.push("--debug");
+            maybeWatch = true;
         }
 
         pm2.connect(function (err) {
@@ -260,11 +272,13 @@ should.initAthena = should.initCluster || should.runTests;
 
             (async function () {
                 await pm2.start({
-                    name: APP_NAME,
+                    name: `${APP_NAME}-agent`,
                     script: path.resolve(__dirname, "atena.js"),
                     args: args.join(' '),
-                    exec_mode: "cluster",
-                    instances: 1
+                    exec_mode: "fork",
+                    watch: maybeWatch,
+                    output: path.resolve(__dirname, "out.log"),
+                    error: path.resolve(__dirname, "error.log"),
                 }, function (error, res) {
                     if (error) {
                         throw error
@@ -291,7 +305,7 @@ should.initAthena = should.initCluster || should.runTests;
     // command: node athena.js cluster --run --[performance/functional]
     if (should.delegateClusterCommand) {
         log.info(`Preparing to run a new cluster job...`);
-        commands.callClusterCommand("RUN_PERF");
+        commands.callClusterCommand("REQ_RUN_PERF");
 
         return;
     }
