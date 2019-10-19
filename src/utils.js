@@ -9,6 +9,7 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+
 // Node
 const fs = require("fs"),
     path = require("path"),
@@ -242,11 +243,6 @@ exports.removeEmpty = obj =>
                     : {...newObj, [k]: obj[k]},
             {}
         );
-
-
-exports.dateNow = () => {
-    return
-}
 
 // todo: factory? adjust enums to uppercase first though
 exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;

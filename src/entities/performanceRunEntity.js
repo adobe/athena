@@ -9,9 +9,9 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-const Entity = require("./entity");
 
-const {ENTITY_TYPES} = require('./../enums');
+const Entity = require("./entity"),
+    {ENTITY_TYPES} = require('./../enums');
 
 class PerformanceRunEntity extends Entity {
     constructor(name, path, config) {

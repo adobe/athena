@@ -9,17 +9,14 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-const cluster = require("cluster"),
-    numCPUs = require("os").cpus().length,
-    pid = process.pid;
 
+// external
 const autocannon = require('autocannon');
 
+// project
 const Engine = require("./engine"),
     {TAXONOMIES, ENGINES} = require("./../enums"),
     {makeLogger, isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
-
-const log = makeLogger();
 
 class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
