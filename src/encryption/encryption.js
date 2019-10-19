@@ -14,7 +14,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+
 module.exports = {encryptSecret, decryptSecret, loadSecrets};
+
 
 /**
  * Loads secrets needed for encryption/decryption from a given file. These are

@@ -9,12 +9,8 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-// Node
-const path = require("path");
-
-// Project
-const { version, description } = require("./../package.json");
+const path = require("path"),
+    { version, description } = require("./../package.json");
 
 const CONF = {};
 

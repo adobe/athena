@@ -9,18 +9,17 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-// Node
+// node
 const fs = require("fs"),
     path = require("path");
 
-// External
+// external
 const Mocha = require("mocha"),
     {find} = require("lodash"),
     toSource = require("tosource"),
     jsBeautify = require("js-beautify");
 
-// Project
+// project
 const Engine = require("./engine"),
     {TAXONOMIES, ENGINES} = require("./../enums"),
     {isSuite, isTest, parseAstExpressions} = require("./../utils");
@@ -77,7 +76,7 @@ class ChakramEngine extends Engine {
 
     _registerEntities = (entity) => {
         entity.toString = entity.getContext;
-        entity.fileName = `${entity.config.name}.athena.js`; // todo: use a setter.
+        entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
         this.engine.addFile(entity.fileName);
 
         return entity;
@@ -201,7 +200,7 @@ class ChakramEngine extends Engine {
         function findPathOverride(...args) {
             let fileName = path.basename(args[0]);
 
-            if (fileName.indexOf(".athena.") !== -1) {
+            if (fileName.indexOf(".atena.") !== -1) {
                 return fileName;
             }
 
@@ -211,7 +210,7 @@ class ChakramEngine extends Engine {
         function readFileSyncOverride(...args) {
             let fileName = path.basename(args[0]);
 
-            if (fileName.indexOf(".athena.") === -1) {
+            if (fileName.indexOf(".atena.") === -1) {
                 return this.nativeMethods.readFileSync(...args);
             }
 

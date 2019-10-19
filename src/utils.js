@@ -9,10 +9,10 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
 // Node
 const fs = require("fs"),
-    path = require("path");
+    path = require("path"),
+    os = require("os");
 
 // External
 const chalk = require("chalk").default,
@@ -36,9 +36,9 @@ const CONFIG = require("./config"),
 function makeLogger() {
     const logger = {};
 
-    logger.success = (...m) => console.log(chalk.green(`✅ SUCCESS: `), ...m);
-    logger.warn = (...m) => console.log(chalk.yellow(`⚠️  WARN: `), ...m);
-    logger.info = (...m) => console.log(chalk.blue(`ℹ️  INFO: `), ...m);
+    logger.success = (...m) => console.log(chalk.green(`✔ SUCCESS: `), ...m);
+    logger.warn = (...m) => console.log(chalk.yellow(`☢️ WARN: `), ...m);
+    logger.info = (...m) => console.log(chalk.blue(`💬 INFO: `), ...m);
 
     logger.error = (...m) => {
         console.log(chalk.red(`🚫 ERROR: `), ...m);
@@ -113,6 +113,9 @@ function getParsedSettings(options = {}) {
     defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
     defaults.testsDirPath = path.resolve(defaults.basePath, defaults.testsDir);
     defaults.pluginsDirPath = path.resolve(defaults.basePath, defaults.testsDir, defaults.pluginsDir);
+
+    // Get half of the available CPUs
+    defaults.cpusLength = Math.floor(os.cpus().length / 2);
 
     if (options.performance) {
         options.functional = false;
@@ -239,6 +242,11 @@ exports.removeEmpty = obj =>
                     : {...newObj, [k]: obj[k]},
             {}
         );
+
+
+exports.dateNow = () => {
+    return
+}
 
 // todo: factory? adjust enums to uppercase first though
 exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;

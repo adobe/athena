@@ -9,16 +9,15 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-// Node
+// node
 const fs = require("fs"),
     path = require("path");
 
-// External
+// external
 const jsYaml = require("js-yaml"),
     {isString} = require("lodash");
 
-// Project
+// project
 const {
     makeContainer,
     isTest,

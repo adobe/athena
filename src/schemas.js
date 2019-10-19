@@ -9,7 +9,6 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
 const Joi = require("@hapi/joi");
 
 const schemaTest =
@@ -51,10 +50,42 @@ const schemaFixture =
         })
     });
 
+const schemaACAgent =
+    Joi.object({
+        id: Joi.string(),
+        name: Joi.string(),
+        status: Joi.string()
+    });
+
+const schemaACReport =
+    Joi.object({
+        id: Joi.string(),
+        job_id: Joi.string(),
+        agent_id: Joi.string(),
+        report: Joi.string()
+    });
+
+const schemaACAgentStatus =
+    Joi.object({
+        agent_id: Joi.string(),
+        status: Joi.string()
+    });
+
+const schemaACJob =
+    Joi.object({
+        id: Joi.string(),
+        data: Joi.string(),
+        status: Joi.string()
+    });
+
 const schemas = {
     test: schemaTest,
     suite: schemaSuite,
-    fixture: schemaFixture
+    fixture: schemaFixture,
+    acAgent: schemaACAgent,
+    acAgentStatus: schemaACAgentStatus,
+    acJob: schemaACJob,
+    acReport: schemaACReport
 };
 
 module.exports = schemas;

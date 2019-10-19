@@ -1,4 +1,4 @@
-type: suite
+type: ssuite
 name: ccecoSuite # required
 engine: chakram # required for top level suite, nested values are ignored.
 description: some string

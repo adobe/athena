@@ -4,8 +4,10 @@ description: ""
 engine: autocannon
 type: perfRun
 config:
-  url: http://34.65.37.184/
-  connections: 1000
+  url: https://httpbin.org/get
+  connections: 3000
+  duration: 30
+  rps: 3000
 hooks:
   onInit:
   onDestroy:

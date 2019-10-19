@@ -9,9 +9,8 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-module.exports = function generatedPlugin(Athena) {
-    Athena.addFilter("chakramParseScenarioGiven", function (given, test) { // demo with multiple args
+module.exports = function generatedPlugin(Atena) {
+    Atena.addFilter("chakramParseScenarioGiven", function (given, test) { // demo with multiple args
         if (test.config.name === "ccecoTest") {
             return `
                 const host = "https://facebook.com"
@@ -22,7 +21,7 @@ module.exports = function generatedPlugin(Athena) {
         return given;
     }, 10);
 
-    Athena.addFilter("chakramParseScenarioThen", function (then) {
+    Atena.addFilter("chakramParseScenarioThen", function (then) {
         return `${then}`;
     }, 10);
 };

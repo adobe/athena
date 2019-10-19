@@ -9,23 +9,23 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-// Node
+// node
 const path = require("path"),
     fs = require("fs"),
     _require = require("child_process"),
     execSync = _require.execSync;
 
-// External
+// external
 const {isArray, pullAll, uniq} = require("lodash"),
     detective = require("detective");
 
-// Project
+// project
 const {
     makeLogger,
     makeContainer,
     startSpinner,
-    getPackageInstallCommand
+    getPackageInstallCommand,
+    isTest,
 } = require("../utils");
 
 // todo: load dynamically

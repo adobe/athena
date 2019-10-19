@@ -9,12 +9,17 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const cluster = require("cluster"),
+    numCPUs = require("os").cpus().length,
+    pid = process.pid;
 
 const autocannon = require('autocannon');
 
 const Engine = require("./engine"),
     {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
+    {makeLogger, isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
+
+const log = makeLogger();
 
 class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
@@ -35,7 +40,27 @@ class AutocannonEngine extends Engine {
         this.entities = perfEntities.map(this._deepParseEntities);
     }
 
-    run = () => {
+    run = (testsConfig = null, cb = null) => {
+        if (!testsConfig) {
+            testsConfig = this.getPerformanceTests();
+        }
+
+        if (!cb) {
+            cb = this._handleTestFinish;
+        }
+
+        const engine = autocannon(testsConfig, cb);
+
+        process.once("SIGINT", () => {
+            engine.stop();
+        });
+
+        autocannon.track(engine, {
+            renderProgressBar: true
+        });
+    };
+
+    getPerformanceTests = () => {
         // todo: add support for multiple tests.
         const perfTest = this.entities[0];
         const perfPattern = perfTest.perfPatterns[0];
@@ -47,21 +72,11 @@ class AutocannonEngine extends Engine {
         const perfPatternConfig = removeEmpty(perfPattern.config.config || {});
         const perfRunConfig = removeEmpty(perfRun.config.config || {});
 
-        const finalConfig = {
+        return {
             ...perfTestConfig,
             ...perfPatternConfig,
             ...perfRunConfig
         };
-
-        const engine = autocannon(finalConfig, this._handleTestFinish);
-
-        process.once("SIGINT", () => {
-            engine.stop();
-        });
-
-        autocannon.track(engine, {
-            renderProgressBar: true
-        });
     };
 
     _getTestConfig = (test) => { // todo: flatten test object
@@ -108,7 +123,7 @@ class AutocannonEngine extends Engine {
             console.error(`There was a problem while running the performance test!\n${error}`);
         }
 
-        // console.info(`The test has finished! Here are the results:\n${JSON.stringify(results, null, 1)}`);
+        console.log(results);
     };
 
     _deepParseEntities = (entity) => {
