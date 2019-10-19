@@ -12,6 +12,7 @@
     "acorn-loose": "^7.0.0",
     "autocannon": "^4.0.0",
     "chakram": "^1.5.0",
+    "cli-spinner": "^0.2.10",
     "commander": "^2.20.0",
     "detective": "^5.2.0",
     "dotenv": "^8.1.0",

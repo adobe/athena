@@ -102,69 +102,23 @@ class Cluster {
     };
 
     _clusterRunPerformance = () => {
+        log.info(`Preparing performance test data...`);
+
+        // create the perf job
+        const PerfJob = new PerformanceJob();
+        const perfJobData = this.athena.getPerformanceTests();
+        PerfJob.setData(perfJobData);
+
+        log.success(`Performance test data ready!`);
+        log.info(`Delegating new cluster performance job...`);
+
         // send the perf tests to all workers
         this.manager.delegateClusterCommand(
             COMMANDS.REQ_RUN_PERF,
-            JSON.stringify(this.athena.getPerformanceTests())
+            PerfJob.describe(true)
         );
 
-        // await for RES_REQ_RUN_PERF
-
-        // Message model received by the cluster manager.
-        const resMessage = makeMessage(
-            "RES_REQ_RUN_PERF",
-            {
-                status: "ACK"
-            }
-        );
-
-        // Once the message is received, set the existing agent as BUSY
-
-        // Wait for the notification once the perf run was completed
-        const reqMessage = makeMessage(
-            "REQ_PROC_STATUS", // request from the agent to process its status.
-            {
-                status: "READY",
-                last_job: "JOB ID"
-            }
-        );
-
-        // Save the perf run in database
-
-
-
-        // const intervals = [];
-        // const failSafe = 30;
-        // const agents = this.manager.getAgents();
-        //
-        // for (let agent of agents) {
-        //     const currentAgentID = agent.getId();
-        //     let failIndex = 0;
-        //     let isOverPolling = false;
-        //
-        //     intervals[currentAgentID] = setInterval(async function () {
-        //         const newAgentStatus = await cluster.getAgentStatus(currentAgentID);
-        //         const isOverFailSafe = failIndex === failSafe;
-        //         isOverPolling = isOverFailSafe && newAgentStatus !== AGENT_STATUS.READY;
-        //         const shouldCeasePolling = isOverPolling && isOverFailSafe;
-        //
-        //         agent.setStatus(newAgentStatus);
-        //
-        //         let report = await cluster.getAgentReport(currentAgentID);
-        //
-        //         if (report) {
-        //             await storage.save(report);
-        //         } else {
-        //             // todo: handle report issue
-        //         }
-        //
-        //         failIndex++;
-        //
-        //         if (newAgentStatus === AGENT_STATUS.READY || shouldCeasePolling) {
-        //             clearInterval(intervals[agentiD]);
-        //         }
-        //     }, 1000);
-        // }
+        log.success(`👍 Successfully delegated a new performance job to the cluster! Check the manager's logs for more details!`);
     }
 }
 
@@ -391,50 +345,40 @@ class ManagerNode extends GenericNode {
         log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}`);
 
         sock.setEncoding("utf8");
-        sock.on('data', this._handleIncomingAgentData);
+        sock.on('data', (message) => {
+            this._handleIncomingAgentData(sock, message)
+        });
         sock.on("close", data => {
             this._handleRemoveAgent(data, sock);
         });
     };
 
-    _handleIncomingAgentData = (message) => {
-        // todo: store cluster log
-        // todo: each message should have a unique ID
-
-        const TCP_DATA_TYPES = {
-            NEW_AGENT_CONNECTED: "NEW_AGENT_CONNECTED"
-        };
+    _handleIncomingAgentData = (sock, message) => {
+        // parse data
+        let data = null;
 
         try {
-            message = JSON.parse(message);
+            data = JSON.parse(message);
         } catch (e) {
             log.warn(`Could not parse incoming agent message!`);
+
             return;
         }
 
-        const {data} = message;
-
-        if (!data) {
-            log.warn(`Invalid data from agent!`);
-            return;
+        // parse incoming message type
+        switch (data.type) {
+            case "RES_RUN_PERF":
+                this._handleResRunPerf(data);
+                break;
+            default:
+                break;
         }
-
-        this._handleNewAgentJoinedCluster(data);
-
-        // switch (message.type) {
-        //     case TCP_DATA_TYPES.NEW_AGENT_CONNECTED:
-        //
-        //         break;
-        //     default:
-        //         log.warn(`Unknown incoming agent data type!`);
-        // }
     };
 
-    _handleNewAgentJoinedCluster = (data) => {
-        // todo: validate data
-        (async function () {
-            await storage.store("autocannon", "agent", data);
-        })();
+    _handleResRunPerf = (data) => {
+        log.success(`Successfully retrieved new agent data!`);
+        console.log(JSON.stringify(data, null, 2));
+        // todo: store the agent's results in ES.
     };
 
     _handleRemoveAgent = (data, sock) => {
@@ -446,21 +390,22 @@ class ManagerNode extends GenericNode {
 
         const agent = agents[index];
 
-        (async function () {
-            await storage.deleteByQuery({
-                index: "autocannon",
-                type: "agent",
-                body: {
-                    query: {
-                        match: {
-                            body: {
-                                id: agent.getId()
-                            }
-                        }
-                    }
-                }
-            });
-        })();
+        // todo: delete agent document from ES
+        // (async function () {
+        //     await storage.deleteByQuery({
+        //         index: "autocannon",
+        //         type: "agent",
+        //         body: {
+        //             query: {
+        //                 match: {
+        //                     body: {
+        //                         id: agent.getId()
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     });
+        // })();
 
         if (index !== -1) {
             agents.splice(index, 1);
@@ -507,15 +452,22 @@ class AgentNode extends GenericNode {
             socket.write(JSON.stringify(message));
         });
 
-        socket.on('data', (data) => {
-            console.log(`Server says: ${data}`);
+        socket.on('data', (message) => {
+            log.info(`😬 Received new data from the manager node!`);
+            let data = null;
+            try {
+                data = JSON.parse(message);
+            } catch (error) {
+                log.warn(`🤕 Could not parse the incoming data from the manager node!`);
+                return;
+            }
 
-            // todo: try catch
-            data = JSON.parse(data);
+            log.info(`🤔 Attempting to parse the incoming data from the manager...`);
 
             // process message type (assuming REQ_REQ_RUN_PERF)
             switch (data.type) {
                 case COMMANDS.REQ_RUN_PERF:
+                    log.success(`👌 Successfully identified the incoming data as a new performance test job!`);
                     this._handleReqRunPerf(data);
                     break;
                 // todo: handle all command types
@@ -525,39 +477,93 @@ class AgentNode extends GenericNode {
         });
 
         socket.on('close', () => {
-            console.log(`connection closed from agent`);
+            log.info(`😔 The agent has closed the connection...`);
         });
     };
 
-    _handleReqRunPerf = (data) => {
-        const socket = this.getSocket();
-        const perfTest = data.data;
+    _handleReqRunPerf = (message) => {
+        const perfTest = message.data;
+        const _self = this;
 
-        // respond with RES_REQ_RUN_PERF + job ID
-        const resRunPerfMessage = makeMessage(
-            COMMANDS.RES_RUN_PERF,
-            {
-                status: "ACK"
-            }
-        );
+        console.log(typeof perfTest);
 
-        socket.write(resRunPerfMessage);
-        this.setStatus(AGENT_STATUS.BUSY);
+        log.info(`💪 Preparing to run a new performance job (id: ${perfTest.id}) ...`);
 
         // run performance tests
-        const results = this._runPerformanceTest(perfTest);
+        this.athena.runPerformanceTests(perfTest.data, function (err, results) {
+            // check for any errors
+            if (err) {
+                console.error(`🤕 Could not run the job!`, err);
+                return;
+                // todo: return error message to manager
+            }
 
-        // respond with REQ_PROC_STATUS + job id
-        const reqProcessJobResults = makeMessage(
-            COMMANDS.REQ_PROC_JOB_RES,
-            results
-        );
-        socket.write(reqProcessJobResults)
-        this.setStatus(AGENT_STATUS.READY)
+            const socket = _self.getSocket();
+            log.success(`😎 Successfully ran the performance test!`);
+
+            // prep the test results message
+            log.info(`😬 Attempting to notify the manager about the test results...`);
+            const PerfJob = new PerformanceJob(perfTest);
+            PerfJob.setResults(results);
+
+            const resRunPerfMessage = makeMessage(
+                "RES_RUN_PERF",
+                PerfJob.describe()
+            );
+
+            // notify the manager about the test results
+            socket.write(JSON.stringify(resRunPerfMessage), "utf8", () => {
+                log.success(`😎 Successfully sent the test results!`);
+            });
+        });
+    };
+}
+
+class PerformanceJob {
+    constructor(perfTest = null) {
+        this._id = nanoid();
+        this._created_at = new Date().getTime();
+        this._updated_at = new Date().getTime();
+        this._data = null;
+        this._results = null;
+
+        if (perfTest) {
+            // todo: check if perfTest has any data, otherwise it will crash
+            this._id = perfTest.id;
+            this._created_at = perfTest.created_at;
+            this._updated_at = perfTest.updated_at;
+            this._data = perfTest.data;
+            this._results = perfTest.results;
+        }
     }
 
-    _runPerformanceTest = (test) => {
+    setData = (data) => {
+        this._data = data;
+    };
 
+    setResults = (results) => {
+        this._results = results;
+        this.refreshUpdatedAt();
+    };
+
+    refreshUpdatedAt = () => {
+        this._updated_at = new Date().getTime();
+    };
+
+    describe = (asString = false) => {
+        const description = {
+            id: this._id,
+            created_at: this._created_at,
+            updated_at: this._updated_at,
+            data: this._data,
+            results: this._results
+        };
+
+        if (asString) {
+            return JSON.stringify(description);
+        }
+
+        return description;
     }
 }
 

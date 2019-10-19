@@ -22,6 +22,8 @@ const _sendManagerCommand = (messageType, data) => {
         process.exit(0);
     };
 
+    data = JSON.stringify(data);
+
     pm2.list(function (err, list) {
         pm2.sendDataToProcessId(
             list[0].pm2_env.pm_id,

@@ -30,8 +30,8 @@ class Atena {
         this.chakram = ChakramEngine;
     }
 
-    runPerformanceTests = () => {
-        this.autocannon.run();
+    runPerformanceTests = (perfTests = null, cb = null) => {
+        this.autocannon.run(perfTests, cb);
     };
 
     runFunctionalTests = () => {

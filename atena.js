@@ -184,6 +184,8 @@ should.initAthena = should.initCluster || should.runTests;
             maybeWatch = true;
         }
 
+        log.info(`Preparing to setup a new cluster on "${settings.addr}" ...`);
+
         pm2.connect(function (err) {
             if (err) {
                 console.error(err);
@@ -191,15 +193,17 @@ should.initAthena = should.initCluster || should.runTests;
             }
 
             (async function () {
+                const processName = `${APP_NAME}-manager`;
                 await pm2.start({
-                    name: `${APP_NAME}-manager`,
+                    name: processName,
                     script: path.resolve(__dirname, "atena.js"),
                     args: args.join(' '),
                     exec_mode: "cluster",
                     instances: 1,
                     watch: maybeWatch,
-                    output: path.resolve(__dirname, "out.log"),
-                    error: path.resolve(__dirname, "error.log"),
+                    maxRestarts: 0,
+                    output: path.resolve(__dirname, "logs", `${processName}-out.log`),
+                    error: path.resolve(__dirname, "logs", `${processName}-error.log`),
                 }, function (error, res) {
                     if (error) {
                         throw error
@@ -212,10 +216,19 @@ should.initAthena = should.initCluster || should.runTests;
                     });
 
                     pm2.describe(0, (err, proc) => {
+                        const logFile = proc[0].pm2_env.pm_out_log_path;
+
+                        if (fs.existsSync(logFile)) {
+                            fs.unlinkSync(logFile)
+                        }
+
                         setTimeout(() => {
-                            log.info(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
+                            if (fs.existsSync(logFile)) {
+                                log.info(fs.readFileSync(logFile, "UTF-8"));
+                            }
+
                             pm2.disconnect();
-                            _process.exit(0);
+                            process.exit(0);
                         }, 1000);
                     });
                 });
@@ -264,6 +277,8 @@ should.initAthena = should.initCluster || should.runTests;
             maybeWatch = true;
         }
 
+        log.info(`Attempting to join a new cluster on "${settings.addr}"...`);
+
         pm2.connect(function (err) {
             if (err) {
                 console.error(err);
@@ -271,32 +286,24 @@ should.initAthena = should.initCluster || should.runTests;
             }
 
             (async function () {
+                const processName = `${APP_NAME}-agent`;
                 await pm2.start({
-                    name: `${APP_NAME}-agent`,
+                    name: processName,
                     script: path.resolve(__dirname, "atena.js"),
                     args: args.join(' '),
-                    exec_mode: "fork",
+                    exec_mode: "cluster",
+                    instances: 1, // todo: instances: settings.cpusLength,
                     watch: maybeWatch,
-                    output: path.resolve(__dirname, "out.log"),
-                    error: path.resolve(__dirname, "error.log"),
+                    output: path.resolve(__dirname, "logs", `${processName}-out.log`),
+                    error: path.resolve(__dirname, "logs", `${processName}-error.log`),
                 }, function (error, res) {
                     if (error) {
                         throw error
                     }
 
-                    pm2.flush(APP_NAME, (err, res) => {
-                        if (err) {
-                            throw err;
-                        }
-                    });
-
-                    pm2.describe(0, (err, proc) => {
-                        setTimeout(() => {
-                            console.log(fs.readFileSync(proc[0].pm2_env.pm_out_log_path, "UTF-8"));
-                            pm2.disconnect();
-                            _process.exit(0);
-                        }, 1000);
-                    });
+                    log.success(`Successfully joined the cluster!`);
+                    pm2.disconnect();
+                    process.exit(0);
                 });
             })();
         });

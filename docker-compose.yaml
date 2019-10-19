@@ -1,18 +1,18 @@
 version: '3.7'
 services:
-  athena:
-    container_name: athena
-    ports:
-      - "5000-5100:5000-5100"
-    build: .
-    volumes:
-      - ./:/usr/src/app
-    depends_on:
-      - elasticsearch
-      - elasticsearch2
-    networks:
-      - elastic
-      - ingress
+#  athena:
+#    container_name: athena
+#    ports:
+#      - "5000-5100:5000-5100"
+#    build: .
+#    volumes:
+#      - ./:/usr/src/app
+#    depends_on:
+#      - elasticsearch
+#      - elasticsearch2
+#    networks:
+#      - elastic
+#      - ingress
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
     container_name: elasticsearch1
@@ -80,6 +80,10 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:7.4.0
     container_name: kibana
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+      - filebeat
     environment:
       SERVER_NAME: localhost
       ELASTICSEARCH_URL: http://elasticsearch1:9200/
@@ -102,6 +106,9 @@ services:
   filebeat:
     image: docker.elastic.co/beats/filebeat:7.4.0
     command: --strict.perms=false
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
     environment:
       - setup.kibana.host=kibana:5601
       - output.elasticsearch.hosts=["elasticsearch:9200"]
