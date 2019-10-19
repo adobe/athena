@@ -141,4 +141,4 @@ class Athena {
     };
 }
 
-exports = module.exports = Atena;
+exports = module.exports = Athena;

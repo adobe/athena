@@ -10,6 +10,11 @@
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" />
 </p>
 
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
 - [About](#about)
   - [What can Athena do?](#what-can-athena-do)
   - [How it Works](#how-it-works)
@@ -18,6 +23,7 @@
   - [Creating a new Cluster](#creating-a-new-cluster)
     - [Standalone](#standalone)
     - [Docker Compose](#docker-compose)
+    - [Accessing Kibana and Elasticsearch](#accessing-kibana-and-elasticsearch)
   - [Process Management](#process-management)
   - [Aggregation and Reporting](#aggregation-and-reporting)
 - [Performance Tests](#performance-tests)
@@ -34,9 +40,11 @@
     - [Patterns](#patterns)
     - [Tests](#tests)
 - [Functional Tests](#functional-tests)
-  - [Configuration](#configuration-1)
+  - [Entities](#entities)
+    - [Tests](#tests-1)
+    - [Suites](#suites)
 - [Plugins and Fixtures](#plugins-and-fixtures)
-  - [Configuration](#configuration-2)
+  - [Configuration](#configuration-1)
     - [Fixtures](#fixtures)
       - [`name`](#name)
       - [`type`](#type)
@@ -48,12 +56,15 @@
   - [Sidecar for Kubernetes](#sidecar-for-kubernetes)
   - [Sidecar for Docker Images](#sidecar-for-docker-images)
   - [Git Hooks](#git-hooks)
-  - [REST API](#rest-api)
-  - [Management via UI Dashboard (in progress)](#management-via-ui-dashboard-in-progress)
+  - [RESTful API](#restful-api)
+  - [Management via UI Dashboard](#management-via-ui-dashboard)
 - [Troubleshooting](#troubleshooting)
 - [Frequently Asked Questions](#frequently-asked-questions)
 - [Contributing](#contributing)
 - [Licensing](#licensing)
+
+<!-- /code_chunk_output -->
+
 
 
 ### About
@@ -140,6 +151,30 @@ docker-compose up
 This will start a new Athena process running in `Manager` mode, an **Elasticsearch** cluster, a **Filebeat** service and **Kibana** for visualisation.
 
 Once all the services are bootstrapped, you can use the generated access token to join the current cluster from other nodes.
+
+##### Accessing Kibana and Elasticsearch
+
+**Kibana**
+
+Once the Compose stack is up and running, you can access Kibana at:
+
+```
+http://localhost:5601
+```
+
+![](./assets/img/kibana_welcome.png)
+
+**Elasticsearch**
+
+Also, Elasticsearch can be accessed at:
+
+```
+http://localhost:9200
+```
+
+![](./assets/img/elasticsearch_welcome.png)
+
+
 
 #### Process Management
 
@@ -468,7 +503,7 @@ TBD
 ### Frequently Asked Questions
 
 * 🤔**Question:** In terms of performance, how does Athena compare with any other load testing tool?
-  * 💬 **Answer:** Behind the scenes, Athena uses the [Autocannon](https://github.com/mcollina/autocannon) load testing engine which is able to deliver more load even than `wrk` and `wrk2`. We've benchmarked three load testing tools *(Autocannon, WRK2 and Gatling)* and published our results in [this short article](https://medium.com/@nicolae.vasile/performance-engine-benchmarks-autocannon-vs-wrk2-vs-gatling-d644359af380) on Medium.
+  * 💬 **Answer:** Behind the scenes, Athena uses the [Autocannon](https://github.com/mcollina/autocannon) load testing engine which is able to deliver more load than `wrk` and `wrk2`. We've benchmarked three load testing tools *(Autocannon, WRK2 and Gatling)* and published our results in [this short article](https://medium.com/@nicolae.vasile/performance-engine-benchmarks-autocannon-vs-wrk2-vs-gatling-d644359af380) on Medium.
 
 ### Contributing
 
