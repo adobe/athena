@@ -11,11 +11,15 @@ const {makeLogger} = require("./../utils"),
 const log = makeLogger();
 const storage = new Storage();
 
-// todo: do some flag checks
-storage.migrate();
+try {
+    log.info(`Attempting to migrate ElasticSearch mappings...`);
+    storage.migrate();
+} catch (error) {
+    // todo: do some checks
+    log.warn(`Some mappings were already migrated!`);
+}
 
 const COMMANDS = {
-
     // Intra-Cluster
 
     // Manager -> Agents
@@ -338,19 +342,26 @@ class ManagerNode extends GenericNode {
     };
 
     _handleNewAgentConnection = (sock) => {
-        const Agent = new AgentNode(this.athena, this.settings);
-        Agent.setSocket(sock);
-        this.addAgent(Agent);
-        const {remoteAddress, remotePort} = sock;
-        log.info(`New Athena agent connected: ${remoteAddress}:${remotePort}`);
+        (async () => {
+            // create and store a new Agent
+            const Agent = new AgentNode(this.athena, this.settings);
+            Agent.setSocket(sock);
+            this.addAgent(Agent);
+            const {remoteAddress, remotePort} = sock;
+            log.info(`New Athena agent (${Agent.getName()}) connected: ${remoteAddress}:${remotePort}`);
+            await storage.storeAgent(Agent.describe());
 
-        sock.setEncoding("utf8");
-        sock.on('data', (message) => {
-            this._handleIncomingAgentData(sock, message)
-        });
-        sock.on("close", data => {
-            this._handleRemoveAgent(data, sock);
-        });
+            // todo: send new agent details to the agent node
+
+            // hook handlers on socket events
+            sock.setEncoding("utf8");
+            sock.on('data', (message) => {
+                this._handleIncomingAgentData(sock, message)
+            });
+            sock.on("close", data => {
+                this._handleRemoveAgent(data, sock);
+            });
+        })();
     };
 
     _handleIncomingAgentData = (sock, message) => {
@@ -389,6 +400,7 @@ class ManagerNode extends GenericNode {
         });
 
         const agent = agents[index];
+        storage.deleteAgentById(agent.getId());
 
         // todo: delete agent document from ES
         // (async function () {

@@ -25,9 +25,9 @@ const CONFIG = require("./config"),
 function makeLogger() {
     const logger = {};
 
-    logger.success = (...m) => console.log(chalk.green(`✅ SUCCESS: `), ...m);
-    logger.warn = (...m) => console.log(chalk.yellow(`⚠️  WARN: `), ...m);
-    logger.info = (...m) => console.log(chalk.blue(`ℹ️  INFO: `), ...m);
+    logger.success = (...m) => console.log(chalk.green(`✔ SUCCESS: `), ...m);
+    logger.warn = (...m) => console.log(chalk.yellow(`☢️ WARN: `), ...m);
+    logger.info = (...m) => console.log(chalk.blue(`💬 INFO: `), ...m);
 
     logger.error = (...m) => {
         console.log(chalk.red(`🚫 ERROR: `), ...m);
