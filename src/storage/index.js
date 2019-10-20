@@ -44,6 +44,7 @@ class Storage {
         );
     }
 
+    // todo: nice to have when updating status (PENDING, COMPLETED)
     // async updateReportById(id) {
     //     try {
     //         await this.client.updateByQuery({
@@ -87,6 +88,16 @@ class Storage {
             "ac_report",
             report
         );
+    }
+
+    async bulk(actions) {
+        try {
+            await this.client.bulk({
+                body: actions
+            });
+        } catch (error) {
+            log.warn(`Failed to handle bulk actions:\n${error}`);
+        }
     }
 
     async store(index, body) {

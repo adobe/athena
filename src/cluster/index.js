@@ -115,7 +115,7 @@ class Cluster {
         // send the perf tests to all workers
         this.manager.delegateClusterCommand(
             COMMANDS.REQ_RUN_PERF,
-            PerfJob.describe(true)
+            PerfJob.describe()
         );
 
         log.success(`👍 Successfully delegated a new performance job to the cluster!`);
@@ -143,7 +143,7 @@ class GenericNode {
         this._id = id;
     };
 
-    getId = () => {
+    getID = () => {
         return this._id;
     };
 
@@ -325,7 +325,7 @@ class ManagerNode extends GenericNode {
         const addr = this.getAddr();
         const port = this.getPort();
 
-        log.info(`Athena cluster successfully initiated: current node (${this.getId()}) is now a manager.
+        log.info(`Athena cluster successfully initiated: current node (${this.getID()}) is now a manager.
         
         👋 Hello! My name is "${this.getName()}" and I was assigned to manage this Athena cluster!
         
@@ -343,7 +343,12 @@ class ManagerNode extends GenericNode {
             log.info(`New Athena agent (${Agent.getName()}) connected: ${remoteAddress}:${remotePort}`);
             await storage.storeAgent(Agent.describe());
 
-            // todo: send new agent details to the agent node
+            // send new agent details to the agent node
+            const message = makeMessage(
+                "REQ_UPDATE_INFO",
+                Agent.describe()
+            );
+            sock.write(JSON.stringify(message));
 
             // hook handlers on socket events
             sock.setEncoding("utf8");
@@ -378,33 +383,91 @@ class ManagerNode extends GenericNode {
         }
     };
 
-    _handleResRunPerf = (data) => {
-        data = data.data;
-        log.success(`Successfully retrieved new agent data!`);
-        console.log(JSON.stringify(data, null, 2));
-        storage.storeReport({
-            id: "abcd",
-            is_aggregated: false,
-            created_at: data.updated_at, // todo: propagate value
-            updated_at: data.updated_at,
-            results: {
-                requests: data.results.requests,
-                url: data.results.url,
-                errors: data.results.errors,
-                timeouts: data.results.timeouts,
-                duration: data.results.duration,
-                start: data.results.start,
-                finish: data.results.finish,
-                connections: data.results.connections,
-                pipelining: data.results.pipelining,
-                non2xx: data.results.non2xx,
-                "1xx": data.results["1xx"],
-                "2xx": data.results["2xx"],
-                "3xx": data.results["3xx"],
-                "4xx": data.results["4xx"],
-                "5xx": data.results["5xx"]
+    _handleResRunPerf = (results) => {
+        const data = results.data;
+        log.success(`Successfully retrieved new agent data [job_id ${data.id}]!`);
+
+        const actions = [];
+
+        // ac_job // todo: handle this only once !!! not per agent!!!
+        actions.push({
+            index: {
+                _index: "ac_job",
             }
-        })
+        }, {
+            job_id: data.id,
+            created_at: data.created_at,
+            updated_at: data.updated_at // todo: propagate value
+        });
+
+        // ac_result_overview
+        actions.push({
+            index: {
+                _index: "ac_result_overview"
+            }
+        }, {
+            job_id: data.id,
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            url: data.results.url,
+            responses: data.results.stats.responses,
+            errors: data.results.errors,
+            timeouts: data.results.timeouts,
+            duration: data.results.duration,
+            start: data.results.start,
+            finish: data.results.finish,
+            connections: data.results.connections,
+            pipelining: data.results.pipelining,
+            non2xx: data.results.non2xx,
+            "1xx": data.results["1xx"],
+            "2xx": data.results["2xx"],
+            "3xx": data.results["3xx"],
+            "4xx": data.results["4xx"],
+            "5xx": data.results["5xx"]
+        });
+
+        // ac_results_requests
+        actions.push({
+            index: {
+                _index: "ac_results_requests"
+            }
+        }, {
+            job_id: data.id,
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            ...data.results.requests
+        });
+
+        // ac_result_rps
+        data.results.stats.rpsMap.forEach(rpsEntry => {
+            actions.push({
+                index: {
+                    _index: "ac_result_rps"
+                }
+            }, {
+                job_id: data.id,
+                agent_id: data.agent_id,
+                agent_name: data.agent_name,
+                ...rpsEntry
+            });
+        });
+
+        // ac_result_resincr
+        data.results.stats.resIncrMap.forEach(resEntry => {
+            actions.push({
+                index: {
+                    _index: "ac_result_resincr"
+                }
+            }, {
+                job_id: data.id,
+                agent_id: data.agent_id,
+                agent_name: data.agent_name,
+                ...resEntry
+            })
+        });
+
+        // store in bulk
+        storage.bulk(actions);
     };
 
     _handleRemoveAgent = (data, sock) => {
@@ -415,7 +478,7 @@ class ManagerNode extends GenericNode {
         });
 
         const agent = agents[index];
-        storage.deleteAgentById(agent.getId());
+        storage.deleteAgentById(agent.getID());
 
         if (index !== -1) {
             agents.splice(index, 1);
@@ -434,6 +497,8 @@ class AgentNode extends GenericNode {
 
         // props
         this._socket = null;
+
+        log.info(`Initializing myself as a new Agent: [id: ${this.getID()}] [name: ${this.getName()}]!`);
     }
 
     setSocket = (sock) => {
@@ -480,6 +545,10 @@ class AgentNode extends GenericNode {
                     log.success(`👌 Successfully identified the incoming data as a new performance test job!`);
                     this._handleReqRunPerf(data);
                     break;
+
+                case "REQ_UPDATE_INFO":
+                    this._handleReqUpdateInfo(data);
+                    break;
                 // todo: handle all command types
                 default:
                     break;
@@ -491,6 +560,22 @@ class AgentNode extends GenericNode {
         });
     };
 
+    _handleReqUpdateInfo = (message) => {
+        const data = message.data;
+
+        // update id
+        if (data.id) {
+            this.setID(data.id);
+            log.info(`Successfully updated my ID to: "${data.id}"!`);
+        }
+
+        // update name
+        if (data.name) {
+            this.setName(data.name);
+            log.info(`Successfully updated my name to: "${data.name}"!`);
+        }
+    };
+
     _handleReqRunPerf = (message) => {
         const perfTest = message.data;
         const _self = this;
@@ -498,13 +583,15 @@ class AgentNode extends GenericNode {
         log.info(`💪 Preparing to run a new performance job (id: ${perfTest.id}) ...`);
 
         // run performance tests
-        this.athena.runPerformanceTests(perfTest.data, function (err, results) {
+        this.athena.runPerformanceTests(perfTest.data, function (err, results, stats) {
             // check for any errors
             if (err) {
                 console.error(`🤕 Could not run the job!`, err);
                 return;
                 // todo: return error message to manager
             }
+
+            results.stats = stats;
 
             const socket = _self.getSocket();
             log.success(`😎 Successfully ran the performance test!`);
@@ -516,7 +603,11 @@ class AgentNode extends GenericNode {
 
             const resRunPerfMessage = makeMessage(
                 "RES_RUN_PERF",
-                PerfJob.describe()
+                {
+                    agent_id: _self.getID(),
+                    agent_name: _self.getName(),
+                    ...PerfJob.describe()
+                }
             );
 
             // notify the manager about the test results
@@ -530,19 +621,21 @@ class AgentNode extends GenericNode {
 class PerformanceJob {
     constructor(perfTest = null) {
         this._id = nanoid();
-        this._created_at = new Date().getTime();
-        this._updated_at = new Date().getTime();
+        this._created_at = new Date().toJSON();
+        this._updated_at = new Date().toJSON();
         this._data = null;
         this._results = null;
 
-        if (perfTest) {
-            // todo: check if perfTest has any data, otherwise it will crash
-            this._id = perfTest.id;
-            this._created_at = perfTest.created_at;
-            this._updated_at = perfTest.updated_at;
-            this._data = perfTest.data;
-            this._results = perfTest.results;
+        if (!perfTest) {
+            return;
         }
+
+        // maybe provision
+        if (perfTest.id) this._id = perfTest.id;
+        if (perfTest.created_at) this._created_at = perfTest.created_at;
+        if (perfTest.updated_at) this._updated_at = perfTest.updated_at;
+        if (perfTest.data) this._data = perfTest.data;
+        if (perfTest.results) this._results = perfTest.results;
     }
 
     setData = (data) => {
@@ -555,7 +648,7 @@ class PerformanceJob {
     };
 
     refreshUpdatedAt = () => {
-        this._updated_at = new Date().getTime();
+        this._updated_at = new Date().toJSON();
     };
 
     describe = (asString = false) => {

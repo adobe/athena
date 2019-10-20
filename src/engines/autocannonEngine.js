@@ -18,6 +18,8 @@ const Engine = require("./engine"),
     {TAXONOMIES, ENGINES} = require("./../enums"),
     {makeLogger, isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
 
+const log = makeLogger();
+
 class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
         super(
@@ -46,12 +48,6 @@ class AutocannonEngine extends Engine {
             cb = this._handleTestFinish;
         }
 
-        const engine = autocannon(testsConfig, cb);
-
-        process.once("SIGINT", () => {
-            engine.stop();
-        });
-
         let stats = {
             responses: 0,
             errors: 0,
@@ -60,6 +56,14 @@ class AutocannonEngine extends Engine {
             resIncrMap: [],
             rpsMap: []
         };
+
+        const engine = autocannon(testsConfig, (err, results) => {
+            cb(err, results, stats);
+        });
+
+        process.once("SIGINT", () => {
+            engine.stop();
+        });
 
         const _incrResponses = () => {
             stats.responses++;
@@ -70,7 +74,7 @@ class AutocannonEngine extends Engine {
             stats.errors++;
             stats.rpsCount++;
 
-            // todo: handle request timeout
+            // todo: handle request timeout based on error
         };
 
         engine.on("response", _incrResponses);
@@ -92,18 +96,14 @@ class AutocannonEngine extends Engine {
             stats.rpsCount = 0;
         }, 1000);
 
-        engine.on('done', function() {
+        engine.on('done', function (results) {
+            delete stats.rpsCount;
             clearInterval(interval);
         });
 
         autocannon.track(engine, {
             renderProgressBar: true
         });
-
-        // cleanup
-        delete stats.rpsCount;
-
-        return stats;
     };
 
     getPerformanceTests = () => {
