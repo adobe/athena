@@ -26,6 +26,7 @@
     - [Accessing Kibana and Elasticsearch](#accessing-kibana-and-elasticsearch)
   - [Process Management](#process-management)
   - [Aggregation and Reporting](#aggregation-and-reporting)
+  - [Optimizing Your System for Performance](#optimizing-your-system-for-performance)
 - [Performance Tests](#performance-tests)
   - [Hooks](#hooks)
     - [`skip`](#skip)
@@ -187,6 +188,37 @@ Athena uses the `PM2` process manager behind the scenes for managing the cluster
 Athena provides default aggregators for performance and functional testing able to process the result data from either Autocannon or Chakram. Each report is then indexed as Elasticsearch documents and can be further analysed.
 
 > **📝Note:** Support for defining custom aggregators is available on the [Roadmap](#roadmap).
+
+#### Optimizing Your System for Performance
+
+In order to get the best performance from your nodes while running Athena, make sure to fine tune your open-file limits, network as well as your kernel settings.
+
+Depending on your operating system, you can change your open-file limits using the following command:
+
+```
+ulimit -n 65536 200000
+```
+
+Furthermore, the following network and kernel settings are recommended inside `sysctl.conf`:
+
+```
+net.ipv4.tcp_max_syn_backlog = 40000
+net.core.somaxconn = 40000
+net.core.wmem_default = 8388608
+net.core.rmem_default = 8388608
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_window_scaling = 1
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_intvl = 30
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_moderate_rcvbuf = 1
+net.core.rmem_max = 134217728
+net.core.wmem_max = 134217728
+net.ipv4.tcp_mem  = 134217728 134217728 134217728
+net.ipv4.tcp_rmem = 4096 277750 134217728
+net.ipv4.tcp_wmem = 4096 277750 134217728
+net.core.netdev_max_backlog = 300000
+```
 
 ### Performance Tests
 
