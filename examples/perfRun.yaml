@@ -4,9 +4,11 @@ description: ""
 engine: autocannon
 type: perfRun
 config:
-  url: https://httpbin.org/get
+   url: https://api-gateway-qe-a-ue1.adobe.io/static-backend/blacklist
+   headers:
+     host: api-dm-performance-testing-qe.adobe.io
   connections: 3000
-  duration: 60
+  duration: 30
 hooks:
   onInit:
   onDestroy:

@@ -114,15 +114,18 @@ class AutocannonEngine extends Engine {
 
         // merge config
         // todo: do this recursively
+
         const perfTestConfig = removeEmpty(perfTest.config.config || {});
         const perfPatternConfig = removeEmpty(perfPattern.config.config || {});
         const perfRunConfig = removeEmpty(perfRun.config.config || {});
 
-        return {
+        const perfTests = {
             ...perfTestConfig,
             ...perfPatternConfig,
             ...perfRunConfig
         };
+
+        return perfTests;
     };
 
     _getTestConfig = (test) => { // todo: flatten test object

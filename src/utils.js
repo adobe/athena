@@ -233,8 +233,8 @@ exports.getPackageInstallCommand = (packageName) => {
 };
 
 // Removed empty properties from an object.
-exports.removeEmpty = obj =>
-    Object.keys(obj)
+function removeEmpty(obj) {
+    return Object.keys(obj)
         .filter(k => obj[k] != null)
         .reduce(
             (newObj, k) =>
@@ -243,6 +243,9 @@ exports.removeEmpty = obj =>
                     : {...newObj, [k]: obj[k]},
             {}
         );
+}
+
+exports.removeEmpty = removeEmpty;
 
 // todo: factory? adjust enums to uppercase first though
 exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;

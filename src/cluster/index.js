@@ -438,6 +438,30 @@ class ManagerNode extends GenericNode {
             ...data.results.requests
         });
 
+        // ac_results_latency
+        actions.push({
+            index: {
+                _index: "ac_results_latency"
+            }
+        }, {
+            job_id: data.id,
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            ...data.results.latency
+        });
+
+        // ac_results_throughput
+        actions.push({
+            index: {
+                _index: "ac_results_throughput"
+            }
+        }, {
+            job_id: data.id,
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            ...data.results.throughput
+        });
+
         // ac_result_rps
         data.results.stats.rpsMap.forEach(rpsEntry => {
             actions.push({
