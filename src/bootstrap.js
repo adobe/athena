@@ -21,7 +21,7 @@ const {COMMANDS} = require("./enums"),
 
 format.extend(String.prototype, {});
 
-class Atena {
+class Athena {
     constructor(options) { // settings !!!
         this.settings = getParsedSettings(options);
         this.cluster = null;
@@ -95,4 +95,4 @@ class Atena {
     };
 }
 
-exports = module.exports = Atena;
+exports = module.exports = Athena;

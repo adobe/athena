@@ -38,7 +38,8 @@ let athena = null,
     _process = process;
 
 // Constants
-const APP_NAME = "athena";
+const APP_NAME = "athena",
+    MAIN_SCRIPT_NAME = `${APP_NAME}.js`;
 
 // CLI commands and flags.
 let options = yargs
@@ -196,7 +197,7 @@ should.initAthena = should.initCluster || should.runTests;
                 const processName = `${APP_NAME}-manager`;
                 await pm2.start({
                     name: processName,
-                    script: path.resolve(__dirname, "atena.js"),
+                    script: path.resolve(__dirname, MAIN_SCRIPT_NAME),
                     args: args.join(' '),
                     exec_mode: "cluster",
                     instances: 1,
@@ -209,7 +210,7 @@ should.initAthena = should.initCluster || should.runTests;
                         throw error
                     }
 
-                    pm2.flush(APP_NAME, (err, res) => {
+                    pm2.flush(APP_NAME, (err) => {
                         if (err) {
                             throw err;
                         }
@@ -289,7 +290,7 @@ should.initAthena = should.initCluster || should.runTests;
                 const processName = `${APP_NAME}-agent`;
                 await pm2.start({
                     name: processName,
-                    script: path.resolve(__dirname, "atena.js"),
+                    script: path.resolve(__dirname, MAIN_SCRIPT_NAME),
                     args: args.join(' '),
                     exec_mode: "cluster",
                     instances: 1, // todo: instances: settings.cpusLength,
