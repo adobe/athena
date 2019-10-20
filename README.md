@@ -19,7 +19,7 @@
   - [What can Athena do?](#what-can-athena-do)
   - [How it Works](#how-it-works)
   - [Getting Started](#getting-started)
-- [Cluster Support](#cluster-support)
+- [Distributed Load Testing](#distributed-load-testing)
   - [Creating a new Cluster](#creating-a-new-cluster)
     - [Standalone](#standalone)
     - [Docker Compose](#docker-compose)
@@ -100,7 +100,7 @@ node athena.js -t ./custom_tests_path --[performance|functional]
 ```
 
 
-### Cluster Support
+### Distributed Load Testing
 
 > **📝 Note:** This feature is currently available only for performance testing. Clustering support for functional testing is on the roadmap.
 
