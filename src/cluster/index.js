@@ -77,14 +77,6 @@ class Cluster {
         this.agent.joinCluster();
     };
 
-    isManager = () => {
-        return this.manager !== null;
-    };
-
-    isAgent = () => {
-        return this.agent !== null;
-    };
-
     _handleCallCommand = (command) => {
         if (!command || !command.type) {
             log.warn(`Could not parse the command!`);
@@ -126,7 +118,7 @@ class Cluster {
             PerfJob.describe(true)
         );
 
-        log.success(`👍 Successfully delegated a new performance job to the cluster! Check the manager's logs for more details!`);
+        log.success(`👍 Successfully delegated a new performance job to the cluster!`);
     }
 }
 
@@ -161,10 +153,6 @@ class GenericNode {
 
     getName = () => {
         return this._name;
-    };
-
-    getStatus = () => {
-        return this._status;
     };
 
     setStatus = (status) => {
@@ -391,9 +379,32 @@ class ManagerNode extends GenericNode {
     };
 
     _handleResRunPerf = (data) => {
+        data = data.data;
         log.success(`Successfully retrieved new agent data!`);
         console.log(JSON.stringify(data, null, 2));
-        // todo: store the agent's results in ES.
+        storage.storeReport({
+            id: "abcd",
+            is_aggregated: false,
+            created_at: data.updated_at, // todo: propagate value
+            updated_at: data.updated_at,
+            results: {
+                requests: data.results.requests,
+                url: data.results.url,
+                errors: data.results.errors,
+                timeouts: data.results.timeouts,
+                duration: data.results.duration,
+                start: data.results.start,
+                finish: data.results.finish,
+                connections: data.results.connections,
+                pipelining: data.results.pipelining,
+                non2xx: data.results.non2xx,
+                "1xx": data.results["1xx"],
+                "2xx": data.results["2xx"],
+                "3xx": data.results["3xx"],
+                "4xx": data.results["4xx"],
+                "5xx": data.results["5xx"]
+            }
+        })
     };
 
     _handleRemoveAgent = (data, sock) => {
@@ -406,28 +417,11 @@ class ManagerNode extends GenericNode {
         const agent = agents[index];
         storage.deleteAgentById(agent.getId());
 
-        // todo: delete agent document from ES
-        // (async function () {
-        //     await storage.deleteByQuery({
-        //         index: "autocannon",
-        //         type: "agent",
-        //         body: {
-        //             query: {
-        //                 match: {
-        //                     body: {
-        //                         id: agent.getId()
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     });
-        // })();
-
         if (index !== -1) {
             agents.splice(index, 1);
         }
 
-        log.warn(`Closed connection with Athena agent: ${sock.remoteAddress}:${sock.remotePort}!`);
+        log.warn(`Closed connection with Athena agent (${agent.getName()}): ${sock.remoteAddress}:${sock.remotePort}!`);
     };
 }
 
@@ -500,8 +494,6 @@ class AgentNode extends GenericNode {
     _handleReqRunPerf = (message) => {
         const perfTest = message.data;
         const _self = this;
-
-        console.log(typeof perfTest);
 
         log.info(`💪 Preparing to run a new performance job (id: ${perfTest.id}) ...`);
 

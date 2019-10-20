@@ -52,9 +52,58 @@ class AutocannonEngine extends Engine {
             engine.stop();
         });
 
+        let stats = {
+            responses: 0,
+            errors: 0,
+            timeouts: 0,
+            rpsCount: 0,
+            resIncrMap: [],
+            rpsMap: []
+        };
+
+        const _incrResponses = () => {
+            stats.responses++;
+            stats.rpsCount++;
+        };
+
+        const _incrErrors = (error) => {
+            stats.errors++;
+            stats.rpsCount++;
+
+            // todo: handle request timeout
+        };
+
+        engine.on("response", _incrResponses);
+        engine.on("reqError", _incrErrors);
+
+        const interval = setInterval(function () {
+            const now = new Date().toJSON();
+
+            stats.resIncrMap.push({
+                count: stats.responses,
+                date: now
+            });
+
+            stats.rpsMap.push({
+                count: stats.rpsCount,
+                date: now
+            });
+
+            stats.rpsCount = 0;
+        }, 1000);
+
+        engine.on('done', function() {
+            clearInterval(interval);
+        });
+
         autocannon.track(engine, {
             renderProgressBar: true
         });
+
+        // cleanup
+        delete stats.rpsCount;
+
+        return stats;
     };
 
     getPerformanceTests = () => {

@@ -11,5 +11,5 @@
 # governing permissions and limitations under the License.
 
 node_modules/.bin/pm2
-node atena.js cluster --init --addr 0.0.0.0
-node_modules/.bin/pm2 logs athena
+node athena.js cluster --init --addr 0.0.0.0
+node_modules/.bin/pm2 logs athena-manager
