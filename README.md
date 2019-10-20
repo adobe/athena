@@ -26,6 +26,7 @@
     - [Accessing Kibana and Elasticsearch](#accessing-kibana-and-elasticsearch)
   - [Process Management](#process-management)
   - [Aggregation and Reporting](#aggregation-and-reporting)
+    - [Kibana Dashboard - Performance Results](#kibana-dashboard-performance-results)
   - [Optimizing Your System for Performance](#optimizing-your-system-for-performance)
 - [Performance Tests](#performance-tests)
   - [Hooks](#hooks)
@@ -185,9 +186,31 @@ Athena uses the `PM2` process manager behind the scenes for managing the cluster
 
 #### Aggregation and Reporting
 
-Athena provides default aggregators for performance and functional testing able to process the result data from either Autocannon or Chakram. Each report is then indexed as Elasticsearch documents and can be further analysed.
+Each report is indexed in ElasticSearch and can be aggregated and previewed using Kibana.
 
-> **📝Note:** Support for defining custom aggregators is available on the [Roadmap](#roadmap).
+##### Kibana Dashboard - Performance Results
+
+Athena provides a custom Kibana Dashboard that aggregates performance job results. The aggregated results can provide insights for a single performance job executed by a single Agent inside the cluster or for the entire cluster results.
+
+You can access the **Performance Reports** dashboard inside `Kibana > Dashboard > Performance Reports`. The following visualizations are included inside the Performance Report dashboard:
+
+* Connections Goal
+* Average RPS
+* RPS in the 99th Percentile
+* 2xx Responses
+* non-2xx Responses
+* Duration (seconds)
+* Total Requests
+* RPS Over Time *(area chart)*
+* (RIOT) Requests Increase Over Time *(area chart)*
+* RPS Percentiles *(bar chart)*
+
+![](./assets/img/kibana_perf_report.png)
+
+**Isolating Performance Reports**
+
+* Use `job_id : "<JOB_ID>"` to aggregate the results to a specific job (provides results for the entire cluster if the job ran that way).
+*  Use `agent_name: "<AGENT_NAME>"` to aggregate the results to a specific agent.
 
 #### Optimizing Your System for Performance
 
