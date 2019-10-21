@@ -14,6 +14,9 @@ governing permissions and limitations under the License.
 const pm2 = require("pm2"),
     nanoid = require("nanoid");
 
+const {makeLogger} = require("./../utils");
+
+const log = makeLogger();
 const MESSAGE_TOPIC = "ATHENA_CLUSTER_COMMAND";
 
 function makeMessage(command, data) {
@@ -43,6 +46,8 @@ const _sendManagerCommand = (messageType, data) => {
             _handleError
         );
     });
+
+    log.info(`Delegated a new cluster job! Please check the manager's logs for more details.`)
 };
 
 function callClusterCommand(messageType, data) {

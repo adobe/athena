@@ -16,7 +16,7 @@ const {uniqueNamesGenerator} = require("unique-names-generator"),
     getPort = require("get-port"),
     nanoid = require('nanoid');
 
-const {makeLogger} = require("./../utils"),
+const {makeLogger, printReportURLForJobID} = require("./../utils"),
     {makeMessage} = require("./commands"),
     Storage = require("./../storage");
 
@@ -217,6 +217,8 @@ class ManagerNode extends GenericNode {
         this._accessToken = null;
         this._agents = [];
 
+        this.jobReportsRetrieved = 0; // todo: refactor
+
         // setup
         this.setAddr(this.settings.addr);
         const accessToken = this._generateAccessToken();
@@ -368,8 +370,8 @@ class ManagerNode extends GenericNode {
         try {
             data = JSON.parse(message);
         } catch (e) {
-            log.warn(`Could not parse incoming agent message!`);
-
+            log.warn(`Could not parse incoming agent message!\n${error}`);
+            // todo: poll the agent again for the latest job results.
             return;
         }
 
@@ -385,11 +387,25 @@ class ManagerNode extends GenericNode {
 
     _handleResRunPerf = (results) => {
         const data = results.data;
-        log.success(`Successfully retrieved new agent data [job_id ${data.id}]!`);
+        log.success(`[job_id: ${data.id}] Successfully retrieved new agent report!`);
+
+        this.jobReportsRetrieved++;
+        const agentsCount = this.getAgents().length;
+        const lastAgentInQueue = agentsCount === this.jobReportsRetrieved;
+
+        if (lastAgentInQueue) {
+            log.info(`Retrieved the last job report from ${agentsCount} agents!`);
+        }
+
+        // if (lastAgentInQueue) {
+        //     this.jobReportsRetrieved = 0;
+        //     log.info(`Retrieved the last report!`);
+        //     printReportURLForJobID(data.id);
+        // }
 
         const actions = [];
 
-        // ac_job // todo: handle this only once !!! not per agent!!!
+        // ac_job // todo: handle this only once !
         actions.push({
             index: {
                 _index: "ac_job",
@@ -552,21 +568,21 @@ class AgentNode extends GenericNode {
         });
 
         socket.on('data', (message) => {
-            log.info(`😬 Received new data from the manager node!`);
+            log.info(`Received new data from the manager node!`);
             let data = null;
             try {
                 data = JSON.parse(message);
             } catch (error) {
-                log.warn(`🤕 Could not parse the incoming data from the manager node!`);
+                log.warn(`Could not parse the incoming data from the manager node!`);
                 return;
             }
 
-            log.info(`🤔 Attempting to parse the incoming data from the manager...`);
+            log.info(`Attempting to parse the incoming data from the manager...`);
 
-            // process message type (assuming REQ_REQ_RUN_PERF)
+            // process message type
             switch (data.type) {
                 case COMMANDS.REQ_RUN_PERF:
-                    log.success(`👌 Successfully identified the incoming data as a new performance test job!`);
+                    log.success(`Successfully identified the incoming data as a new performance test job!`);
                     this._handleReqRunPerf(data);
                     break;
 
@@ -580,7 +596,7 @@ class AgentNode extends GenericNode {
         });
 
         socket.on('close', () => {
-            log.info(`😔 The agent has closed the connection...`);
+            log.info(`The agent has closed the connection...`);
         });
     };
 
@@ -604,13 +620,13 @@ class AgentNode extends GenericNode {
         const perfTest = message.data;
         const _self = this;
 
-        log.info(`💪 Preparing to run a new performance job (id: ${perfTest.id}) ...`);
+        log.info(`Preparing to run a new performance job (id: ${perfTest.id}) ...`);
 
         // run performance tests
         this.athena.runPerformanceTests(perfTest.data, function (err, results, stats) {
             // check for any errors
             if (err) {
-                console.error(`🤕 Could not run the job!`, err);
+                console.error(`Could not run the job!`, err);
                 return;
                 // todo: return error message to manager
             }
@@ -618,10 +634,10 @@ class AgentNode extends GenericNode {
             results.stats = stats;
 
             const socket = _self.getSocket();
-            log.success(`😎 Successfully ran the performance test!`);
+            log.success(`Successfully ran the performance test!`);
 
             // prep the test results message
-            log.info(`😬 Attempting to notify the manager about the test results...`);
+            log.info(`Attempting to notify the manager about the test results...`);
             const PerfJob = new PerformanceJob(perfTest);
             PerfJob.setResults(results);
 
@@ -634,9 +650,9 @@ class AgentNode extends GenericNode {
                 }
             );
 
-            // notify the manager about the test results
+            // notify
             socket.write(JSON.stringify(resRunPerfMessage), "utf8", () => {
-                log.success(`😎 Successfully sent the test results!`);
+                log.success(`Successfully sent the test results!`);
             });
         });
     };
