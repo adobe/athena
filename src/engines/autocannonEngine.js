@@ -10,11 +10,15 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+// external
 const autocannon = require('autocannon');
 
+// project
 const Engine = require("./engine"),
     {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
+    {makeLogger, isPerformanceTest, isPerformancePattern, removeEmpty} = require("./../utils");
+
+const log = makeLogger();
 
 class AutocannonEngine extends Engine {
     constructor(settings, entityManager, pluginManager) {
@@ -35,7 +39,74 @@ class AutocannonEngine extends Engine {
         this.entities = perfEntities.map(this._deepParseEntities);
     }
 
-    run = () => {
+    run = (testsConfig = null, cb = null) => {
+        if (!testsConfig) {
+            testsConfig = this.getPerformanceTests();
+        }
+
+        if (!cb) {
+            cb = this._handleTestFinish;
+        }
+
+        let stats = {
+            responses: 0,
+            errors: 0,
+            timeouts: 0,
+            rpsCount: 0,
+            resIncrMap: [],
+            rpsMap: []
+        };
+
+        const engine = autocannon(testsConfig, (err, results) => {
+            cb(err, results, stats);
+        });
+
+        process.once("SIGINT", () => {
+            engine.stop();
+        });
+
+        const _incrResponses = () => {
+            stats.responses++;
+            stats.rpsCount++;
+        };
+
+        const _incrErrors = (error) => {
+            stats.errors++;
+            stats.rpsCount++;
+
+            // todo: handle request timeout based on error
+        };
+
+        engine.on("response", _incrResponses);
+        engine.on("reqError", _incrErrors);
+
+        const interval = setInterval(function () {
+            const now = new Date().toJSON();
+
+            stats.resIncrMap.push({
+                count: stats.responses,
+                date: now
+            });
+
+            stats.rpsMap.push({
+                count: stats.rpsCount,
+                date: now
+            });
+
+            stats.rpsCount = 0;
+        }, 1000);
+
+        engine.on('done', function (results) {
+            delete stats.rpsCount;
+            clearInterval(interval);
+        });
+
+        autocannon.track(engine, {
+            renderProgressBar: true
+        });
+    };
+
+    getPerformanceTests = () => {
         // todo: add support for multiple tests.
         const perfTest = this.entities[0];
         const perfPattern = perfTest.perfPatterns[0];
@@ -43,25 +114,18 @@ class AutocannonEngine extends Engine {
 
         // merge config
         // todo: do this recursively
+
         const perfTestConfig = removeEmpty(perfTest.config.config || {});
         const perfPatternConfig = removeEmpty(perfPattern.config.config || {});
         const perfRunConfig = removeEmpty(perfRun.config.config || {});
 
-        const finalConfig = {
+        const perfTests = {
             ...perfTestConfig,
             ...perfPatternConfig,
             ...perfRunConfig
         };
 
-        const engine = autocannon(finalConfig, this._handleTestFinish);
-
-        process.once("SIGINT", () => {
-            engine.stop();
-        });
-
-        autocannon.track(engine, {
-            renderProgressBar: true
-        });
+        return perfTests;
     };
 
     _getTestConfig = (test) => { // todo: flatten test object
@@ -108,7 +172,7 @@ class AutocannonEngine extends Engine {
             console.error(`There was a problem while running the performance test!\n${error}`);
         }
 
-        // console.info(`The test has finished! Here are the results:\n${JSON.stringify(results, null, 1)}`);
+        console.log(results);
     };
 
     _deepParseEntities = (entity) => {

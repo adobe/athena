@@ -4,6 +4,12 @@ description: this is the test description
 engine: chakram # assumed by default if type == test, inherited if none
 fixtures:
   - isServiceToken
+suiteRef:
+  - ccecoSuite # can miss
+  - mcSuite # one test can be part of multiple suites
+dependency:
+  - name: ccecoSuite
+  - name: mcSuite
 hooks:
   skip:
   setup: > # the context can be altered in all hooks.

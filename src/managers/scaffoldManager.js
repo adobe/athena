@@ -10,11 +10,11 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// Node
+// node
 const fs = require("fs"),
     path = require("path");
 
-// Project
+// project
 const {snakeToCamel, maybeCreateDirSync, makeLogger} = require("../utils");
 
 class ScaffoldManager {

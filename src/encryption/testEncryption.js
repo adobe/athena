@@ -18,15 +18,14 @@ const {encryptSecret, decryptSecret, loadSecrets} = require('./encryption.js')
 const maybeEncryptable = [
     'some_hostname',                        // not accepted for decryption
     'enc:password'                          // labeled for encryption
-];
-
+]
 const maybeDecryptable = [
     "some_hostname",                        // not encrypted
     "a7b3506d886db00d471f5d8ede48cbab",     // encrypted, labeled with "enc"
     "362ac605b23681d3cda8472c49e29cb0"      // encrypted, NOT labeled with "enc"
 ];
 
-const [key, iv] = loadSecrets("testKey.pem")
+const [key, iv] = loadSecrets("testKey.pem");
 
 // test encryption
 encryptionResults = [];

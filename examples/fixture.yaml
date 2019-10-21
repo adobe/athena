@@ -1,5 +1,6 @@
+
+type: fixture # todo: rename to "function"
 name: isServiceToken
-type: fixture
 config:
-  type: lib
-  source: fixtures/consoleFixture.js
+  type: lib # todo: rename to "external"
+  source: fixtures/consoleFixture.js # todo: allow urls

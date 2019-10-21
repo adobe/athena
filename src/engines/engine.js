@@ -27,10 +27,6 @@ class Engine {
     run = () => {
         throw new Error(`${this.name} engine not implementing run method!`);
     };
-
-    hasTests = () => {
-        return this.entities.length > 0;
-    };
 }
 
 module.exports = Engine;

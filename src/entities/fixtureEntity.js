@@ -10,11 +10,11 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// Node
+// node
 const path = require("path"),
     fs = require("fs");
 
-// Project
+// project
 const Entity = require("./entity"),
     {ENTITY_TYPES} = require('./../enums'),
     {getParsedSettings} = require('./../utils');

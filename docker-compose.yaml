@@ -1,0 +1,131 @@
+version: '3.7'
+services:
+  athena:
+    container_name: athena
+    ports:
+      - "5000-5100:5000-5100"
+    build: .
+    volumes:
+      - ./:/usr/src/app
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+    networks:
+      - elastic
+      - ingress
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+    container_name: elasticsearch1
+    environment:
+      - node.name=elasticsearch1
+      - cluster.name=docker-cluster
+      - cluster.initial_master_nodes=elasticsearch1
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256M -Xmx256M"
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - network.host=_eth0_
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    cap_add:
+      - ALL
+    volumes:
+      - type: volume
+        source: logs
+        target: /var/log
+      - type: volume
+        source: esdata1
+        target: /usr/share/elasticsearch/data
+    networks:
+      - elastic
+      - ingress
+    ports:
+      - 9200:9200
+      - 9300:9300
+  elasticsearch2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+    container_name: elasticsearch2
+    depends_on:
+      - elasticsearch
+    environment:
+      - node.name=elasticsearch2
+      - cluster.name=docker-cluster
+      - cluster.initial_master_nodes=elasticsearch1
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256M -Xmx256M"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch1"
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - network.host=_eth0_
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    cap_add:
+      - ALL
+    volumes:
+      - type: volume
+        source: logs
+        target: /var/log
+      - type: volume
+        source: esdata2
+        target: /usr/share/elasticsearch/data
+    networks:
+      - elastic
+      - ingress
+    ports:
+      - 9201:9200
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.4.0
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+      - filebeat
+    environment:
+      SERVER_NAME: localhost
+      ELASTICSEARCH_URL: http://elasticsearch1:9200/
+    ports:
+      - 5601:5601
+    volumes:
+      - type: volume
+        source: logs
+        target: /var/log
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    cap_add:
+      - ALL
+    networks:
+      - elastic
+      - ingress
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.4.0
+    command: --strict.perms=false
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+    environment:
+      - setup.kibana.host=kibana:5601
+      - output.elasticsearch.hosts=["elasticsearch:9200"]
+    ports:
+      - 9000:9000
+    volumes:
+      # - ${PWD}/configs/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - elastic
+volumes:
+  esdata1:
+  esdata2:
+  logs:
+networks:
+  elastic:
+  ingress:

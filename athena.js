@@ -11,7 +11,8 @@ governing permissions and limitations under the License.
 */
 
 // Node
-const path = require("path");
+const path = require("path"),
+    fs = require("fs");
 
 // External
 const pm2 = require('pm2'),
@@ -19,16 +20,26 @@ const pm2 = require('pm2'),
     dotenv = require("dotenv");
 
 // Project
-const {getParsedSettings} = require("./src/utils"),
-    Athena = require("./src/bootstrap");
+const {getParsedSettings, log} = require("./src/utils"),
+    Athena = require("./src/bootstrap"),
+    commands = require("./src/cluster/commands");
 
 dotenv.config();
+
+process.on('uncaughtException', function (error) {
+    log.error(error);
+});
 
 // Properties
 let athena = null,
     cluster = null,
     settings = null,
-    should = {};
+    should = {},
+    _process = process;
+
+// Constants
+const APP_NAME = "athena",
+    MAIN_SCRIPT_NAME = `${APP_NAME}.js`;
 
 // CLI commands and flags.
 let options = yargs
@@ -98,6 +109,10 @@ let options = yargs
             describe: "whether to run the cluster in foreground (internal)",
             type: "boolean",
             default: false
+        },
+        "run": {
+            describe: "", // todo:
+            type: "boolean"
         }
     })
     .command("preview", "pretty print the structure of a tests suite", {
@@ -130,9 +145,10 @@ const requiredCommands = (...commands) => {
 // Define conditions.
 should.initClusterInForeground = requiredCommands("cluster") && settings.init && settings.foreground;
 should.initClusterInBackground = requiredCommands("cluster") && settings.init && !settings.foreground;
-should.initCluster = should.initClusterInBackground || should.initClusterInForeground;
-should.delegateClusterCommand = requiredCommands("run") && settings.cluster;
 should.joinCluster = requiredCommands("cluster") && settings.join;
+should.joinClusterInForeground = should.joinCluster && settings.foreground;
+should.initCluster = should.initClusterInBackground || should.initClusterInForeground || should.joinCluster;
+should.delegateClusterCommand = requiredCommands("cluster") && settings.run;
 should.runFunctionalTests = requiredCommands("run") && settings.functional;
 should.runPerformanceTests = requiredCommands("run") && settings.performance;
 should.runTests = should.runFunctionalTests || should.runPerformanceTests;
@@ -146,12 +162,31 @@ should.initAthena = should.initCluster || should.runTests;
 
     if (should.initCluster) {
         const Cluster = require("./src/cluster");
-        cluster = new Cluster(settings);
+        cluster = new Cluster(athena);
     }
 
     // command: node athena.js cluster --init --addr <IP>
     if (should.initClusterInBackground) {
-        const _process = process;
+        if (!settings.addr) {
+            log.error(`The --addr is required when initializing a new Athena cluster.`);
+        }
+
+        let args = [
+            "cluster",
+            "--init",
+            `--addr ${settings.addr}`,
+            "--foreground"
+        ];
+
+        let maybeWatch = false;
+
+        if (settings.debug) {
+            args.push("--debug");
+            maybeWatch = true;
+        }
+
+        log.info(`Preparing to setup a new cluster on "${settings.addr}" ...`);
+
         pm2.connect(function (err) {
             if (err) {
                 console.error(err);
@@ -159,23 +194,49 @@ should.initAthena = should.initCluster || should.runTests;
             }
 
             (async function () {
+                const processName = `${APP_NAME}-manager`;
                 await pm2.start({
-                    name: "athena",
-                    script: path.resolve(__dirname, "athena.js"),
-                    args: `cluster --init --addr ${settings.addr} --foreground`,
+                    name: processName,
+                    script: path.resolve(__dirname, MAIN_SCRIPT_NAME),
+                    args: args.join(' '),
                     exec_mode: "cluster",
-                    instances: 1
-                }, function (error) {
-                    pm2.disconnect();
-
+                    instances: 1,
+                    watch: maybeWatch,
+                    maxRestarts: 0,
+                    output: path.resolve(__dirname, "logs", `${processName}-out.log`),
+                    error: path.resolve(__dirname, "logs", `${processName}-error.log`),
+                }, function (error, res) {
                     if (error) {
                         throw error
                     }
 
-                    _process.exit(0);
+                    pm2.flush(APP_NAME, (err) => {
+                        if (err) {
+                            throw err;
+                        }
+                    });
+
+                    pm2.describe(0, (err, proc) => {
+                        const logFile = proc[0].pm2_env.pm_out_log_path;
+
+                        if (fs.existsSync(logFile)) {
+                            fs.unlinkSync(logFile)
+                        }
+
+                        setTimeout(() => {
+                            if (fs.existsSync(logFile)) {
+                                log.info(fs.readFileSync(logFile, "UTF-8"));
+                            }
+
+                            pm2.disconnect();
+                            process.exit(0);
+                        }, 1000);
+                    });
                 });
             })();
         });
+
+        return;
     }
 
     // command: node athena.js cluster --init --addr <IP> --foreground
@@ -185,44 +246,86 @@ should.initAthena = should.initCluster || should.runTests;
         return;
     }
 
-    // command: node athena.js cluster --join --token <TOKEN> <IP>
-    if (should.joinCluster) {
+    // command: node athena.js cluster --join --foreground --token <TOKEN> --addr <IP>:<PORT>
+    if (should.joinClusterInForeground) {
         cluster.join();
 
         return;
     }
 
-    if (should.delegateClusterCommand) {
-        pm2.connect(function () {
-            pm2.sendDataToProcessId({
-                type: 'process:msg',
-                data: {
-                    some: 'data'
-                },
-                id: 0, // process id
-                topic: 'topic'
-            }, function (err, res) {
-                process.exit(0);
-            });
-        });
+    // command: node athena.js cluster --join --token <TOKEN> --addr <IP>:<PORT>
+    if (should.joinCluster) {
+        if (!settings.token) {
+            log.error(`The --token is required when joining a new Athena cluster.`);
+        }
 
-        pm2.launchBus(function (err, bus) {
-            bus.on('process:msg', function (packet) {
-                done();
-            });
+        if (!settings.addr) {
+            log.error(`The --addr is required when joining a new Athena cluster.`)
+        }
+
+        let args = [
+            "cluster",
+            "--join",
+            `--token ${settings.token}`,
+            `--addr ${settings.addr}`,
+            "--foreground"
+        ];
+
+        let maybeWatch = false;
+
+        if (settings.debug) {
+            args.push("--debug");
+            maybeWatch = true;
+        }
+
+        log.info(`Attempting to join a new cluster on "${settings.addr}"...`);
+
+        pm2.connect(function (err) {
+            if (err) {
+                console.error(err);
+                process.exit(2);
+            }
+
+            (async function () {
+                const processName = `${APP_NAME}-agent`;
+                await pm2.start({
+                    name: processName,
+                    script: path.resolve(__dirname, MAIN_SCRIPT_NAME),
+                    args: args.join(' '),
+                    exec_mode: "cluster",
+                    instances: 1, // todo: instances: settings.cpusLength,
+                    watch: maybeWatch,
+                    output: path.resolve(__dirname, "logs", `${processName}-out.log`),
+                    error: path.resolve(__dirname, "logs", `${processName}-error.log`),
+                }, function (error, res) {
+                    if (error) {
+                        throw error
+                    }
+
+                    log.success(`Successfully joined the cluster!`);
+                    pm2.disconnect();
+                    process.exit(0);
+                });
+            })();
         });
+    }
+
+    // command: node athena.js cluster --run --[performance/functional]
+    if (should.delegateClusterCommand) {
+        log.info(`Preparing to run a new cluster job...`);
+        commands.callClusterCommand("REQ_RUN_PERF");
 
         return;
     }
 
-    // command: node athena.js run --performance
+    // command: node athena.js --run --performance
     if (should.runPerformanceTests) {
         athena.runPerformanceTests();
 
         return;
     }
 
-    // command: node athena.js run --functional
+    // command: node athena.js --run --functional
     if (should.runFunctionalTests) {
         athena.runFunctionalTests();
     }

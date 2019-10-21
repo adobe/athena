@@ -10,10 +10,10 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// Node
+// node
 const path = require("path");
 
-// Project
+// project
 const {validateSchema, makeLogger} = require("./../utils");
 
 class Entity {
@@ -65,20 +65,6 @@ class Entity {
 
     getFileName = () => {
         return this.fileData && this.fileData.base;
-    };
-
-    /**
-     * Returns the file path for the entity configuration. Some entities include additional
-     * implementations and have their own unique methods defined in the inherited classes.
-     *
-     * @returns {null|string} The file path if the file data is parsed, null otherwise.
-     */
-    getFilePath = () => {
-        if (!this.fileData) {
-            return null;
-        }
-
-        return path.resolve(this.fileData.dir, this.fileData.base);
     };
 
     getConfig = () => {
