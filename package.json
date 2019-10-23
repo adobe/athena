@@ -17,6 +17,7 @@
     "commander": "^2.20.0",
     "detective": "^5.2.0",
     "dotenv": "^8.1.0",
+    "express": "^4.17.1",
     "get-port": "^5.0.0",
     "joi": "^14.3.1",
     "js-beautify": "^1.10.2",
@@ -33,7 +34,8 @@
     "unique-names-generator": "^3.0.0",
     "uuid": "^3.3.3",
     "yaml-joi": "^1.1.1",
-    "yargs": "^13.3.0"
+    "yargs": "^13.3.0",
+    "body-parser": "latest"
   },
   "engineStrict": true,
   "engines": {

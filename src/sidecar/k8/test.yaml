@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sleep
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        sidecar-injector-webhook.morven.me/inject: "yes"
+      labels:
+        app: sleep
+    spec:
+      containers:
+        - name: sleep
+          image: tutum/curl
+          command: ["/bin/sleep","infinity"]
+          imagePullPolicy:
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sleep
+  labels:
+    app: sleep
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: sleep
