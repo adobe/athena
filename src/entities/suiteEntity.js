@@ -10,21 +10,21 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Entity = require("./entity"),
-    {ENTITY_TYPES} = require("./../enums");
+const Entity = require('./entity');
+const {ENTITY_TYPES} = require('./../enums');
 
 class SuiteEntity extends Entity {
-    constructor(name, path, config) {
-        super(name, path, config);
+  constructor(name, path, config) {
+    super(name, path, config);
 
-        this.tests = [];
+    this.tests = [];
 
-        this.setType(ENTITY_TYPES.SUITE);
-        this.validate();
-    }
+    this.setType(ENTITY_TYPES.SUITE);
+    this.validate();
+  }
 
     addTest = (test) => {
-        this.tests.push(test);
+      this.tests.push(test);
     };
 }
 

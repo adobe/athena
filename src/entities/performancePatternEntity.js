@@ -10,24 +10,24 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Entity = require("./entity"),
-    {ENTITY_TYPES} = require('./../enums');
+const Entity = require('./entity');
+const {ENTITY_TYPES} = require('./../enums');
 
 class PerformancePattern extends Entity {
-    constructor(name, path, config) {
-        super(name, path, config);
-        this.perfRuns = [];
+  constructor(name, path, config) {
+    super(name, path, config);
+    this.perfRuns = [];
 
-        this.setType(ENTITY_TYPES.PATTERN);
-        this.validate();
-    }
+    this.setType(ENTITY_TYPES.PATTERN);
+    this.validate();
+  }
 
     addPerformanceRun = (perfRun) => {
-        this.perfRuns.push(perfRun);
+      this.perfRuns.push(perfRun);
     };
 
     hasPerfRuns = () => {
-        return Boolean(this.perfRuns.length);
+      return Boolean(this.perfRuns.length);
     };
 }
 

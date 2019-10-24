@@ -11,64 +11,64 @@ governing permissions and limitations under the License.
 */
 
 // node
-const path = require("path");
+const path = require('path');
 
 // project
-const {validateSchema, makeLogger} = require("./../utils");
+const {validateSchema, makeLogger} = require('./../utils');
 
 class Entity {
-    constructor(name, filePath, config) {
-        this.name = name;
-        this.config = config;
-        this.fileData = null;
-        this._type = null;
-        this.context = null;
-        this.taxonomy = null;
-        this.log = makeLogger();
+  constructor(name, filePath, config) {
+    this.name = name;
+    this.config = config;
+    this.fileData = null;
+    this._type = null;
+    this.context = null;
+    this.taxonomy = null;
+    this.log = makeLogger();
 
-        if (filePath) {
-            this.fileData = path.parse(filePath)
-        }
+    if (filePath) {
+      this.fileData = path.parse(filePath);
     }
+  }
 
     validate = () => {
-        try {
-            validateSchema(this)
-        } catch (error) {
-            this.log.error(error);
-        }
+      try {
+        validateSchema(this);
+      } catch (error) {
+        this.log.error(error);
+      }
     };
 
     setContext = (context) => {
-        this.context = context;
+      this.context = context;
     };
 
     getContext = () => {
-        return this.context;
+      return this.context;
     };
 
     setTaxonomy = (taxonomy) => {
-        this.taxonomy = taxonomy;
+      this.taxonomy = taxonomy;
     };
 
     getType = () => {
-        return this._type;
+      return this._type;
     };
 
     setType = (type) => {
-        // if (ALLOWED_ENTITY_TYPES.indexOf(type) === -1) {
-        //     this.log.error(`Could not set type ${type} for entity "${this.name} as it's invald."`);
-        // }
+      // if (ALLOWED_ENTITY_TYPES.indexOf(type) === -1) {
+      //     this.log.error(`Could not set type ${type} for entity "${this.name} as it's invald."`);
+      // }
 
-        this._type = type;
+      this._type = type;
     };
 
     getFileName = () => {
-        return this.fileData && this.fileData.base;
+      return this.fileData && this.fileData.base;
     };
 
     getConfig = () => {
-        return this.config;
+      return this.config;
     }
 }
 
