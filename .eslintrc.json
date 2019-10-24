@@ -17,6 +17,7 @@
     "rules": {
         "max-len": ["error", {
             "code": 90
-        }]
+        }],
+        "no-invalid-this": "off"
     }
 }
