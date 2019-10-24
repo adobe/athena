@@ -10,10 +10,10 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const EntityManager = require("./entityManager"),
-    PluginsManager = require("./pluginsManager"),
-    EngineManager = require("./engineManager"),
-    ScaffoldManager = require("./scaffoldManager");
+const EntityManager = require('./entityManager');
+const PluginsManager = require('./pluginsManager');
+const EngineManager = require('./engineManager');
+const ScaffoldManager = require('./scaffoldManager');
 
 exports.EntityManager = EntityManager;
 exports.PluginsManager = PluginsManager;

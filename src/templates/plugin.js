@@ -11,5 +11,5 @@ governing permissions and limitations under the License.
 */
 
 module.exports = function $PLUGIN_NAME() {
-    // TODO: Not implemented.
+  // TODO: Not implemented.
 };
