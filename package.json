@@ -4,8 +4,8 @@
   "scripts": {
     "start": "node atena.js",
     "test": "mocha ./tests/**/*.test.js",
-    "create-cluster": "./scripts/create_cluster.sh",
-    "migrate": "node ./scripts/elasticsearch_migrate.js"
+    "lint": "eslint ./**/*.js",
+    "create-cluster": "./scripts/create_cluster.sh"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^7.4.0",
@@ -37,6 +37,10 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": ">7.6.0"
+    "node": ">12.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-google": "^0.14.0"
   }
 }
