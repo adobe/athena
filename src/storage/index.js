@@ -44,25 +44,6 @@ class Storage {
         );
     }
 
-    // todo: nice to have when updating status (PENDING, COMPLETED)
-    // async updateReportById(id) {
-    //     try {
-    //         await this.client.updateByQuery({
-    //             index: "autocannon",
-    //             type: "agent",
-    //             body: {
-    //                 query: {
-    //                     match: {
-    //                         id: id
-    //                     }
-    //                 }
-    //             }
-    //         })
-    //     } catch (error) {
-    //
-    //     }
-    // }
-
     async deleteAgentById(id) {
         log.info(`Attempting to delete an agent (id: ${id}) from ElasticSearch...`);
         try {
@@ -80,14 +61,6 @@ class Storage {
         } catch (error) {
             log.warn(`Failed to delete an agent (id: ${id} by ID\n${error}`);
         }
-    }
-
-    async storeReport(report) {
-        log.info(`Attempting to store new [ac_report] in ElasticSearch...`);
-        await this.store(
-            "ac_report",
-            report
-        );
     }
 
     async bulk(actions) {

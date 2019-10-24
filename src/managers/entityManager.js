@@ -37,10 +37,11 @@ const SuiteEntity = require("../entities/suiteEntity"),
     PerformancePatternEntity = require("../entities/performancePatternEntity"),
     PerformanceRunEntity = require("../entities/performanceRunEntity");
 
+const log = makeLogger();
+
 class EntityManager {
     constructor(settings) {
         this.settings = settings;
-        this.log = makeLogger();
         this.entities = makeContainer();
         this._parseEntities();
     }
@@ -169,7 +170,7 @@ class EntityManager {
                 let suite = this.getSuiteBy("name", suiteName);
 
                 if (!suite) {
-                    this.log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
+                    log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
                     return;
                 }
 
