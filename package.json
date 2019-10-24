@@ -12,6 +12,7 @@
     "@hapi/joi": "^15.1.1",
     "acorn-loose": "^7.0.0",
     "autocannon": "^4.0.0",
+    "babel-eslint": "^10.0.3",
     "chakram": "^1.5.0",
     "cli-spinner": "^0.2.10",
     "commander": "^2.20.0",
