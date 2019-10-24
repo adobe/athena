@@ -11,217 +11,216 @@ governing permissions and limitations under the License.
 */
 
 // node
-const fs = require("fs"),
-    path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 // external
-const Mocha = require("mocha"),
-    {find} = require("lodash"),
-    toSource = require("tosource"),
-    jsBeautify = require("js-beautify");
+const Mocha = require('mocha');
+const {find} = require('lodash');
+const toSource = require('tosource');
+const jsBeautify = require('js-beautify');
 
 // project
-const Engine = require("./engine"),
-    {TAXONOMIES, ENGINES} = require("./../enums"),
-    {isSuite, isTest, parseAstExpressions} = require("./../utils");
+const Engine = require('./engine');
+const {TAXONOMIES, ENGINES} = require('./../enums');
+const {isSuite, isTest, parseAstExpressions} = require('./../utils');
 
 class ChakramEngine extends Engine {
-    constructor(settings, entityManager, pluginManager) {
-        super(
-            settings,
-            entityManager,
-            pluginManager,
-            TAXONOMIES.FUNCTIONAL,
-            ENGINES.CHAKRAM,
-            new Mocha()
-        );
+  constructor(settings, entityManager, pluginManager) {
+    super(
+        settings,
+        entityManager,
+        pluginManager,
+        TAXONOMIES.FUNCTIONAL,
+        ENGINES.CHAKRAM,
+        new Mocha()
+    );
 
-        this.nativeMethods = {
-            findPath: null,
-            readFileSync: null
-        };
-
-        this._overrideDefaultMethods();
-
-        // parse and register entities
-        this.entities = this.entityManager
-            .getAllBy("engine", this.name) // todo: naive query as plugins/fixtures may be included as well if the engine property is mistakenly provided.
-            .map(this._deepParseEntities)
-            .filter(e => e !== undefined) // todo: fix this
-            .map(this._registerEntities); // todo: map only once dummy
+    this.nativeMethods = {
+      findPath: null,
+      readFileSync: null,
     };
 
-    // public
+    this._overrideDefaultMethods();
+
+    // parse and register entities
+    this.entities = this.entityManager
+        .getAllBy('engine', this.name) // todo: naive query as plugins/fixtures may be included as well if the engine property is mistakenly provided.
+        .map(this._deepParseEntities)
+        .filter((e) => e !== undefined) // todo: fix this
+        .map(this._registerEntities); // todo: map only once dummy
+  };
+
+  // public
 
     run = () => {
-        const {grep, bail} = this.settings;
+      const {grep, bail} = this.settings;
 
-        if (grep) {
-            this.log.debug(`Grep pattern enabled. Running only tests that match the "${grep}" pattern.`);
-            this.engine.grep(grep);
-        }
+      if (grep) {
+        this.log.debug(`Grep pattern enabled. Running only tests that match the "${grep}" pattern.`);
+        this.engine.grep(grep);
+      }
 
-        if (bail) {
-            this.log.debug("Bailing mode enabled. Will fail fast after the first test failure.");
-            this.engine.bail(bail);
-        }
+      if (bail) {
+        this.log.debug('Bailing mode enabled. Will fail fast after the first test failure.');
+        this.engine.bail(bail);
+      }
 
-        this.engine.run((fail) => {
-            process.exitCode = fail ? 1 : 0
-        });
+      this.engine.run((fail) => {
+        process.exitCode = fail ? 1 : 0;
+      });
 
-        this._destruct();
+      this._destruct();
     };
 
     // private
 
     _registerEntities = (entity) => {
-        entity.toString = entity.getContext;
-        entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
-        this.engine.addFile(entity.fileName);
+      entity.toString = entity.getContext;
+      entity.fileName = `${entity.config.name}.atena.js`; // todo: use a setter.
+      this.engine.addFile(entity.fileName);
 
-        return entity;
+      return entity;
     };
 
     _deepParseEntities = (entity) => {
-        if (isTest(entity)) {
-            entity.setTaxonomy(this.taxonomy);
-            entity.setContext(this._generateTestContext(entity));
+      if (isTest(entity)) {
+        entity.setTaxonomy(this.taxonomy);
+        entity.setContext(this._generateTestContext(entity));
 
-            return entity;
+        return entity;
+      }
+
+      if (isSuite(entity)) {
+        entity.setTaxonomy(this.taxonomy);
+
+        if (entity.tests.length) {
+          entity.tests = entity.tests.map(this._deepParseEntities);
+          const testsCtx = entity.tests.map((t) => t.getContext());
+          const suiteCtx = this._generateSuiteContext(entity, testsCtx.join('\n'));
+          entity.setContext(suiteCtx);
         }
 
-        if (isSuite(entity)) {
-            entity.setTaxonomy(this.taxonomy);
-
-            if (entity.tests.length) {
-                entity.tests = entity.tests.map(this._deepParseEntities);
-                const testsCtx = entity.tests.map(t => t.getContext());
-                const suiteCtx = this._generateSuiteContext(entity, testsCtx.join('\n'));
-                entity.setContext(suiteCtx);
-            }
-
-            return entity;
-        }
+        return entity;
+      }
     };
 
     _generateTestContext = (test) => {
-        const {name, version, description} = test.config;
-        return `it("${name} ${version ? '[v' + version + ']' : ''}${description ? ' - ' + description : ''}", function() {
+      const {name, version, description} = test.config;
+      return `it("${name} ${version ? '[v' + version + ']' : ''}${description ? ' - ' + description : ''}", function() {
                     ${this.pluginManager.maybeInjectFixtures(test)}
                     ${this._generateAssertions(test)}
                 });`;
     };
 
     _generateSuiteContext = (suite, testCases) => {
-        const {name, version, description} = suite.config;
-        return `describe("${name} ${version ? '[v' + version + ']' : ''}${description ? ' - ' + description : ''}", function() {
+      const {name, version, description} = suite.config;
+      return `describe("${name} ${version ? '[v' + version + ']' : ''}${description ? ' - ' + description : ''}", function() {
                     ${this.pluginManager.maybeInjectFixtures(suite)}
                     ${testCases}
                 });`;
     };
 
     _generateAssertions = (test) => {
-        if (!test.config || !test.config.scenario) {
-            return '';
-        }
+      if (!test.config || !test.config.scenario) {
+        return '';
+      }
 
-        const stagesOrder = [
-            {
-                "stage": "hooks",
-                "substage": ["beforeGiven", "before"]
-            },  // alias 'before'
-            {
-                "stage": "scenario",
-                "substage": ["given"]
-            },   // main stage
-            {
-                "stage": "hooks",
-                "substage": ["beforeWhen"]
-            },
-            {
-                "stage": "scenario",
-                "substage": ["when"]
-            },         // main stage
-            {
-                "stage": "hooks",
-                "substage": ["beforeThen"]
-            },
-            {
-                "stage": "scenario",
-                "substage": ["then"]
-            },         // main stage
-            {
-                "stage": "hooks",
-                "substage": ["afterThen", "after"]
-            }     // todo: alias 'after'
-        ];
+      const stagesOrder = [
+        {
+          'stage': 'hooks',
+          'substage': ['beforeGiven', 'before'],
+        }, // alias 'before'
+        {
+          'stage': 'scenario',
+          'substage': ['given'],
+        }, // main stage
+        {
+          'stage': 'hooks',
+          'substage': ['beforeWhen'],
+        },
+        {
+          'stage': 'scenario',
+          'substage': ['when'],
+        }, // main stage
+        {
+          'stage': 'hooks',
+          'substage': ['beforeThen'],
+        },
+        {
+          'stage': 'scenario',
+          'substage': ['then'],
+        }, // main stage
+        {
+          'stage': 'hooks',
+          'substage': ['afterThen', 'after'],
+        }, // todo: alias 'after'
+      ];
 
-        // todo: handle stage rejections properly
-        const stages = stagesOrder
-            .filter(s =>
-                test.config[s.stage] &&
-                Object.keys(test.config[s.stage]).some(key => s.substage.includes(key)))
-            .map(function _makeContextBoundStage(s) {
+      // todo: handle stage rejections properly
+      const stages = stagesOrder
+          .filter((s) =>
+            test.config[s.stage] &&
+                Object.keys(test.config[s.stage]).some((key) => s.substage.includes(key)))
+          .map(function _makeContextBoundStage(s) {
+            const substage = Object.keys(test.config[s.stage]).filter((key) => s.substage.includes(key))[0];
+            let stageContent = test.config[s.stage][substage];
 
-                let substage = Object.keys(test.config[s.stage]).filter(key => s.substage.includes(key))[0];
-                let stageContent = test.config[s.stage][substage];
-
-                const promiseTpl = `new Promise(function(resolve) {
+            const promiseTpl = `new Promise(function(resolve) {
                                         /* Stage: {substage} */
                                         {stageContent}
                                     }.bind($context))`;
 
-                if (substage === "then") {
-                    let parsedStageContent = parseAstExpressions(stageContent)
-                        .map(e => e.replace(';', ''))
-                        .join(',');
+            if (substage === 'then') {
+              const parsedStageContent = parseAstExpressions(stageContent)
+                  .map((e) => e.replace(';', ''))
+                  .join(',');
 
-                    stageContent = `resolve(Promise.all([${parsedStageContent}]))`;
-                } else {
-                    stageContent = `${stageContent} \n resolve();`;
-                }
+              stageContent = `resolve(Promise.all([${parsedStageContent}]))`;
+            } else {
+              stageContent = `${stageContent} \n resolve();`;
+            }
 
-                return promiseTpl.format({substage, stageContent});
-            })
-            .join(',');
+            return promiseTpl.format({substage, stageContent});
+          })
+          .join(',');
 
-        return jsBeautify(`return Promise.all([${stages}])`);
+      return jsBeautify(`return Promise.all([${stages}])`);
     };
 
     _overrideDefaultMethods = () => {
-        // preserve original methods
-        this.nativeMethods.readFileSync = fs.readFileSync;
-        this.nativeMethods.findPath = module.constructor._findPath;
+      // preserve original methods
+      this.nativeMethods.readFileSync = fs.readFileSync;
+      this.nativeMethods.findPath = module.constructor._findPath;
 
-        // override default methods
-        module.constructor._findPath = findPathOverride.bind(this);
-        fs.readFileSync = readFileSyncOverride.bind(this);
+      // override default methods
+      module.constructor._findPath = findPathOverride.bind(this);
+      fs.readFileSync = readFileSyncOverride.bind(this);
 
-        function findPathOverride(...args) {
-            let fileName = path.basename(args[0]);
+      function findPathOverride(...args) {
+        const fileName = path.basename(args[0]);
 
-            if (fileName.indexOf(".atena.") !== -1) {
-                return fileName;
-            }
-
-            return this.nativeMethods.findPath(...args);
+        if (fileName.indexOf('.atena.') !== -1) {
+          return fileName;
         }
 
-        function readFileSyncOverride(...args) {
-            let fileName = path.basename(args[0]);
+        return this.nativeMethods.findPath(...args);
+      }
 
-            if (fileName.indexOf(".atena.") === -1) {
-                return this.nativeMethods.readFileSync(...args);
-            }
+      function readFileSyncOverride(...args) {
+        const fileName = path.basename(args[0]);
 
-            const entity = find(this.entities, {fileName})
+        if (fileName.indexOf('.atena.') === -1) {
+          return this.nativeMethods.readFileSync(...args);
+        }
 
-            if (!entity) {
-                throw new Error(`Could not find registered entity (test/suite): "${fileName}".`);
-            }
+        const entity = find(this.entities, {fileName});
 
-            return `
+        if (!entity) {
+          throw new Error(`Could not find registered entity (test/suite): "${fileName}".`);
+        }
+
+        return `
                 const assert = require('assert').ok,
                     chakram = require('chakram'),
                     expect = chakram.expect;
@@ -231,13 +230,13 @@ class ChakramEngine extends Engine {
                                     
                 ${this.pluginManager.maybeInjectFixtures(null, true)}
                 ${entity.getContext()}`;
-        }
+      }
     };
 
     _destruct = () => {
-        const {findPath, readFileSync} = this.nativeMethods;
-        module.constructor._findPath = findPath;
-        fs.readFileSync = readFileSync;
+      const {findPath, readFileSync} = this.nativeMethods;
+      module.constructor._findPath = findPath;
+      fs.readFileSync = readFileSync;
     };
 }
 
