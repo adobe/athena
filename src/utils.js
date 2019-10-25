@@ -60,7 +60,7 @@ exports.log = log;
 
 /**
  * Returns the CLI arguments, if any.
- * @returns {commander.CommanderStatic | commander}
+ * @return {commander.CommanderStatic | commander}
  */
 function getCliArgs() {
   return {};

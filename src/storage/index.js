@@ -24,18 +24,6 @@ class Storage {
     });
   }
 
-  async migrate() {
-    // Index: ac_agent
-    await this.client.indices.create({
-      index: 'ac_agent',
-    });
-
-    // Index: ac_report
-    await this.client.indices.create({
-      index: 'ac_report',
-    });
-  }
-
   async storeAgent(agent) {
     log.info(`Attempting to store new agent in ElasticSearch...`);
     await this.store(
