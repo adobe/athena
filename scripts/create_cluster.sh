@@ -10,6 +10,8 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
+
+envoy -c /etc/envoy/config/envoy.yaml -l info --concurrency 8 &
 node_modules/.bin/pm2
 node athena.js cluster --init --addr 0.0.0.0
 node_modules/.bin/pm2 logs athena-manager
