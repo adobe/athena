@@ -109,8 +109,12 @@ class EntityManager {
         {nodir: true});
   }
 
-  async _parseEntities() {
-    const testFiles = await this._getTestFiles();
+  /**
+   * Parses all Athena entities.
+   * @private
+   */
+  _parseEntities() {
+    const testFiles = this._getTestFiles();
 
     // Filter suites and instantiate them.
     this.preParsedEntities.push(
