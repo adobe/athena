@@ -160,7 +160,7 @@ exports.makeContainer = () => {
   function Container() {
     this.entries = [];
     this.add = (el) => this.entries.push(el);
-    this.remove = (el) => remove(this.entries, (el) => el === el);
+    this.remove = (elToRemove) => remove(this.entries, (el) => el === elToRemove);
 
     return this;
   }
@@ -215,7 +215,11 @@ exports.getPackageInstallCommand = (packageName) => {
   return [command, manager];
 };
 
-// Removed empty properties from an object.
+/**
+ * Removes all empty properties from an object.
+ * @param {object} obj The object.
+ * @return {object} The object without empty properties.
+ */
 function removeEmpty(obj) {
   return Object.keys(obj)
       .filter((k) => obj[k] != null)
