@@ -118,7 +118,7 @@ class EntityManager {
      */
   _parseSuites = () => {
     this.preParsedEntities.push(
-        this.testFiles.filter(isSuite).map((suite) => new SuiteEntity(
+        ...this.testFiles.filter(isSuite).map((suite) => new SuiteEntity(
             suite.name,
             suite.entityPath,
             suite.config
@@ -156,21 +156,20 @@ class EntityManager {
 
   /**
      * Parses all test files.
-     * @param {object} testFile The test file.
+     * @param {string} filePath The test file.
      * @return {object} The parses test file.
      * @private
      */
-  _parseTestFiles = (testFile) => {
-    try {
-      testFile.config = jsYaml.safeLoad(
-          fs.readFileSync(testFile.path),
-          'utf-8'
-      );
-    } catch (error) {
-      log.error(`Could not parse YAML config for ${testFile.path}`);
-    }
+  _parseTestFiles = (filePath) => {
+    return new TestFile(filePath);
+  };
 
-    return testFile;
+  /**
+   * Parses all test files.
+   * @private
+   */
+  _parseAllTestFiles = () => {
+    this.testFiles = this._getTestFiles().map(this._parseTestFiles);
   };
 
   /**
@@ -178,7 +177,7 @@ class EntityManager {
    * @private
    */
   _parseEntities() {
-    this.testFiles = this._getTestFiles().map(this._parseTestFiles);
+    this._parseAllTestFiles();
 
     this._parseSuites();
     this._parseFixtures();
@@ -355,6 +354,32 @@ class EntityManager {
       this.entities.add(performanceTestEntity);
     }
   };
+}
+
+
+/**
+ * The TestFile class.
+ */
+class TestFile {
+  /**
+   * Creates a new TestFile instance.
+   * @param {string} filePath The test file's path.
+   */
+  constructor(filePath) {
+    this.config = null;
+    this.fileData = null;
+
+    if (!filePath) {
+      throw new Error(`When instantiating a new TestFile, you must provide a filePath.`);
+    }
+
+    try {
+      this.config = jsYaml.safeLoad(fs.readFileSync(filePath, 'utf-8'));
+      this.fileData = path.parse(filePath);
+    } catch (error) {
+      log.error(`Could not parse test file.\n${error}`);
+    }
+  }
 }
 
 module.exports = EntityManager;

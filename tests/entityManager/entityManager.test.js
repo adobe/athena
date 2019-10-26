@@ -21,6 +21,50 @@ const sinon = require('sinon');
 // project
 const EntityManager = require('./../../src/managers/entityManager');
 
+/**
+ * Builds the tests directory path for a given subdirectory.
+ * @param {string} finalPath The final path element.
+ * @return {string} The final path.
+ */
+function makeTestsDirPath(finalPath) {
+  return path.resolve(
+      './',
+      'tests',
+      'entityManager',
+      'config',
+      finalPath
+  );
+}
+
+/**
+ * EntityManager._parseEntities stub handlers.
+ */
+
+let EntitiesManagerParseEntityStub;
+
+/**
+ * Creates handler that stubs the _parseEntities method.
+ * @return {Function} The handler function.
+ */
+function makeStubParseEntitiesHandler() {
+  return function() {
+    EntitiesManagerParseEntityStub = sinon.stub(
+        EntityManager.prototype,
+        '_parseEntities'
+    ).returns(0);
+  };
+}
+
+/**
+ * Creates a handler that restores the _parseEntities stubbed method.
+ * @return {Function} The handler function.
+ */
+function makeRestoreParseEntitiesHandler() {
+  return function() {
+    EntitiesManagerParseEntityStub.restore();
+  };
+}
+
 describe('EntityManager', function() {
   describe('constructor', function() {
     let EntityManagerStub;
@@ -65,28 +109,12 @@ describe('EntityManager', function() {
   });
 
   describe('_getTestFiles', function() {
-    let EntityManagerStub;
-
-    beforeEach(function() {
-      EntityManagerStub = sinon.stub(
-          EntityManager.prototype,
-          '_parseEntities'
-      ).returns(0);
-    });
-
-    afterEach(function() {
-      EntityManagerStub.restore();
-    });
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
 
     it('should deep search for test files in a given directory', function() {
       const mockSettings = {
-        testsDirPath: path.resolve(
-            './',
-            'tests',
-            'entityManager',
-            'config',
-            'getTestFiles'
-        ),
+        testsDirPath: makeTestsDirPath('getTestFiles'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
       const testFiles = EntityManagerInstance._getTestFiles();
@@ -96,7 +124,22 @@ describe('EntityManager', function() {
     });
   });
 
-  describe('_parseEntities', function() {
-    // todo: not implemented
+  describe('_parseSuites', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should filter and parse only suite types', function() {
+
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseSuites'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parseSuites();
+
+      expect(EntityManagerInstance.preParsedEntities.length).to.equal(1);
+      expect(EntityManagerInstance.preParsedEntities[0].config.type).to.equal('suite');
+    });
   });
 });

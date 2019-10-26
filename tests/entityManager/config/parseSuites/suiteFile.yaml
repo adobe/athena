@@ -1,0 +1,20 @@
+type: suite
+name: ccecoSuite
+engine: chakram
+description: some string
+dependecy:
+  - name: cceco
+    type: api
+hooks:
+  beforeEach: >
+    this.token = getServiceToken()
+    this.host = "http://localhost:9191/get"
+  before:
+  after:
+  afterEach:
+  skip:
+config:
+  timeout: 10
+scenario:
+  given: >
+    this.host = "override.host"
