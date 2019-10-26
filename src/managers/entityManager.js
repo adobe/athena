@@ -18,10 +18,10 @@ const path = require('path');
 const jsYaml = require('js-yaml');
 const {isString} = require('lodash');
 const glob = require('glob');
+const L = require('list/methods');
 
 // project
 const {
-  makeContainer,
   isTest,
   isSuite,
   isFixture,
@@ -51,8 +51,7 @@ class EntityManager {
   constructor(settings) {
     this.settings = settings;
     this.testFiles = [];
-    this.preParsedEntities = [];
-    this.entities = makeContainer();
+    this.entities = L.list();
 
     this._parseEntities();
   }
@@ -116,13 +115,18 @@ class EntityManager {
      * Filters, parses and instantiates suites.
      * @private
      */
-  _parseSuites = () => {
-    this.preParsedEntities.push(
-        ...this.testFiles.filter(isSuite).map((suite) => new SuiteEntity(
+  _parseFunctionalSuites = () => {
+    const onlyFunctionalSuites = this.testFiles
+        .filter(isSuite)
+        .map((suite) => new SuiteEntity(
             suite.name,
             suite.entityPath,
             suite.config
-        ))
+        ));
+
+    this.entities = this.entities.insert(
+        this.entities.length,
+        ...onlyFunctionalSuites
     );
   };
 
@@ -131,12 +135,17 @@ class EntityManager {
      * @private
      */
   _parseFixtures = () => {
-    this.preParsedEntities.push(
-        ...this.testFiles.filter(isFixture).map((fixture) => new FixtureEntity(
+    const onlyFixtures = this.testFiles
+        .filter(isFixture)
+        .map((fixture) => new FixtureEntity(
             fixture.name,
             fixture.entityPath,
             fixture.config
-        ))
+        ));
+
+    this.entities = this.entities.insert(
+        this.entities.length,
+        ...onlyFixtures
     );
   };
 
@@ -145,12 +154,17 @@ class EntityManager {
      * @private
      */
   _parsePerfRuns = () => {
-    this.preParsedEntities.push(
-        ...this.testFiles.filter(isPerformanceRun).map((perfRun) => new PerformanceRunEntity(
+    const onlyPerfRuns = this.testFiles
+        .filter(isPerformanceRun)
+        .map((perfRun) => new PerformanceRunEntity(
             perfRun.name,
             perfRun.entityPath,
             perfRun.config
-        ))
+        ));
+
+    this.entities = this.entities.insert(
+        this.entities.length,
+        ...onlyPerfRuns
     );
   };
 
@@ -162,6 +176,50 @@ class EntityManager {
     this.testFiles = this._getTestFiles().map((filePath) => new TestFile(filePath));
   };
 
+  _parseFunctionalTests = () => {
+    this._parseFunctionalSuites();
+
+
+    // parse functional tests
+    for (const entity of entities) {
+      if (!isTest(entity)) {
+        continue;
+      }
+
+      let {suiteRef} = entity.config;
+      const {name, path: entityPath, config} = entity;
+      const testEntity = new ChakramTest(name, entityPath, config);
+
+      // test as indie entity
+      if (!suiteRef) {
+        this.addEntity(testEntity);
+        continue;
+      }
+
+      if (isString(suiteRef)) {
+        suiteRef = [suiteRef];
+      }
+
+      suiteRef.forEach((suiteName) => {
+        const suite = this.getSuiteBy('name', suiteName);
+
+        if (!suite) {
+          log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
+          return;
+        }
+
+        suite.addTest(testEntity);
+      });
+    }
+  };
+
+  _parsePerformanceTests = () => {
+    this._parsePerformanceSuites();
+
+    // todo: parse perf pattens
+    // todo: parse perf runs.
+  };
+
   /**
    * Parses all native Athena entities.
    * @private
@@ -169,7 +227,12 @@ class EntityManager {
   _parseEntities() {
     this._parseAllTestFiles();
 
-    this._parseSuites();
+    this._parseFunctionalTests();
+    this._parsePerformanceTests();
+    this._parseFixtures();
+
+
+    this._parseFunctionalSuites();
     this._parseFixtures();
     this._parsePerfRuns();
 
@@ -233,37 +296,37 @@ class EntityManager {
       }
     }
 
-    // parse functional tests
-    for (const entity of entities) {
-      if (!isTest(entity)) {
-        continue;
-      }
-
-      let {suiteRef} = entity.config;
-      const {name, path: entityPath, config} = entity;
-      const testEntity = new ChakramTest(name, entityPath, config);
-
-      // test as indie entity
-      if (!suiteRef) {
-        this.addEntity(testEntity);
-        continue;
-      }
-
-      if (isString(suiteRef)) {
-        suiteRef = [suiteRef];
-      }
-
-      suiteRef.forEach((suiteName) => {
-        const suite = this.getSuiteBy('name', suiteName);
-
-        if (!suite) {
-          log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
-          return;
-        }
-
-        suite.addTest(testEntity);
-      });
-    }
+    // // parse functional tests
+    // for (const entity of entities) {
+    //   if (!isTest(entity)) {
+    //     continue;
+    //   }
+    //
+    //   let {suiteRef} = entity.config;
+    //   const {name, path: entityPath, config} = entity;
+    //   const testEntity = new ChakramTest(name, entityPath, config);
+    //
+    //   // test as indie entity
+    //   if (!suiteRef) {
+    //     this.addEntity(testEntity);
+    //     continue;
+    //   }
+    //
+    //   if (isString(suiteRef)) {
+    //     suiteRef = [suiteRef];
+    //   }
+    //
+    //   suiteRef.forEach((suiteName) => {
+    //     const suite = this.getSuiteBy('name', suiteName);
+    //
+    //     if (!suite) {
+    //       log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
+    //       return;
+    //     }
+    //
+    //     suite.addTest(testEntity);
+    //   });
+    // }
 
     // parse performance patterns
     for (const entity of entities) {

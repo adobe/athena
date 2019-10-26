@@ -17,6 +17,7 @@ const path = require('path');
 const expect = require('chai').expect;
 const assert = require('assert');
 const sinon = require('sinon');
+const List = require('list/methods');
 
 // project
 const EntityManager = require('./../../src/managers/entityManager');
@@ -90,14 +91,18 @@ describe('EntityManager', function() {
     it('should define the pre-parsed entities', function() {
       const EntityManagerInstance = new EntityManager({});
 
-      expect(EntityManagerInstance.preParsedEntities).to.eql([]);
+      expect(EntityManagerInstance.entities.length).to.eql(0);
     });
 
     it('should create a container for the final entities', function() {
       const EntityManagerInstance = new EntityManager({});
 
-      expect(EntityManagerInstance.entities).to.have.property('add');
-      expect(EntityManagerInstance.entities).to.have.property('entries');
+      expect(EntityManagerInstance.entities).to.have.property('bits');
+      expect(EntityManagerInstance.entities).to.have.property('offset');
+      expect(EntityManagerInstance.entities).to.have.property('length');
+      expect(EntityManagerInstance.entities).to.have.property('prefix');
+      expect(EntityManagerInstance.entities).to.have.property('root');
+      expect(EntityManagerInstance.entities).to.have.property('suffix');
     });
 
     it('should attempt to parse all entities', function() {
@@ -151,21 +156,57 @@ describe('EntityManager', function() {
     });
   });
 
-  describe('_parseSuites', function() {
+  describe('_parseFunctionalSuites', function() {
     beforeEach(makeStubParseEntitiesHandler());
     afterEach(makeRestoreParseEntitiesHandler());
 
     it('should filter and parse only suite types', function() {
       const mockSettings = {
-        testsDirPath: makeTestsDirPath('parseSuites'),
+        testsDirPath: makeTestsDirPath('parseFunctionalSuites'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
 
       EntityManagerInstance._parseAllTestFiles();
-      EntityManagerInstance._parseSuites();
+      EntityManagerInstance._parseFunctionalSuites();
 
-      expect(EntityManagerInstance.preParsedEntities.length).to.equal(1);
-      expect(EntityManagerInstance.preParsedEntities[0].config.type).to.equal('suite');
+      expect(EntityManagerInstance.entities.length).to.equal(1);
+      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('suite');
+    });
+  });
+
+  describe('_parseFixtures', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should filter and parse only fixture types', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseFixtures'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parseFixtures();
+
+      expect(EntityManagerInstance.entities.length).to.equal(1);
+      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('fixture');
+    });
+  });
+
+  describe('_parsePerfRuns', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should filter and parse only perfRun types', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerfRuns'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerfRuns();
+
+      expect(EntityManagerInstance.entities.length).to.equal(1);
+      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('perfRun');
     });
   });
 });

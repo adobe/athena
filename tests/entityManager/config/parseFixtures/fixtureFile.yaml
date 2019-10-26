@@ -1,0 +1,5 @@
+type: fixture
+name: isServiceToken
+config:
+  type: lib
+  source: fixtures/consoleFixture.js
