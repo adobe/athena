@@ -132,7 +132,7 @@ class EntityManager {
      */
   _parseFixtures = () => {
     this.preParsedEntities.push(
-        this.testFiles.filter(isFixture).map((fixture) => new FixtureEntity(
+        ...this.testFiles.filter(isFixture).map((fixture) => new FixtureEntity(
             fixture.name,
             fixture.entityPath,
             fixture.config
@@ -146,7 +146,7 @@ class EntityManager {
      */
   _parsePerfRuns = () => {
     this.preParsedEntities.push(
-        this.testFiles.filter(isPerformanceRun).map((perfRun) => new PerformanceRunEntity(
+        ...this.testFiles.filter(isPerformanceRun).map((perfRun) => new PerformanceRunEntity(
             perfRun.name,
             perfRun.entityPath,
             perfRun.config
@@ -155,21 +155,11 @@ class EntityManager {
   };
 
   /**
-     * Parses all test files.
-     * @param {string} filePath The test file.
-     * @return {object} The parses test file.
-     * @private
-     */
-  _parseTestFiles = (filePath) => {
-    return new TestFile(filePath);
-  };
-
-  /**
    * Parses all test files.
    * @private
    */
   _parseAllTestFiles = () => {
-    this.testFiles = this._getTestFiles().map(this._parseTestFiles);
+    this.testFiles = this._getTestFiles().map((filePath) => new TestFile(filePath));
   };
 
   /**

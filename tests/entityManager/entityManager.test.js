@@ -124,12 +124,38 @@ describe('EntityManager', function() {
     });
   });
 
+  describe('_parseAllTestFiles', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should parse all existent test files', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('getTestFiles'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+
+      expect(EntityManagerInstance.testFiles.length).to.equal(2);
+    });
+
+    it('should instantiate a new TestFile for each test file', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('getTestFiles'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+
+      expect(EntityManagerInstance.testFiles[0].constructor.name).to.equal('TestFile');
+    });
+  });
+
   describe('_parseSuites', function() {
     beforeEach(makeStubParseEntitiesHandler());
     afterEach(makeRestoreParseEntitiesHandler());
 
     it('should filter and parse only suite types', function() {
-
       const mockSettings = {
         testsDirPath: makeTestsDirPath('parseSuites'),
       };
