@@ -23,7 +23,7 @@ const jsBeautify = require('js-beautify');
 // project
 const Engine = require('./engine');
 const {TAXONOMIES, ENGINES} = require('./../enums');
-const {isSuite, isTest, parseAstExpressions} = require('./../utils');
+const {isSuite, isFunctionalTest, parseAstExpressions} = require('./../utils');
 
 class ChakramEngine extends Engine {
   constructor(settings, entityManager, pluginManager) {
@@ -84,7 +84,7 @@ class ChakramEngine extends Engine {
     };
 
     _deepParseEntities = (entity) => {
-      if (isTest(entity)) {
+      if (isFunctionalTest(entity)) {
         entity.setTaxonomy(this.taxonomy);
         entity.setContext(this._generateTestContext(entity));
 

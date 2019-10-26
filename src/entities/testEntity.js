@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
+const {isString} = require('lodash');
 
 class TestEntity extends Entity {
   constructor(name, path, config) {
@@ -26,7 +27,38 @@ class TestEntity extends Entity {
 class ChakramTest extends TestEntity {
   constructor(name, path, config) {
     super(name, path, config);
+
+    // Handle the case where the suiteRef is a single reference.
+    if (isString(config.suiteRef)) {
+      config.suiteRef = [config.suiteRef];
+    }
   }
+
+  getSuitesCount = () => {
+    if (this.config &&
+        this.config.suiteRef &&
+        this.config.suiteRef.length) {
+      return this.config.suiteRef.length;
+    }
+
+    // todo: log error
+  };
+
+  getSuiteRefs = () => {
+    if (this.config && this.config.suiteRef) {
+      return this.config.suiteRef;
+    }
+
+    // todo: log error
+  };
+
+  hasNoSuiteRefs = () => {
+    return this.getSuitesCount() === 0;
+  };
+
+  getName = () => {
+    return this.name;
+  };
 }
 
 exports.TestEntity = TestEntity;

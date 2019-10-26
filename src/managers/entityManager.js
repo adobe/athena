@@ -22,7 +22,7 @@ const L = require('list/methods');
 
 // project
 const {
-  isTest,
+  isFunctionalTest,
   isSuite,
   isFixture,
   isPerformanceTest,
@@ -39,6 +39,7 @@ const PerformancePatternEntity = require('../entities/performancePatternEntity')
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 
 const log = makeLogger();
+const logFormat = '[Entity Parsing]';
 
 /**
  * The EntityManager class.
@@ -169,47 +170,54 @@ class EntityManager {
   };
 
   /**
-   * Parses all test files.
+   * Parses all test files and instantiates intermediary TestFile objects.
    * @private
    */
   _parseAllTestFiles = () => {
-    this.testFiles = this._getTestFiles().map((filePath) => new TestFile(filePath));
+    this.testFiles = this._getTestFiles()
+        .map((filePath) => new TestFile(filePath));
   };
 
   _parseFunctionalTests = () => {
     this._parseFunctionalSuites();
 
+    const onlyFunctionalTests = this.testFiles
+        .filter(isFunctionalTest);
 
-    // parse functional tests
-    for (const entity of entities) {
-      if (!isTest(entity)) {
+    for (const functionalTest of onlyFunctionalTests) {
+      const {name, path, config} = functionalTest;
+
+      // Instantiate a new functional test entity.
+      const ChakramTestEntity = new ChakramTest(
+          name,
+          path,
+          config
+      );
+
+      // Independent functional test entity.
+      if (ChakramTestEntity.hasNoSuiteRefs()) {
+        this.entities = L.insert(
+            this.entities.length,
+            ChakramTestEntity,
+            this.entities
+        );
+
         continue;
       }
 
-      let {suiteRef} = entity.config;
-      const {name, path: entityPath, config} = entity;
-      const testEntity = new ChakramTest(name, entityPath, config);
+      // Attach this test to its particular suite.
+      for (const suiteRef of ChakramTestEntity.getSuiteRefs()) {
+        const FunctionalSuite = this.getSuiteBy('name', suiteRef);
 
-      // test as indie entity
-      if (!suiteRef) {
-        this.addEntity(testEntity);
-        continue;
-      }
-
-      if (isString(suiteRef)) {
-        suiteRef = [suiteRef];
-      }
-
-      suiteRef.forEach((suiteName) => {
-        const suite = this.getSuiteBy('name', suiteName);
-
-        if (!suite) {
-          log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
-          return;
+        if (!FunctionalSuite) {
+          const testName = ChakramTestEntity.getName();
+          log.warn(`${logFormat} Could not find the suite "${suiteRef}"` +
+          `required by "${testName}".`);
+          continue;
         }
 
-        suite.addTest(testEntity);
-      });
+        FunctionalSuite.addTest(ChakramTestEntity);
+      }
     }
   };
 
@@ -236,97 +244,6 @@ class EntityManager {
     this._parseFixtures();
     this._parsePerfRuns();
 
-
-    // const {testsDirPath} = this.settings;
-    // const entitiesList = fs.readdirSync(testsDirPath); // todo: check first and throw
-    // const entities = [];
-
-    // parse all entities
-    for (const entityFileName of entitiesList) {
-      const entity = {};
-      entity.name = entityFileName;
-      entity.path = path.resolve(testsDirPath, entity.name);
-
-      // skip directories
-      if (fs.lstatSync(entity.path).isDirectory()) {
-        continue;
-      }
-
-      // parse config
-      entity.config = jsYaml.safeLoad(
-          fs.readFileSync(entity.path),
-          'utf-8'
-      );
-
-      entities.push(entity);
-      const {name, path: entityPath, config} = entity;
-
-
-      // todo: for functional tests, suites are parsed first and the
-      // tests are then associated. this is not the case for performance
-      // tests where the dependency chain is handled backwards. maybe we
-      // should follow a more consistent pattern in order to avoid any
-      // confusion.
-
-      // parse suites
-      if (isSuite(entity)) {
-        this.entities.add(new SuiteEntity(
-            name,
-            entityPath,
-            config
-        ));
-      }
-
-      // parse fixtures
-      if (isFixture(entity)) {
-        this.entities.add(new FixtureEntity(
-            name,
-            entityPath,
-            config
-        ));
-      }
-
-      // parse performance runs
-      if (isPerformanceRun(entity)) {
-        this.entities.add(new PerformanceRunEntity(
-            name,
-            entityPath,
-            config
-        ));
-      }
-    }
-
-    // // parse functional tests
-    // for (const entity of entities) {
-    //   if (!isTest(entity)) {
-    //     continue;
-    //   }
-    //
-    //   let {suiteRef} = entity.config;
-    //   const {name, path: entityPath, config} = entity;
-    //   const testEntity = new ChakramTest(name, entityPath, config);
-    //
-    //   // test as indie entity
-    //   if (!suiteRef) {
-    //     this.addEntity(testEntity);
-    //     continue;
-    //   }
-    //
-    //   if (isString(suiteRef)) {
-    //     suiteRef = [suiteRef];
-    //   }
-    //
-    //   suiteRef.forEach((suiteName) => {
-    //     const suite = this.getSuiteBy('name', suiteName);
-    //
-    //     if (!suite) {
-    //       log.warn(`[Entity Parsing] Could not find the suite "${suiteName}" required by "${testEntity.config.name}".`);
-    //       return;
-    //     }
-    //
-    //     suite.addTest(testEntity);
-    //   });
-    // }
 
     // parse performance patterns
     for (const entity of entities) {
@@ -412,6 +329,7 @@ class EntityManager {
 
 /**
  * The TestFile class.
+ * An intermediary TestFile class used while parsing all test files.
  */
 class TestFile {
   /**

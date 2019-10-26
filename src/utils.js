@@ -236,7 +236,7 @@ exports.removeEmpty = removeEmpty;
 
 // todo: factory? adjust enums to uppercase first though
 exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;
-exports.isTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.TEST;
+exports.isFunctionalTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.TEST;
 exports.isFixture = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.FIXTURE;
 
 // todo: deprecated, remove this
