@@ -26,6 +26,7 @@
     "joi": "^14.3.1",
     "js-beautify": "^1.10.2",
     "js-yaml": "^3.13.1",
+    "list": "^2.0.19",
     "lodash": "^4.17.15",
     "mocha": "^6.2.0",
     "mocha-parallel-tests": "^2.2.1",
