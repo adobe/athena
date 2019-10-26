@@ -4,6 +4,8 @@
   "scripts": {
     "start": "node atena.js",
     "test": "mocha ./tests/**/*.test.js",
+    "test-coverage": "nyc npm run test",
+    "test-coverage-html": "nyc --reporter=html npm run test",
     "lint": "eslint ./**/*.js",
     "create-cluster": "./scripts/create_cluster.sh"
   },
@@ -45,6 +47,7 @@
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-google": "^0.14.0",
+    "nyc": "^14.1.1",
     "sinon": "^7.5.0"
   }
 }
