@@ -178,6 +178,12 @@ class EntityManager {
         .map((filePath) => new TestFile(filePath));
   };
 
+  /**
+   * Parses all functional test entities. It initially parses all functional test suites,
+   * continues with the independent tests and finally it attaches all functional test
+   * entities that provide any suite references, to that specific suite.
+   * @private
+   */
   _parseFunctionalTests = () => {
     this._parseFunctionalSuites();
 

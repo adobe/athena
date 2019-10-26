@@ -68,18 +68,8 @@ function makeRestoreParseEntitiesHandler() {
 
 describe('EntityManager', function() {
   describe('constructor', function() {
-    let EntityManagerStub;
-
-    beforeEach(function() {
-      EntityManagerStub = sinon.stub(
-          EntityManager.prototype,
-          '_parseEntities'
-      ).returns(0);
-    });
-
-    afterEach(function() {
-      EntityManagerStub.restore();
-    });
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
 
     it('should set the settings', function() {
       const expectedSettings = {expected: true};
@@ -207,6 +197,22 @@ describe('EntityManager', function() {
 
       expect(EntityManagerInstance.entities.length).to.equal(1);
       expect(List.first(EntityManagerInstance.entities).config.type).to.equal('perfRun');
+    });
+  });
+
+  describe('_parseFunctionalTests', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should start by parsing all functional suites first', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseFunctionalSuites'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+      const spy = sinon.spy(EntityManagerInstance, '_parseFunctionalTests');
+
+      EntityManagerInstance._parseFunctionalTests();
+      assert(spy.called);
     });
   });
 });
