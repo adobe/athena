@@ -50,6 +50,7 @@ class EntityManager {
    */
   constructor(settings) {
     this.settings = settings;
+    this.testFiles = [];
     this.preParsedEntities = [];
     this.entities = makeContainer();
 
@@ -106,47 +107,87 @@ class EntityManager {
     return glob.sync(
         path.resolve(
             this.settings.testsDirPath, '**', '*'),
-        {nodir: true});
+        {
+          nodir: true,
+        });
   }
 
   /**
-   * Parses all Athena entities.
-   * @private
-   */
-  _parseEntities() {
-    const testFiles = this._getTestFiles();
-
-    // Filter suites and instantiate them.
+     * Filters, parses and instantiates suites.
+     * @private
+     */
+  _parseSuites = () => {
     this.preParsedEntities.push(
-        testFiles.filter(isSuite).map((suite) => new SuiteEntity(
+        this.testFiles.filter(isSuite).map((suite) => new SuiteEntity(
             suite.name,
             suite.entityPath,
             suite.config
         ))
     );
+  };
 
-    // Filter fixtures and instantiate them.
+  /**
+     * Filters, parses and instantiates fixtures.
+     * @private
+     */
+  _parseFixtures = () => {
     this.preParsedEntities.push(
-        testFiles.filter(isFixture).map((fixture) => new FixtureEntity(
+        this.testFiles.filter(isFixture).map((fixture) => new FixtureEntity(
             fixture.name,
             fixture.entityPath,
             fixture.config
         ))
     );
+  };
 
-    // Filter performance runs and instantiate them.
+  /**
+     * Filters, parses and instantiates perf runs.
+     * @private
+     */
+  _parsePerfRuns = () => {
     this.preParsedEntities.push(
-        testFiles.filter(isPerformanceRun).map((perfRun) => new PerformanceRunEntity(
+        this.testFiles.filter(isPerformanceRun).map((perfRun) => new PerformanceRunEntity(
             perfRun.name,
             perfRun.entityPath,
             perfRun.config
         ))
     );
+  };
+
+  /**
+     * Parses all test files.
+     * @param {object} testFile The test file.
+     * @return {object} The parses test file.
+     * @private
+     */
+  _parseTestFiles = (testFile) => {
+    try {
+      testFile.config = jsYaml.safeLoad(
+          fs.readFileSync(testFile.path),
+          'utf-8'
+      );
+    } catch (error) {
+      log.error(`Could not parse YAML config for ${testFile.path}`);
+    }
+
+    return testFile;
+  };
+
+  /**
+   * Parses all native Athena entities.
+   * @private
+   */
+  _parseEntities() {
+    this.testFiles = this._getTestFiles().map(this._parseTestFiles);
+
+    this._parseSuites();
+    this._parseFixtures();
+    this._parsePerfRuns();
 
 
-    const {testsDirPath} = this.settings;
-    const entitiesList = fs.readdirSync(testsDirPath); // todo: check first and throw
-    const entities = [];
+    // const {testsDirPath} = this.settings;
+    // const entitiesList = fs.readdirSync(testsDirPath); // todo: check first and throw
+    // const entities = [];
 
     // parse all entities
     for (const entityFileName of entitiesList) {
