@@ -234,18 +234,6 @@ function removeEmpty(obj) {
 
 exports.removeEmpty = removeEmpty;
 
-// todo: factory? adjust enums to uppercase first though
-exports.isSuite = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.SUITE;
-exports.isFunctionalTest = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.TEST;
-exports.isFixture = (entity) => entity && entity.config && entity.config.type === ENTITY_TYPES.FIXTURE;
-
-// todo: deprecated, remove this
-exports.isSingleTest = (entity) => entity.data && entity.data.type !== 'spec';
-
-exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.type === 'perfRun';
-exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === 'perfTest';
-exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === 'perfPattern';
-
 /**
  * Decorates a `isEntity` type method to check whether it is operating
  * on a TestFile entity. The returned callback currently accepts only
@@ -266,17 +254,72 @@ function decorateCheckTestFile(callback) {
   }
 
   return function(entity) {
-    if (entity.constructor.name !== 'TestFile') {
-      throw new Error(`A TestFile instance is required for this check` +
-          `in ${currentContext}`);
+    const allowedEntityTypes = [
+      'TestFileEntity',
+      'FunctionalSuiteEntity',
+      'FunctionalTestEntity',
+      'FixtureEntity',
+      'PerformanceTestEntity',
+      'PerformancePatternEntity',
+      'PerformanceRunEntity',
+    ];
+
+    if (allowedEntityTypes.indexOf(entity.constructor.name) === -1) {
+      throw new Error(`A TestFile instance is required for this check ` +
+          `in ${currentContext}().`);
     }
 
     return callback(entity);
   };
 }
 
-exports.isFunctionalSuite = decorateCheckTestFile((entity) => {
-  const entityConfig = entity.getConfig();
+/**
+ * Creates a decorated entity type checker based on a given argument.
+ *
+ * @param {string} argument The argument to check.
+ * @param {string} type The value to check the argument againt.
+ * @return {boolean} True if the check passed, false otherwise.
+ */
+function makeDecoratedEntityCheckFunction(argument, type) {
+  return decorateCheckTestFile((entity) => {
+    const entityConfig = entity.getConfig();
 
-  return entityConfig.type === ENTITY_TYPES.SUITE;
-});
+    return entityConfig[argument] === type;
+  });
+}
+
+/**
+ * Checks whether an entity type is a functional suite.
+ * @return {boolean} True if the entity is a functional suite, false otherwise.
+ */
+exports.isFunctionalSuite = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.SUITE
+);
+
+/**
+ * Checks whether an entity type is a functional test.
+ * @return {boolean} True if the entity is a functional test, false otherwise.
+ */
+exports.isFunctionalTest = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.TEST
+);
+
+/**
+ * Checks whether an entity type is a fixture.
+ * @return {boolean} True if the entity is a fixture, false otherwise.
+ */
+exports.isFixture = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.FIXTURE
+);
+
+/**
+ * Checks whether an entity type is a performance run.
+ * @return {boolean} True if the entity is a performance run, false otherwise.
+ */
+exports.isPerformanceRun = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.PERFORMANCE_RUN
+);

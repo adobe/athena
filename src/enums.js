@@ -21,9 +21,9 @@ const ENTITY_TYPES = {
   TEST: 'test',
   PLUGIN: 'plugin',
   FIXTURE: 'fixture',
-  PATTERN: 'pattern',
-  PERFORMANCE_TEST: 'performance_test',
-  PERFORMANCE_RUN: 'performance_run',
+  PERFORMANCE_TEST: 'perfTest',
+  PERFORMANCE_RUN: 'perfRun',
+  PERFORMANCE_PATTERN: 'perfPattern',
 };
 
 const TEST_TYPES = {

@@ -22,7 +22,6 @@ const L = require('list/methods');
 // project
 const {
   isFunctionalTest,
-  isSuite,
   isFunctionalSuite,
   isFixture,
   isPerformanceTest,
@@ -32,11 +31,12 @@ const {
 } = require('../utils');
 
 const FunctionalSuiteEntity = require('../entities/functionalSuiteEntity');
-const {ChakramTest} = require('../entities/testEntity');
+const FunctionalTestEntity = require('../entities/functionalTestEntity');
 const FixtureEntity = require('../entities/fixtureEntity');
 const PerformanceTestEntity = require('../entities/performanceTestEntity');
 const PerformancePatternEntity = require('../entities/performancePatternEntity');
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
+const TestFileEntity = require('../entities/testFileEntity');
 
 const log = makeLogger();
 const functionalLogFormat = '[Functional Entity Parsing]';
@@ -98,13 +98,7 @@ class EntityManager {
     return functionalSuites;
   };
 
-  getFunctionalSuitesBy = (attribute, value) => {
-    const functionalSuites = this.getAllFunctionalSuites();
-
-    // console.log(L.toArray(functionalSuites));
-  };
-
-  // todo: fix undefined returns
+  // todo: flatten
   getAllBy = (attribute, value) => {
     return this.filterEntities(function(e) {
       if (e.config && e.config[attribute] && e.config[attribute] === value) {
@@ -121,18 +115,10 @@ class EntityManager {
     return this.entities.entries.filter(predicate);
   };
 
-  getIndieTests = () => {
-    const entities = this.entities;
-    const indieTests = L.filter((entity) => {
+  getIndieFunctionalTests = () => {
+    return L.filter((entity) => {
       return isFunctionalTest(entity) && entity.hasNoSuiteRefs();
-    }, entities);
-
-    console.log(indieTests);
-
-    // console.log(L.toArray(indieTests));
-    // console.log(this.entities);
-
-    return indieTests;
+    }, this.entities);
   };
 
   // private
@@ -158,14 +144,20 @@ class EntityManager {
   _parseFunctionalSuites = () => {
     const onlyFunctionalSuites = this.testFiles
         .filter(isFunctionalSuite)
-        .map((suite) => new FunctionalSuiteEntity(
-            suite.name,
-            suite.entityPath,
-            suite.config
-        ));
+        .map((suite) => {
+          const suiteName = suite.getName();
+          const suitePath = suite.getPath();
+          const suiteConfig = suite.getConfig();
+
+          return new FunctionalSuiteEntity(
+              suiteName,
+              suitePath,
+              suiteConfig
+          );
+        });
 
     this.entities = this.entities.append(
-        L.from(onlyFunctionalSuites)
+        ...onlyFunctionalSuites
     );
   };
 
@@ -176,11 +168,17 @@ class EntityManager {
   _parseFixtures = () => {
     const onlyFixtures = this.testFiles
         .filter(isFixture)
-        .map((fixture) => new FixtureEntity(
-            fixture.name,
-            fixture.entityPath,
-            fixture.config
-        ));
+        .map((fixture) => {
+          const fixtureName = fixture.getName();
+          const fixturePath = fixture.getPath();
+          const fixtureConfig = fixture.getConfig();
+
+          return new FixtureEntity(
+              fixtureName,
+              fixturePath,
+              fixtureConfig
+          );
+        });
 
     this.entities = this.entities.append(
         ...onlyFixtures
@@ -194,11 +192,17 @@ class EntityManager {
   _parsePerfRuns = () => {
     const onlyPerfRuns = this.testFiles
         .filter(isPerformanceRun)
-        .map((perfRun) => new PerformanceRunEntity(
-            perfRun.name,
-            perfRun.entityPath,
-            perfRun.config
-        ));
+        .map((perfRun) => {
+          const perfRunName = perfRun.getName();
+          const perfRunPath = perfRun.getPath();
+          const perfRunConfig = perfRun.getConfig();
+
+          return new PerformanceRunEntity(
+              perfRunName,
+              perfRunPath,
+              perfRunConfig
+          );
+        });
 
     this.entities = this.entities.append(
         ...onlyPerfRuns
@@ -211,7 +215,7 @@ class EntityManager {
    */
   _parseAllTestFiles = () => {
     this.testFiles = this._getTestFiles()
-        .map((filePath) => new TestFile(filePath));
+        .map((filePath) => new TestFileEntity(filePath));
   };
 
   /**
@@ -233,16 +237,16 @@ class EntityManager {
       const testConfig = functionalTest.getConfig();
 
       // Instantiate a new functional test entity.
-      const ChakramTestEntity = new ChakramTest(
+      const FunctionalTestInstance = new FunctionalTestEntity(
           testName,
           testPath,
           testConfig
       );
 
       // Independent functional test entity.
-      if (ChakramTestEntity.hasNoSuiteRefs()) {
+      if (FunctionalTestInstance.hasNoSuiteRefs()) {
         this.entities = L.append(
-            ChakramTestEntity,
+            FunctionalTestInstance,
             this.entities
         );
 
@@ -370,71 +374,6 @@ class EntityManager {
 
       this.entities.add(performanceTestEntity);
     }
-  };
-}
-
-
-/**
- * The TestFile class.
- * An intermediary TestFile class used while parsing all test files.
- */
-class TestFile {
-  /**
-   * Creates a new TestFile instance.
-   * @param {string} filePath The test file's path.
-   */
-  constructor(filePath) {
-    this._config = null;
-    this._fileData = null;
-    this._path = null;
-    this._name = null;
-
-    if (!filePath) {
-      throw new Error(`When instantiating a new TestFile, you must provide a filePath.`);
-    }
-
-    try {
-      this._config = jsYaml.safeLoad(fs.readFileSync(filePath, 'utf-8'));
-      this._fileData = path.parse(filePath);
-    } catch (error) {
-      log.error(`Could not parse test file.\n${error}`);
-    }
-
-    this._path = filePath;
-    this._name = this._fileData.base;
-  }
-
-  /**
-   * Returns the name of this particular test.
-   * @return {string} The name of the test file.
-   */
-  getName = () => {
-    return this._name;
-  };
-
-  /**
-   * Returns the file path of this particular test.
-   * @return {string} The file path of the test file.
-   */
-  getPath = () => {
-    return this._path;
-  };
-
-  /**
-   * Returns the config of this particular test.
-   * @return {object} The parsed configuration file of the test file.
-   */
-  getConfig = () => {
-    return this._config;
-  };
-
-  /**
-   * Returns the parsed file data of this particular test returned
-   * from path.parse().
-   * @return {object} The parsed data of this particular test file.
-   */
-  getFileData = () => {
-    return this._fileData;
   };
 }
 

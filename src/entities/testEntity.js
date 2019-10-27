@@ -12,9 +12,17 @@ governing permissions and limitations under the License.
 
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
-const {isString} = require('lodash');
 
+/**
+ * Creates a new TestEntity instance.
+ */
 class TestEntity extends Entity {
+  /**
+     * Creates a new TestEntity instance.
+     * @param {string} name The name.
+     * @param {string} path The path.
+     * @param {object} config The config object.
+     */
   constructor(name, path, config) {
     super(name, path, config);
 
@@ -24,42 +32,4 @@ class TestEntity extends Entity {
   }
 }
 
-class ChakramTest extends TestEntity {
-  constructor(name, path, config) {
-    super(name, path, config);
-
-    // Handle the case where the suiteRef is a single reference.
-    if (isString(config.suiteRef)) {
-      this.config.suiteRef = [config.suiteRef];
-    }
-  }
-
-  getSuitesCount = () => {
-    if (this.config &&
-        this.config.suiteRef &&
-        this.config.suiteRef.length) {
-      return this.config.suiteRef.length;
-    }
-
-    return 0;
-  };
-
-  getSuiteRefs = () => {
-    if (this.config && this.config.suiteRef) {
-      return this.config.suiteRef;
-    }
-
-    // todo: log error
-  };
-
-  hasNoSuiteRefs = () => {
-    return this.getSuitesCount() === 0;
-  };
-
-  getName = () => {
-    return this.name;
-  };
-}
-
-exports.TestEntity = TestEntity;
-exports.ChakramTest = ChakramTest;
+module.exports = TestEntity;

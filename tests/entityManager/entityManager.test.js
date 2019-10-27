@@ -142,7 +142,8 @@ describe('EntityManager', function() {
 
       EntityManagerInstance._parseAllTestFiles();
 
-      expect(EntityManagerInstance.testFiles[0].constructor.name).to.equal('TestFile');
+      const constructorName = EntityManagerInstance.testFiles[0].constructor.name;
+      expect(constructorName).to.equal('TestFileEntity');
     });
   });
 
@@ -213,13 +214,12 @@ describe('EntityManager', function() {
 
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
-      const functionalSuite = L.toArray(EntityManagerInstance.entities);
 
-      console.log(functionalSuite);
       assert(spy.called);
     });
 
     it('should parse independent functional test entities', function() {
+      const expectedIndieTestName = 'indie test';
       const mockSettings = {
         testsDirPath: makeTestsDirPath('parseFunctionalTests'),
       };
@@ -228,8 +228,11 @@ describe('EntityManager', function() {
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
 
-      const indieTests = EntityManagerInstance.getIndieTests();
+      const indieTests = EntityManagerInstance.getIndieFunctionalTests();
+      const indieTest = L.first(indieTests);
+
       expect(indieTests.length).to.equal(1);
+      expect(indieTest.config.name).to.equal(expectedIndieTestName);
     });
 
     it('should instantiate functional test entities as ChaktamTest(s)', function() {
