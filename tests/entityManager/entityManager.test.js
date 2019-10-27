@@ -17,7 +17,7 @@ const path = require('path');
 const expect = require('chai').expect;
 const assert = require('assert');
 const sinon = require('sinon');
-const List = require('list/methods');
+const L = require('list/methods');
 
 // project
 const EntityManager = require('./../../src/managers/entityManager');
@@ -160,7 +160,7 @@ describe('EntityManager', function() {
       EntityManagerInstance._parseFunctionalSuites();
 
       expect(EntityManagerInstance.entities.length).to.equal(1);
-      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('suite');
+      expect(L.first(EntityManagerInstance.entities).config.type).to.equal('suite');
     });
   });
 
@@ -178,7 +178,7 @@ describe('EntityManager', function() {
       EntityManagerInstance._parseFixtures();
 
       expect(EntityManagerInstance.entities.length).to.equal(1);
-      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('fixture');
+      expect(L.first(EntityManagerInstance.entities).config.type).to.equal('fixture');
     });
   });
 
@@ -196,7 +196,7 @@ describe('EntityManager', function() {
       EntityManagerInstance._parsePerfRuns();
 
       expect(EntityManagerInstance.entities.length).to.equal(1);
-      expect(List.first(EntityManagerInstance.entities).config.type).to.equal('perfRun');
+      expect(L.first(EntityManagerInstance.entities).config.type).to.equal('perfRun');
     });
   });
 
@@ -209,10 +209,57 @@ describe('EntityManager', function() {
         testsDirPath: makeTestsDirPath('parseFunctionalSuites'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
-      const spy = sinon.spy(EntityManagerInstance, '_parseFunctionalTests');
+      const spy = sinon.spy(EntityManagerInstance, '_parseFunctionalSuites');
 
+      EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
+      const functionalSuite = L.toArray(EntityManagerInstance.entities);
+
+      console.log(functionalSuite);
       assert(spy.called);
     });
+
+    it('should parse independent functional test entities', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseFunctionalTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parseFunctionalTests();
+
+      const indieTests = EntityManagerInstance.getIndieTests();
+      expect(indieTests.length).to.equal(1);
+    });
+
+    it('should instantiate functional test entities as ChaktamTest(s)', function() {
+
+    });
+
+    it('should attempt to attach the functional test to its specified suiteRef (if existent)', function() {
+
+    });
+
+    it('should log a warning message if it could not find its specified suiteRef', function() {
+
+    });
   });
+
+  // describe('_parsePerformanceTests', function () {
+  //   it('should start by parsing all performance entities first', function () {
+  //
+  //   });
+  //
+  //   it('should attempt to parse perfPattern entity types', function () {
+  //
+  //   });
+  //
+  //   it('should log a warn message if it could not find the appropriate performance suite while parsing perfPatterns', function () {
+  //
+  //   })
+  //
+  //   it('should parse perfRun entities', function () {
+  //
+  //   });
+  // });
 });

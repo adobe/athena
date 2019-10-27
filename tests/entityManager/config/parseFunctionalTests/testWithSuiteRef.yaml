@@ -1,0 +1,18 @@
+type: test
+name: testWithSuite
+description: this test has only one suite ref
+engine: chakram
+suiteRef:
+  - parentSuite
+hooks:
+  skip:
+  setup:
+  beforeWhen:
+  beforeThen:
+  teardown:
+config:
+  timeout:
+scenario:
+  given:
+  when:
+  then:

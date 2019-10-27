@@ -1,0 +1,14 @@
+name: indie test
+type: test
+description: this test does not belong to any spec
+engine: chakram
+hooks:
+  skip:
+  beforeMe:
+  afterMe:
+config:
+  timeout: 10
+scenario:
+  given:
+  when:
+  then:

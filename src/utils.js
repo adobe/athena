@@ -246,5 +246,37 @@ exports.isPerformanceRun = (entity) => entity && entity.config && entity.config.
 exports.isPerformanceTest = (entity) => entity && entity.config && entity.config.type === 'perfTest';
 exports.isPerformancePattern = (entity) => entity && entity.config && entity.config.type === 'perfPattern';
 
+/**
+ * Decorates a `isEntity` type method to check whether it is operating
+ * on a TestFile entity. The returned callback currently accepts only
+ * one parameter, however a great improvement would be to support multiple.
+ *
+ * @param {Function} callback The given callback.
+ * @return {Function} The decorated callback function.
+ */
+function decorateCheckTestFile(callback) {
+  /* eslint-disable */
+  let currentContext = arguments.callee.toString()
+      .substr('function '.length);
+  currentContext = currentContext.substr(0, currentContext.indexOf('('));
+  /* eslint-enable */
 
+  if (!callback) {
+    throw new Error(`A callback is required in ${currentContext}.`);
+  }
 
+  return function(entity) {
+    if (entity.constructor.name !== 'TestFile') {
+      throw new Error(`A TestFile instance is required for this check` +
+          `in ${currentContext}`);
+    }
+
+    return callback(entity);
+  };
+}
+
+exports.isFunctionalSuite = decorateCheckTestFile((entity) => {
+  const entityConfig = entity.getConfig();
+
+  return entityConfig.type === ENTITY_TYPES.SUITE;
+});

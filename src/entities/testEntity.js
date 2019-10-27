@@ -30,7 +30,7 @@ class ChakramTest extends TestEntity {
 
     // Handle the case where the suiteRef is a single reference.
     if (isString(config.suiteRef)) {
-      config.suiteRef = [config.suiteRef];
+      this.config.suiteRef = [config.suiteRef];
     }
   }
 
@@ -41,7 +41,7 @@ class ChakramTest extends TestEntity {
       return this.config.suiteRef.length;
     }
 
-    // todo: log error
+    return 0;
   };
 
   getSuiteRefs = () => {

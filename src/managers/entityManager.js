@@ -16,7 +16,6 @@ const path = require('path');
 
 // external
 const jsYaml = require('js-yaml');
-const {isString} = require('lodash');
 const glob = require('glob');
 const L = require('list/methods');
 
@@ -24,6 +23,7 @@ const L = require('list/methods');
 const {
   isFunctionalTest,
   isSuite,
+  isFunctionalSuite,
   isFixture,
   isPerformanceTest,
   isPerformancePattern,
@@ -31,7 +31,7 @@ const {
   makeLogger,
 } = require('../utils');
 
-const SuiteEntity = require('../entities/suiteEntity');
+const FunctionalSuiteEntity = require('../entities/functionalSuiteEntity');
 const {ChakramTest} = require('../entities/testEntity');
 const FixtureEntity = require('../entities/fixtureEntity');
 const PerformanceTestEntity = require('../entities/performanceTestEntity');
@@ -39,10 +39,13 @@ const PerformancePatternEntity = require('../entities/performancePatternEntity')
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 
 const log = makeLogger();
-const logFormat = '[Entity Parsing]';
+const functionalLogFormat = '[Functional Entity Parsing]';
+const performanceLogFormat = '[Performance Entity Parsing]';
+
 
 /**
- * The EntityManager class.
+ * The main EntityManager class.
+ * It parses all functional and performance entities.
  */
 class EntityManager {
   /**
@@ -64,19 +67,41 @@ class EntityManager {
   };
 
   getSuiteBy = (attribute, value) => {
-    let foundSuite = null;
+    // let foundSuite = null;
+    //
+    // const onlyEntitiesByAttribute = (e) => {
+    //   return isSuite(e) && e.config[attribute] === value;
+    // };
+    //
+    // const foundSuites = this.filterEntities(onlyEntitiesByAttribute);
+    //
+    // if (foundSuites.length) {
+    //   foundSuite = foundSuites[0];
+    // }
+    //
+    // return foundSuite;
 
-    const onlyEntitiesByAttribute = (e) => {
-      return isSuite(e) && e.config[attribute] === value;
-    };
 
-    const foundSuites = this.filterEntities(onlyEntitiesByAttribute);
+  };
 
-    if (foundSuites.length) {
-      foundSuite = foundSuites[0];
-    }
+  /**
+   * Returns all functional suites
+   * @return {List<A>} The functional suites.
+   */
+  getAllFunctionalSuites = () => {
+    const functionalSuites = L.filter((entity) => {
+      return entity.constructor.name === 'FunctionalSuiteEntity';
+    }, this.entities);
 
-    return foundSuite;
+    console.log(functionalSuites);
+
+    return functionalSuites;
+  };
+
+  getFunctionalSuitesBy = (attribute, value) => {
+    const functionalSuites = this.getAllFunctionalSuites();
+
+    // console.log(L.toArray(functionalSuites));
   };
 
   // todo: fix undefined returns
@@ -94,6 +119,20 @@ class EntityManager {
 
   filterEntities = (predicate) => {
     return this.entities.entries.filter(predicate);
+  };
+
+  getIndieTests = () => {
+    const entities = this.entities;
+    const indieTests = L.filter((entity) => {
+      return isFunctionalTest(entity) && entity.hasNoSuiteRefs();
+    }, entities);
+
+    console.log(indieTests);
+
+    // console.log(L.toArray(indieTests));
+    // console.log(this.entities);
+
+    return indieTests;
   };
 
   // private
@@ -118,16 +157,15 @@ class EntityManager {
      */
   _parseFunctionalSuites = () => {
     const onlyFunctionalSuites = this.testFiles
-        .filter(isSuite)
-        .map((suite) => new SuiteEntity(
+        .filter(isFunctionalSuite)
+        .map((suite) => new FunctionalSuiteEntity(
             suite.name,
             suite.entityPath,
             suite.config
         ));
 
-    this.entities = this.entities.insert(
-        this.entities.length,
-        ...onlyFunctionalSuites
+    this.entities = this.entities.append(
+        L.from(onlyFunctionalSuites)
     );
   };
 
@@ -144,8 +182,7 @@ class EntityManager {
             fixture.config
         ));
 
-    this.entities = this.entities.insert(
-        this.entities.length,
+    this.entities = this.entities.append(
         ...onlyFixtures
     );
   };
@@ -163,8 +200,7 @@ class EntityManager {
             perfRun.config
         ));
 
-    this.entities = this.entities.insert(
-        this.entities.length,
+    this.entities = this.entities.append(
         ...onlyPerfRuns
     );
   };
@@ -190,20 +226,22 @@ class EntityManager {
     const onlyFunctionalTests = this.testFiles
         .filter(isFunctionalTest);
 
+    // Parse only functional tests.
     for (const functionalTest of onlyFunctionalTests) {
-      const {name, path, config} = functionalTest;
+      const testName = functionalTest.getName();
+      const testPath = functionalTest.getPath();
+      const testConfig = functionalTest.getConfig();
 
       // Instantiate a new functional test entity.
       const ChakramTestEntity = new ChakramTest(
-          name,
-          path,
-          config
+          testName,
+          testPath,
+          testConfig
       );
 
       // Independent functional test entity.
       if (ChakramTestEntity.hasNoSuiteRefs()) {
-        this.entities = L.insert(
-            this.entities.length,
+        this.entities = L.append(
             ChakramTestEntity,
             this.entities
         );
@@ -211,19 +249,22 @@ class EntityManager {
         continue;
       }
 
-      // Attach this test to its particular suite.
-      for (const suiteRef of ChakramTestEntity.getSuiteRefs()) {
-        const FunctionalSuite = this.getSuiteBy('name', suiteRef);
-
-        if (!FunctionalSuite) {
-          const testName = ChakramTestEntity.getName();
-          log.warn(`${logFormat} Could not find the suite "${suiteRef}"` +
-          `required by "${testName}".`);
-          continue;
-        }
-
-        FunctionalSuite.addTest(ChakramTestEntity);
-      }
+      // // Attach this test to its particular suite.
+      // const testSuiteRefs = ChakramTestEntity.getSuiteRefs();
+      //
+      // // Iterate over all suiteRef(s) specified by this test and attach the test.
+      // for (const suiteRef of testSuiteRefs) {
+      //   const FunctionalSuite = this.getFunctionalSuitesBy('name', suiteRef);
+      //
+      //   if (!FunctionalSuite) {
+      //     log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
+      //       `referenced in "${testName}".`);
+      //
+      //     continue;
+      //   }
+      //
+      //   FunctionalSuite.addTest(ChakramTestEntity);
+      // }
     }
   };
 
@@ -343,20 +384,58 @@ class TestFile {
    * @param {string} filePath The test file's path.
    */
   constructor(filePath) {
-    this.config = null;
-    this.fileData = null;
+    this._config = null;
+    this._fileData = null;
+    this._path = null;
+    this._name = null;
 
     if (!filePath) {
       throw new Error(`When instantiating a new TestFile, you must provide a filePath.`);
     }
 
     try {
-      this.config = jsYaml.safeLoad(fs.readFileSync(filePath, 'utf-8'));
-      this.fileData = path.parse(filePath);
+      this._config = jsYaml.safeLoad(fs.readFileSync(filePath, 'utf-8'));
+      this._fileData = path.parse(filePath);
     } catch (error) {
       log.error(`Could not parse test file.\n${error}`);
     }
+
+    this._path = filePath;
+    this._name = this._fileData.base;
   }
+
+  /**
+   * Returns the name of this particular test.
+   * @return {string} The name of the test file.
+   */
+  getName = () => {
+    return this._name;
+  };
+
+  /**
+   * Returns the file path of this particular test.
+   * @return {string} The file path of the test file.
+   */
+  getPath = () => {
+    return this._path;
+  };
+
+  /**
+   * Returns the config of this particular test.
+   * @return {object} The parsed configuration file of the test file.
+   */
+  getConfig = () => {
+    return this._config;
+  };
+
+  /**
+   * Returns the parsed file data of this particular test returned
+   * from path.parse().
+   * @return {object} The parsed data of this particular test file.
+   */
+  getFileData = () => {
+    return this._fileData;
+  };
 }
 
 module.exports = EntityManager;

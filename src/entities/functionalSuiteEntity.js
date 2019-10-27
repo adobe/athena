@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
 
-class SuiteEntity extends Entity {
+class FunctionalSuiteEntity extends Entity {
   constructor(name, path, config) {
     super(name, path, config);
 
@@ -28,4 +28,4 @@ class SuiteEntity extends Entity {
     };
 }
 
-module.exports = SuiteEntity;
+module.exports = FunctionalSuiteEntity;
