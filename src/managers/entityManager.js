@@ -62,40 +62,14 @@ class EntityManager {
 
   // public
 
-  addEntity = (entity) => {
-    this.entities.add(entity);
-  };
-
-  getSuiteBy = (attribute, value) => {
-    // let foundSuite = null;
-    //
-    // const onlyEntitiesByAttribute = (e) => {
-    //   return isSuite(e) && e.config[attribute] === value;
-    // };
-    //
-    // const foundSuites = this.filterEntities(onlyEntitiesByAttribute);
-    //
-    // if (foundSuites.length) {
-    //   foundSuite = foundSuites[0];
-    // }
-    //
-    // return foundSuite;
-
-
-  };
-
   /**
    * Returns all functional suites
    * @return {List<A>} The functional suites.
    */
   getAllFunctionalSuites = () => {
-    const functionalSuites = L.filter((entity) => {
+    return L.filter((entity) => {
       return entity.constructor.name === 'FunctionalSuiteEntity';
     }, this.entities);
-
-    console.log(functionalSuites);
-
-    return functionalSuites;
   };
 
   // todo: flatten
@@ -119,6 +93,31 @@ class EntityManager {
     return L.filter((entity) => {
       return isFunctionalTest(entity) && entity.hasNoSuiteRefs();
     }, this.entities);
+  };
+
+  /**
+   * Returns a single functional suite by a given config argument.
+   * @param {string} argument The argument to use for comparison.
+   * @param {string} value The value to compare against.
+   * @return {FunctionalSuiteEntity} A single functional suite if found, null otherwise.
+   */
+  getFunctionalSuiteBy = (argument, value) => {
+    const allFunctionalSuites = this.getAllFunctionalSuites();
+    const foundFunctionalSuites = L.filter((functionalSuite) => {
+      if (functionalSuite.config[argument]) {
+        return functionalSuite.config[argument] === value;
+      }
+
+      log.warn(`Attempted to filter functional suites by a given argument ` +
+      `[${argument}] that does not exist!`);
+      return false;
+    }, allFunctionalSuites);
+
+    if (foundFunctionalSuites) {
+      return L.first(foundFunctionalSuites);
+    }
+
+    return null;
   };
 
   // private
@@ -253,22 +252,22 @@ class EntityManager {
         continue;
       }
 
-      // // Attach this test to its particular suite.
-      // const testSuiteRefs = ChakramTestEntity.getSuiteRefs();
-      //
-      // // Iterate over all suiteRef(s) specified by this test and attach the test.
-      // for (const suiteRef of testSuiteRefs) {
-      //   const FunctionalSuite = this.getFunctionalSuitesBy('name', suiteRef);
-      //
-      //   if (!FunctionalSuite) {
-      //     log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
-      //       `referenced in "${testName}".`);
-      //
-      //     continue;
-      //   }
-      //
-      //   FunctionalSuite.addTest(ChakramTestEntity);
-      // }
+      // Attach this test to its particular suite.
+      const testSuiteRefs = FunctionalTestInstance.getSuiteRefs();
+
+      // Iterate over all suiteRef(s) specified by this test and attach the test.
+      for (const suiteRef of testSuiteRefs) {
+        const foundFunctionalSuite = this.getFunctionalSuiteBy('name', suiteRef);
+
+        if (!foundFunctionalSuite) {
+          log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
+            `referenced in "${testName}".`);
+
+          continue;
+        }
+
+        foundFunctionalSuite.addTest(FunctionalTestInstance);
+      }
     }
   };
 

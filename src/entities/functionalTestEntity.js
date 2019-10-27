@@ -61,6 +61,14 @@ class FunctionalTestEntity extends TestEntity {
   getName = () => {
     return this.name;
   };
+
+  /**
+   * Returns the suite refs for this test.
+   * @return {array} An array of suite references.
+   */
+  getSuiteRefs = () => {
+    return this.config.suiteRef;
+  }
 }
 
 module.exports = FunctionalTestEntity;
