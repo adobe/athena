@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
 
-class PerformancePattern extends Entity {
+class PerformancePatternEntity extends Entity {
   constructor(name, path, config) {
     super(name, path, config);
     this.perfRuns = [];
@@ -22,13 +22,55 @@ class PerformancePattern extends Entity {
     this.validate();
   }
 
-    addPerformanceRun = (perfRun) => {
-      this.perfRuns.push(perfRun);
-    };
+  /**
+   * Gets the number of suites this test is referencing.
+   * @return {number} The number of suites referenced.
+   */
+  getSuitesCount = () => {
+    if (this.config &&
+        this.config.suiteRef &&
+        this.config.suiteRef.length) {
+      return this.config.suiteRef.length;
+    }
 
-    hasPerfRuns = () => {
-      return Boolean(this.perfRuns.length);
-    };
+    return 0;
+  };
+
+  /**
+   * Checks whether this functional test has any suites referenced.
+   * @return {boolean} True if the test has any suites referenced, false otherwise.
+   */
+  hasNoSuiteRefs = () => {
+    return this.getSuitesCount() === 0;
+  };
+
+  /**
+   * Returns the name of this particular test entity.
+   * @return {string} The name of the test.
+   */
+  getName = () => {
+    return this.name;
+  };
+
+  addPerformanceRun = (perfRun) => {
+    this.perfRuns.push(perfRun);
+  };
+
+  hasPerfRuns = () => {
+    return Boolean(this.perfRuns.length);
+  };
+
+  hasPerfRunsRefs = () => {
+    return this.config.runs && this.config.runs.length;
+  };
+
+  getPerfRunsRefs = () => {
+    return this.config.runs.map((run) => run.ref);
+  };
+
+  getPerformanceRuns = () => {
+    return this.config.runs;
+  }
 }
 
-module.exports = PerformancePattern;
+module.exports = PerformancePatternEntity;

@@ -316,6 +316,24 @@ exports.isFixture = makeDecoratedEntityCheckFunction(
 );
 
 /**
+ * Checks whether an entity type is a performance suite.
+ * @return {boolean} True if the entity is a performance suite, false otherwise.
+ */
+exports.isPerformanceSuite = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.PERFORMANCE_SUITE
+);
+
+/**
+ * Checks whether an entity type is a performance pattern.
+ * @return {boolean} True if the entity is a performance pattern, false otherwise.
+ */
+exports.isPerformancePattern = makeDecoratedEntityCheckFunction(
+    'type',
+    ENTITY_TYPES.PERFORMANCE_PATTERN
+);
+
+/**
  * Checks whether an entity type is a performance run.
  * @return {boolean} True if the entity is a performance run, false otherwise.
  */

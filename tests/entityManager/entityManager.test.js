@@ -226,7 +226,7 @@ describe('EntityManager', function() {
         testsDirPath: makeTestsDirPath('parseFunctionalTests'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
-      sinon.stub(EntityManagerInstance.log,'warn').returns(0);
+      sinon.stub(EntityManagerInstance.log, 'warn').returns(0);
 
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
@@ -244,7 +244,7 @@ describe('EntityManager', function() {
         testsDirPath: makeTestsDirPath('parseFunctionalTests'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
-      sinon.stub(EntityManagerInstance.log,'warn').returns(0);
+      sinon.stub(EntityManagerInstance.log, 'warn').returns(0);
 
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
@@ -261,7 +261,7 @@ describe('EntityManager', function() {
         testsDirPath: makeTestsDirPath('parseFunctionalTests'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
-      const logWarnSpy = sinon.stub(EntityManagerInstance.log,'warn').returns(0);
+      const logWarnSpy = sinon.stub(EntityManagerInstance.log, 'warn').returns(0);
 
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
@@ -274,21 +274,84 @@ describe('EntityManager', function() {
     });
   });
 
-  // describe('_parsePerformanceTests', function () {
-  //   it('should start by parsing all performance entities first', function () {
-  //
-  //   });
-  //
-  //   it('should attempt to parse perfPattern entity types', function () {
-  //
-  //   });
-  //
-  //   it('should log a warn message if it could not find the appropriate performance suite while parsing perfPatterns', function () {
-  //
-  //   })
-  //
-  //   it('should parse perfRun entities', function () {
-  //
-  //   });
-  // });
+  describe('_parsePerformanceTests', function() {
+    beforeEach(makeStubParseEntitiesHandler());
+    afterEach(makeRestoreParseEntitiesHandler());
+
+    it('should parse all performance suites', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerformanceTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerformanceTests();
+
+      const performanceSuites = EntityManagerInstance.getAllPerformanceSuites();
+
+      expect(performanceSuites.length).to.equal(1);
+    });
+
+    it('should parse all performance patterns associated with a perf suite', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerformanceTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerformanceTests();
+
+      const performanceSuite = L.first(EntityManagerInstance.getAllPerformanceSuites());
+
+      expect(performanceSuite.perfPatterns.length).to.equal(1);
+      expect(performanceSuite.perfPatterns[0].name).to.equal('perfPatternTest.yaml');
+    });
+
+    it('should log a warn message if it could not find an associated perf pattern', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerformanceTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+      const logWarnSpy = sinon.stub(EntityManagerInstance.log, 'warn').returns(0);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerformanceTests();
+
+      const performanceSuite = L.first(EntityManagerInstance.getAllPerformanceSuites());
+
+      assert(logWarnSpy.called);
+      expect(performanceSuite.perfPatterns.length).to.equal(1);
+    });
+
+    it('should parse all performance runs associated with a perf pattern', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerformanceTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerformanceTests();
+
+      const performanceSuite = L.first(EntityManagerInstance.getAllPerformanceSuites());
+
+      expect(performanceSuite.perfPatterns.length).to.equal(1);
+      expect(performanceSuite.perfPatterns[0].name).to.equal('perfPatternTest.yaml');
+
+      expect(performanceSuite.perfPatterns[0].perfRuns.length).to.equal(1);
+      expect(performanceSuite.perfPatterns[0].perfRuns[0].name).to.equal('perfRunTest.yaml');
+    });
+
+    it('should log a warn message if it could not find an associated perf run', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parsePerformanceTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+      const logWarnSpy = sinon.stub(EntityManagerInstance.log, 'warn').returns(0);
+
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parsePerformanceTests();
+
+      assert(logWarnSpy.called);
+    });
+  });
 });

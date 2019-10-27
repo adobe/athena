@@ -13,23 +13,35 @@ governing permissions and limitations under the License.
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
 
-class PerformanceTestEntity extends Entity {
+class PerformanceSuiteEntity extends Entity {
   constructor(name, path, config) {
     super(name, path, config);
 
     this.perfPatterns = [];
 
-    this.setType(ENTITY_TYPES.PERFORMANCE_TEST);
+    this.setType(ENTITY_TYPES.PERFORMANCE_SUITE);
     this.validate();
   }
 
-    addPatterns = (pattern) => {
+    addPerformancePattern = (pattern) => {
       this.perfPatterns.push(pattern);
     };
 
     hasPerfPatterns = () => {
       return Boolean(this.perfPatterns.length);
     };
+
+    hasPerfPatternRefs = () => {
+      return this.config.pattern && this.config.pattern.length;
+    };
+
+    getPerfPatternsRefs = () => {
+      return this.config.pattern.map((pattern) => pattern.ref);
+    };
+
+  getPerformancePatterns = () => {
+    return this.perfPatterns;
+  }
 }
 
-module.exports = PerformanceTestEntity;
+module.exports = PerformanceSuiteEntity;

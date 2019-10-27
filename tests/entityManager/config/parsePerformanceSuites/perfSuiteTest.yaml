@@ -1,0 +1,8 @@
+name: perfSuiteExample
+description: description
+engine: autocannon
+type: perfSuite
+hooks:
+config:
+scenario:
+

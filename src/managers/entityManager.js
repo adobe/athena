@@ -22,7 +22,7 @@ const {
   isFunctionalTest,
   isFunctionalSuite,
   isFixture,
-  isPerformanceTest,
+  isPerformanceSuite,
   isPerformancePattern,
   isPerformanceRun,
   makeLogger,
@@ -31,7 +31,7 @@ const {
 const FunctionalSuiteEntity = require('../entities/functionalSuiteEntity');
 const FunctionalTestEntity = require('../entities/functionalTestEntity');
 const FixtureEntity = require('../entities/fixtureEntity');
-const PerformanceTestEntity = require('../entities/performanceTestEntity');
+const PerformanceSuiteEntity = require('../entities/performanceSuiteEntity');
 const PerformancePatternEntity = require('../entities/performancePatternEntity');
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 const TestFileEntity = require('../entities/testFileEntity');
@@ -39,16 +39,15 @@ const TestFileEntity = require('../entities/testFileEntity');
 const functionalLogFormat = '[Functional Entity Parsing]';
 const performanceLogFormat = '[Performance Entity Parsing]';
 
-
 /**
  * The main EntityManager class.
  * It parses all functional and performance entities.
  */
 class EntityManager {
   /**
-   * Creates a new EntityManager instance.
-   * @param {object} settings The Athena settings.
-   */
+  * Creates a new EntityManager instance.
+  * @param {object} settings The Athena settings.
+  */
   constructor(settings) {
     this.settings = settings;
     this.log = makeLogger();
@@ -60,301 +59,296 @@ class EntityManager {
 
   // public
 
-  /**
-   * Returns all functional suites
-   * @return {List<A>} The functional suites.
-   */
-  getAllFunctionalSuites = () => {
-    return L.filter((entity) => {
-      return entity.constructor.name === 'FunctionalSuiteEntity';
-    }, this.entities);
-  };
+    /**
+     * Returns all functional suites
+     * @return {List<FunctionalSuiteEntity>} A list of functional suites.
+     */
+    getAllFunctionalSuites = () => {
+      return L.filter((entity) => {
+        return entity && entity.constructor.name === 'FunctionalSuiteEntity';
+      }, this.entities);
+    };
 
-  getIndieFunctionalTests = () => {
-    return L.filter((entity) => {
-      return isFunctionalTest(entity) && entity.hasNoSuiteRefs();
-    }, this.entities);
-  };
+    /**
+     * Returns all performance suites.
+     * @return {List<PerformanceSuiteEntity>} A list of performance suites.
+     */
+    getAllPerformanceSuites = () => {
+      return L.filter((entity) => {
+        return entity && entity.constructor.name === 'PerformanceSuiteEntity';
+      }, this.entities);
+    };
 
-  /**
-   * Returns a single functional suite by a given config argument.
-   * @param {string} argument The argument to use for comparison.
-   * @param {string} value The value to compare against.
-   * @return {FunctionalSuiteEntity} A single functional suite if found, null otherwise.
-   */
-  getFunctionalSuiteBy = (argument, value) => {
-    const allFunctionalSuites = this.getAllFunctionalSuites();
-    const foundFunctionalSuites = L.filter((functionalSuite) => {
-      if (functionalSuite.config[argument]) {
-        return functionalSuite.config[argument] === value;
+    /**
+     * Returns all independent functional tests.
+     * @return {List<FunctionalTestEntity>} A list of functional test entities.
+     */
+    getIndieFunctionalTests = () => {
+      return L.filter((entity) => {
+        return isFunctionalTest(entity) && entity.hasNoSuiteRefs();
+      }, this.entities);
+    };
+
+    /**
+     * Returns a single functional suite by a given config argument.
+     * @param {string} argument The argument to use for comparison.
+     * @param {string} value The value to compare against.
+     * @return {FunctionalSuiteEntity} A single functional suite if found, null otherwise.
+     */
+    getFunctionalSuiteBy = (argument, value) => {
+      const allFunctionalSuites = this.getAllFunctionalSuites();
+      const foundFunctionalSuites = L.filter((functionalSuite) => {
+        if (functionalSuite.config[argument]) {
+          return functionalSuite.config[argument] === value;
+        }
+
+        this.log.warn(`Attempted to filter functional suites by a given argument ` +
+                `[${argument}] that does not exist!`);
+        return false;
+      }, allFunctionalSuites);
+
+      if (foundFunctionalSuites) {
+        return L.first(foundFunctionalSuites);
       }
 
-      this.log.warn(`Attempted to filter functional suites by a given argument ` +
-      `[${argument}] that does not exist!`);
-      return false;
-    }, allFunctionalSuites);
+      return null;
+    };
 
-    if (foundFunctionalSuites) {
-      return L.first(foundFunctionalSuites);
+    // private
+
+    /**
+     * Returns a promise with the test files found.
+     * @return {Promise<void>} A promise with the found test files.
+     * @private
+     */
+    _getTestFiles() {
+      return glob.sync(
+          path.resolve(
+              this.settings.testsDirPath, '**', '*'),
+          {
+            nodir: true,
+          });
     }
 
-    return null;
-  };
-
-  // private
-
-  /**
-   * Returns a promise with the test files found.
-   * @return {Promise<void>} A promise with the found test files.
-   * @private
-   */
-  _getTestFiles() {
-    return glob.sync(
-        path.resolve(
-            this.settings.testsDirPath, '**', '*'),
-        {
-          nodir: true,
-        });
-  }
-
-  /**
+    /**
      * Filters, parses and instantiates suites.
      * @private
      */
-  _parseFunctionalSuites = () => {
-    const onlyFunctionalSuites = this.testFiles
-        .filter(isFunctionalSuite)
-        .map((suite) => {
-          const suiteName = suite.getName();
-          const suitePath = suite.getPath();
-          const suiteConfig = suite.getConfig();
+    _parseFunctionalSuites = () => {
+      const onlyFunctionalSuites = this.testFiles
+          .filter(isFunctionalSuite)
+          .map((suite) => {
+            const suiteName = suite.getName();
+            const suitePath = suite.getPath();
+            const suiteConfig = suite.getConfig();
 
-          return new FunctionalSuiteEntity(
-              suiteName,
-              suitePath,
-              suiteConfig
-          );
-        });
+            return new FunctionalSuiteEntity(
+                suiteName,
+                suitePath,
+                suiteConfig
+            );
+          });
 
-    this.entities = this.entities.append(
-        ...onlyFunctionalSuites
-    );
-  };
+      this.entities = this.entities.append(
+          ...onlyFunctionalSuites
+      );
+    };
 
-  /**
+    /**
      * Filters, parses and instantiates fixtures.
      * @private
      */
-  _parseFixtures = () => {
-    const onlyFixtures = this.testFiles
-        .filter(isFixture)
-        .map((fixture) => {
-          const fixtureName = fixture.getName();
-          const fixturePath = fixture.getPath();
-          const fixtureConfig = fixture.getConfig();
+    _parseFixtures = () => {
+      const onlyFixtures = this.testFiles
+          .filter(isFixture)
+          .map((fixture) => {
+            const fixtureName = fixture.getName();
+            const fixturePath = fixture.getPath();
+            const fixtureConfig = fixture.getConfig();
 
-          return new FixtureEntity(
-              fixtureName,
-              fixturePath,
-              fixtureConfig
-          );
-        });
+            return new FixtureEntity(
+                fixtureName,
+                fixturePath,
+                fixtureConfig
+            );
+          });
 
-    this.entities = this.entities.append(
-        ...onlyFixtures
-    );
-  };
+      this.entities = this.entities.append(
+          ...onlyFixtures
+      );
+    };
 
-  /**
+    /**
      * Filters, parses and instantiates perf runs.
      * @private
      */
-  _parsePerfRuns = () => {
-    const onlyPerfRuns = this.testFiles
-        .filter(isPerformanceRun)
-        .map((perfRun) => {
-          const perfRunName = perfRun.getName();
-          const perfRunPath = perfRun.getPath();
-          const perfRunConfig = perfRun.getConfig();
+    _parsePerfRuns = () => {
+      const onlyPerfRuns = this.testFiles
+          .filter(isPerformanceRun)
+          .map((perfRun) => {
+            const perfRunName = perfRun.getName();
+            const perfRunPath = perfRun.getPath();
+            const perfRunConfig = perfRun.getConfig();
 
-          return new PerformanceRunEntity(
-              perfRunName,
-              perfRunPath,
-              perfRunConfig
-          );
-        });
+            return new PerformanceRunEntity(
+                perfRunName,
+                perfRunPath,
+                perfRunConfig
+            );
+          });
 
-    this.entities = this.entities.append(
-        ...onlyPerfRuns
-    );
-  };
-
-  /**
-   * Parses all test files and instantiates intermediary TestFile objects.
-   * @private
-   */
-  _parseAllTestFiles = () => {
-    this.testFiles = this._getTestFiles()
-        .map((filePath) => new TestFileEntity(filePath));
-  };
-
-  /**
-   * Parses all functional test entities. It initially parses all functional test suites,
-   * continues with the independent tests and finally it attaches all functional test
-   * entities that provide any suite references, to that specific suite.
-   * @private
-   */
-  _parseFunctionalTests = () => {
-    this._parseFunctionalSuites();
-
-    const onlyFunctionalTests = this.testFiles
-        .filter(isFunctionalTest);
-
-    // Parse only functional tests.
-    for (const functionalTest of onlyFunctionalTests) {
-      const testName = functionalTest.getName();
-      const testPath = functionalTest.getPath();
-      const testConfig = functionalTest.getConfig();
-
-      // Instantiate a new functional test entity.
-      const FunctionalTestInstance = new FunctionalTestEntity(
-          testName,
-          testPath,
-          testConfig
+      this.entities = this.entities.append(
+          ...onlyPerfRuns
       );
+    };
 
-      // Independent functional test entity.
-      if (FunctionalTestInstance.hasNoSuiteRefs()) {
-        this.entities = L.append(
-            FunctionalTestInstance,
-            this.entities
+    /**
+     * Parses all test files and instantiates intermediary TestFile objects.
+     * @private
+     */
+    _parseAllTestFiles = () => {
+      this.testFiles = this._getTestFiles()
+          .map((filePath) => new TestFileEntity(filePath));
+    };
+
+    /**
+     * Parses all functional test entities. It initially parses all
+     * functional test suites, continues with the independent tests
+     * and finally it attaches all functional test entities that
+     * provide any suite references, to that specific suite.
+     * @private
+     */
+    _parseFunctionalTests = () => {
+      this._parseFunctionalSuites();
+
+      const onlyFunctionalTests = this.testFiles
+          .filter(isFunctionalTest);
+
+      // Parse only functional tests.
+      for (const functionalTest of onlyFunctionalTests) {
+        const testName = functionalTest.getName();
+        const testPath = functionalTest.getPath();
+        const testConfig = functionalTest.getConfig();
+
+        // Instantiate a new functional test entity.
+        const FunctionalTestInstance = new FunctionalTestEntity(
+            testName,
+            testPath,
+            testConfig
         );
 
-        continue;
-      }
-
-      // Attach this test to its particular suite.
-      const testSuiteRefs = FunctionalTestInstance.getSuiteRefs();
-
-      // Iterate over all suiteRef(s) specified by this test and attach the test.
-      for (const suiteRef of testSuiteRefs) {
-        const foundFunctionalSuite = this.getFunctionalSuiteBy('name', suiteRef);
-
-        if (!foundFunctionalSuite) {
-          this.log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
-            `referenced in "${testName}".`);
+        // Independent functional test entity.
+        if (FunctionalTestInstance.hasNoSuiteRefs()) {
+          this.entities = L.append(
+              FunctionalTestInstance,
+              this.entities
+          );
 
           continue;
         }
 
-        foundFunctionalSuite.addTest(FunctionalTestInstance);
+        // Attach this test to its particular suite.
+        const testSuiteRefs = FunctionalTestInstance.getSuiteRefs();
+
+        // Iterate over all suiteRef(s) specified by this test and attach the test.
+        for (const suiteRef of testSuiteRefs) {
+          const foundFunctionalSuite = this.getFunctionalSuiteBy('name', suiteRef);
+
+          if (!foundFunctionalSuite) {
+            this.log.warn(`${functionalLogFormat} Could not find the ` +
+                        `"${suiteRef}" referenced in "${testName}".`);
+
+            continue;
+          }
+
+          foundFunctionalSuite.addTest(FunctionalTestInstance);
+        }
       }
-    }
-  };
+    };
 
-  _parsePerformanceTests = () => {
-    this._parsePerformanceSuites();
+    _parsePerformanceSuite = (suite) => {
+      const suiteName = suite.getName();
+      const suitePath = suite.getPath();
+      const suiteConfig = suite.getConfig();
 
-    // todo: parse perf pattens
-    // todo: parse perf runs.
-  };
-
-  /**
-   * Parses all native Athena entities.
-   * @private
-   */
-  _parseEntities() {
-    this._parseAllTestFiles();
-
-    this._parseFunctionalTests();
-    this._parsePerformanceTests();
-    this._parseFixtures();
-
-
-    this._parseFunctionalSuites();
-    this._parseFixtures();
-    this._parsePerfRuns();
-
-
-    // parse performance patterns
-    for (const entity of entities) {
-      if (!isPerformancePattern(entity)) {
-        continue;
-      }
-
-      const {name, path: entityPath, config} = entity;
-      const {mix} = config;
-
-      const performancePatternEntity = new PerformancePatternEntity(
-          name,
-          entityPath,
-          config
+      const PerformanceSuiteInstance = new PerformanceSuiteEntity(
+          suiteName,
+          suitePath,
+          suiteConfig
       );
 
-      if (mix.length > 0) {
-        mix.forEach((perfRunRef) => {
-          // todo: handle versioning as well.
+      if (PerformanceSuiteInstance.hasPerfPatternRefs()) {
+        const referencedPerfPatterns = PerformanceSuiteInstance.getPerfPatternsRefs();
 
-          const onlyAssociatedPerfRuns = (e) => {
-            return isPerformanceRun(e) &&
-                            e.config.name === perfRunRef.ref;
-          };
+        const testFiles = this.testFiles;
 
-          const foundEntity = this.filterEntities(onlyAssociatedPerfRuns)[0];
-
-          if (foundEntity) {
-            performancePatternEntity.addPerformanceRun(foundEntity);
-            this.entities.remove(foundEntity); // cleanup
-          } else {
-            // todo: log
-          }
+        const onlyAssociatedPerfPatterns = testFiles.filter((entity) => {
+          const entityConfig = entity.getConfig();
+          return isPerformancePattern(entity) &&
+                    referencedPerfPatterns.indexOf(entityConfig.name) !== -1;
         });
+
+        for (const perfPattern of onlyAssociatedPerfPatterns) {
+          const patternName = perfPattern.getName();
+          const patternPath = perfPattern.getPath();
+          const patternConfig = perfPattern.getConfig();
+
+          const PerformancePatternInstance = new PerformancePatternEntity(
+              patternName,
+              patternPath,
+              patternConfig
+          );
+
+          if (PerformancePatternInstance.hasPerfRunsRefs()) {
+            const referencedPerfRuns = PerformancePatternInstance.getPerfRunsRefs();
+
+            const onlyAssociatedPerfRuns = this.testFiles.filter((entity) => {
+              const entityConfig = entity.getConfig();
+              return isPerformanceRun(entity) &&
+                            referencedPerfRuns.indexOf(entityConfig.name) !== -1;
+            });
+
+            for (const perfRun of onlyAssociatedPerfRuns) {
+              const perfRunName = perfRun.getName();
+              const perfRunPath = perfRun.getPath();
+              const perfRunConfig = perfRun.getConfig();
+
+              const PerformanceRunInstance = new PerformanceRunEntity(
+                  perfRunName,
+                  perfRunPath,
+                  perfRunConfig
+              );
+
+              PerformancePatternInstance.addPerformanceRun(PerformanceRunInstance);
+            }
+          } else {
+            this.log.warn(`${performanceLogFormat} The ${patternName} performance ` +
+                        `pattern has no performance runs referenced.`);
+          }
+
+          PerformanceSuiteInstance.addPerformancePattern(PerformancePatternInstance);
+        }
+      } else {
+        this.log.warn(`${performanceLogFormat} The ${suiteName} performance suite ` +
+                `has no performance patterns referenced.`);
       }
 
-      this.entities.add(performancePatternEntity);
-    }
+      return PerformanceSuiteInstance;
+    };
 
-    // parse performance scenarios
-    for (const entity of entities) {
-      if (!isPerformanceTest(entity)) {
-        continue;
-      }
+    _parsePerformanceTests = () => {
+      const performanceSuites = this.testFiles
+          .filter(isPerformanceSuite)
+          .map(this._parsePerformanceSuite);
 
-      const {name, path: entityPath, config} = entity;
-      const {pattern} = config.scenario;
-
-      const performanceTestEntity = new PerformanceTestEntity(
-          name,
-          entityPath,
-          config
+      this.entities = this.entities.append(
+          ...performanceSuites
       );
+    };
 
-      // Parse performance patterns associated with the performance test.
-      if (pattern && pattern.length > 0) {
-        pattern.forEach((perfPattern) => {
-          // todo: handle versioning as well.
+    _parseEntities() {
 
-          const onlyAssociatedPerfPatterns = (e) => {
-            return isPerformancePattern(e) &&
-                            e.config.name === perfPattern.ref;
-          };
-
-          // Parse performance patterns.
-          const foundPerfPatternEntity = this.filterEntities(onlyAssociatedPerfPatterns)[0];
-
-          if (foundPerfPatternEntity) {
-            // todo: add all of them, not just one?
-            performanceTestEntity.addPatterns(foundPerfPatternEntity);
-            this.entities.remove(foundPerfPatternEntity); // cleanup
-          } else {
-            // todo: log
-          }
-        });
-      }
-
-      this.entities.add(performanceTestEntity);
     }
-  };
 }
 
 module.exports = EntityManager;

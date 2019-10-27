@@ -1,0 +1,6 @@
+name: testPerfSuiteWithoutPerfPatterns
+description: descriptiona
+engine: autocannon
+type: perfSuite
+hooks:
+config:
