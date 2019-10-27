@@ -10,23 +10,30 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// node
+// Node
 const fs = require('fs');
 const path = require('path');
 
-// external
+// External
 const Mocha = require('mocha');
 const {find} = require('lodash');
 const toSource = require('tosource');
 const jsBeautify = require('js-beautify');
 
-// project
+// Project
 const Engine = require('./engine');
 const {TAXONOMIES, ENGINES} = require('./../enums');
 const {isSuite, isFunctionalTest, parseAstExpressions} = require('./../utils');
 
+/**
+ * The main Chakram engine class.
+ */
 class ChakramEngine extends Engine {
-  constructor(settings, entityManager, pluginManager) {
+  constructor(
+      settings,
+      entityManager,
+      pluginManager
+  ) {
     super(
         settings,
         entityManager,
@@ -52,6 +59,7 @@ class ChakramEngine extends Engine {
   };
 
   // public
+
 
     run = () => {
       const {grep, bail} = this.settings;

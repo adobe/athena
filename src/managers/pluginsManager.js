@@ -113,7 +113,7 @@ class PluginsManager {
     };
 
     _parseFixtures = () => {
-      const fixtures = this.entityManager.getAllFixtures();
+      const fixtures = this.entityManager.getAllFixtures(true);
       const usedPackages = fixtures.map(this._parseUsedPackages).filter(String);
 
       if (usedPackages.length) {
