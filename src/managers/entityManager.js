@@ -11,11 +11,9 @@ governing permissions and limitations under the License.
 */
 
 // node
-const fs = require('fs');
 const path = require('path');
 
 // external
-const jsYaml = require('js-yaml');
 const glob = require('glob');
 const L = require('list/methods');
 
@@ -38,7 +36,6 @@ const PerformancePatternEntity = require('../entities/performancePatternEntity')
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 const TestFileEntity = require('../entities/testFileEntity');
 
-const log = makeLogger();
 const functionalLogFormat = '[Functional Entity Parsing]';
 const performanceLogFormat = '[Performance Entity Parsing]';
 
@@ -54,6 +51,7 @@ class EntityManager {
    */
   constructor(settings) {
     this.settings = settings;
+    this.log = makeLogger();
     this.testFiles = [];
     this.entities = L.list();
 
@@ -70,23 +68,6 @@ class EntityManager {
     return L.filter((entity) => {
       return entity.constructor.name === 'FunctionalSuiteEntity';
     }, this.entities);
-  };
-
-  // todo: flatten
-  getAllBy = (attribute, value) => {
-    return this.filterEntities(function(e) {
-      if (e.config && e.config[attribute] && e.config[attribute] === value) {
-        return e;
-      }
-    });
-  };
-
-  getAllFixtures = () => {
-    return this.filterEntities(isFixture);
-  };
-
-  filterEntities = (predicate) => {
-    return this.entities.entries.filter(predicate);
   };
 
   getIndieFunctionalTests = () => {
@@ -108,7 +89,7 @@ class EntityManager {
         return functionalSuite.config[argument] === value;
       }
 
-      log.warn(`Attempted to filter functional suites by a given argument ` +
+      this.log.warn(`Attempted to filter functional suites by a given argument ` +
       `[${argument}] that does not exist!`);
       return false;
     }, allFunctionalSuites);
@@ -260,7 +241,7 @@ class EntityManager {
         const foundFunctionalSuite = this.getFunctionalSuiteBy('name', suiteRef);
 
         if (!foundFunctionalSuite) {
-          log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
+          this.log.warn(`${functionalLogFormat} Could not find the suite "${suiteRef}" ` +
             `referenced in "${testName}".`);
 
           continue;

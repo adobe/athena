@@ -23,9 +23,13 @@ class FunctionalSuiteEntity extends Entity {
     this.validate();
   }
 
-    addTest = (test) => {
-      this.tests.push(test);
-    };
+  addTest = (test) => {
+    this.tests.push(test);
+  };
+
+  getTests = () => {
+    return this.tests;
+  }
 }
 
 module.exports = FunctionalSuiteEntity;

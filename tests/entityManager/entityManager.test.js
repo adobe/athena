@@ -10,6 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+/* eslint-disable max-len */
+
 // node
 const path = require('path');
 
@@ -224,6 +226,7 @@ describe('EntityManager', function() {
         testsDirPath: makeTestsDirPath('parseFunctionalTests'),
       };
       const EntityManagerInstance = new EntityManager(mockSettings);
+      sinon.stub(EntityManagerInstance.log,'warn').returns(0);
 
       EntityManagerInstance._parseAllTestFiles();
       EntityManagerInstance._parseFunctionalTests();
@@ -233,18 +236,41 @@ describe('EntityManager', function() {
 
       expect(indieTests.length).to.equal(1);
       expect(indieTest.config.name).to.equal(expectedIndieTestName);
+      expect(indieTest.constructor.name).to.equal('FunctionalTestEntity');
     });
 
-    it('should instantiate functional test entities as ChaktamTest(s)', function() {
+    it('should attempt to attach the functional test to its specified suiteRef', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseFunctionalTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+      sinon.stub(EntityManagerInstance.log,'warn').returns(0);
 
-    });
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parseFunctionalTests();
 
-    it('should attempt to attach the functional test to its specified suiteRef (if existent)', function() {
+      const functionalSuite = L.first(EntityManagerInstance.getAllFunctionalSuites());
+      const functionalSuiteTests = functionalSuite.getTests();
 
+      expect(functionalSuiteTests.length).to.equal(1);
+      expect(functionalSuiteTests[0].config.name).to.equal('testWithSuite');
     });
 
     it('should log a warning message if it could not find its specified suiteRef', function() {
+      const mockSettings = {
+        testsDirPath: makeTestsDirPath('parseFunctionalTests'),
+      };
+      const EntityManagerInstance = new EntityManager(mockSettings);
+      const logWarnSpy = sinon.stub(EntityManagerInstance.log,'warn').returns(0);
 
+      EntityManagerInstance._parseAllTestFiles();
+      EntityManagerInstance._parseFunctionalTests();
+
+      const functionalSuite = L.first(EntityManagerInstance.getAllFunctionalSuites());
+      const functionalSuiteTests = functionalSuite.getTests();
+
+      expect(functionalSuiteTests.length).to.equal(1);
+      assert(logWarnSpy.called);
     });
   });
 

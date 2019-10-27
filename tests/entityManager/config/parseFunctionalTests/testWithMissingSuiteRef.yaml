@@ -1,0 +1,18 @@
+type: test
+name: testWithMissingSuiteRef
+description: this test has an inexistent suite ref
+engine: chakram
+suiteRef:
+  - thisSuiteDoesNotExist
+hooks:
+  skip:
+  setup:
+  beforeWhen:
+  beforeThen:
+  teardown:
+config:
+  timeout:
+scenario:
+  given:
+  when:
+  then:
