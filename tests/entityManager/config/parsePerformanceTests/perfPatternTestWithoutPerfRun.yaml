@@ -1,4 +1,4 @@
-name: testPerfPatternWithoutPerfRun
+name: testPerfPatternWithoutPerfRuns
 version: 1.0
 description: perf pattern used for testing
 engine: autocannon

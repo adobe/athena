@@ -45,9 +45,9 @@ const performanceLogFormat = '[Performance Entity Parsing]';
  */
 class EntityManager {
   /**
-  * Creates a new EntityManager instance.
-  * @param {object} settings The Athena settings.
-  */
+     * Creates a new EntityManager instance.
+     * @param {object} settings The Athena settings.
+     */
   constructor(settings) {
     this.settings = settings;
     this.log = makeLogger();
@@ -107,11 +107,7 @@ class EntityManager {
         return false;
       }, allFunctionalSuites);
 
-      if (foundFunctionalSuites) {
-        return L.first(foundFunctionalSuites);
-      }
-
-      return null;
+      return L.first(foundFunctionalSuites);
     };
 
     // private
@@ -124,7 +120,7 @@ class EntityManager {
     _getTestFiles() {
       return glob.sync(
           path.resolve(
-              this.settings.testsDirPath, '**', '*'),
+              this.settings.testsDirPath, '**', '*.yaml'),
           {
             nodir: true,
           });
@@ -266,6 +262,12 @@ class EntityManager {
       }
     };
 
+    /**
+     * Parses performance suites.
+     * @param {object} suite A suite TestEntity.
+     * @return {PerformanceSuiteEntity} The parsed performance suite entity.
+     * @private
+     */
     _parsePerformanceSuite = (suite) => {
       const suiteName = suite.getName();
       const suitePath = suite.getPath();
@@ -336,18 +338,33 @@ class EntityManager {
       return PerformanceSuiteInstance;
     };
 
+    /**
+     * Parses performance tests only.
+     * @private
+     */
     _parsePerformanceTests = () => {
       const performanceSuites = this.testFiles
           .filter(isPerformanceSuite)
           .map(this._parsePerformanceSuite);
 
-      this.entities = this.entities.append(
-          ...performanceSuites
+      const performanceSuitesList = L.from(performanceSuites);
+
+      this.entities = this.entities.insertAll(
+          this.entities.length,
+          performanceSuitesList,
+          this.entities
       );
     };
 
+    /**
+     * Parses all test files, fixtures, functional and performance tests.
+     * @private
+     */
     _parseEntities() {
-
+      this._parseAllTestFiles();
+      this._parseFixtures();
+      this._parseFunctionalTests();
+      this._parsePerformanceTests();
     }
 }
 

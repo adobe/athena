@@ -1,0 +1,8 @@
+name: testPerfSuiteWithPatternThatHasNoPerfRuns
+description: description
+engine: autocannon
+type: perfSuite
+hooks:
+config:
+pattern:
+  - ref: testPerfPatternWithoutPerfRuns

@@ -67,10 +67,6 @@ class PerformancePatternEntity extends Entity {
   getPerfRunsRefs = () => {
     return this.config.runs.map((run) => run.ref);
   };
-
-  getPerformanceRuns = () => {
-    return this.config.runs;
-  }
 }
 
 module.exports = PerformancePatternEntity;
