@@ -1,5 +1,6 @@
 const express = require("express");
 const https = require('https');
+const fs = require('fs');
 const bodyParser = require("body-parser");
 const privateKey = fs.readFileSync('/etc/webhook/certs/key.pem').toString();
 const certificate = fs.readFileSync('/etc/webhook/certs/cert.pem').toString();
@@ -7,7 +8,7 @@ const options = {key: privateKey, cert: certificate};
 const app = express();
 const yaml = require("js-yaml");
 
-const sidecarConfigFile = yaml.safeLoad("/etc/webhook/config/sidecarconfig.yaml");
+const sidecarConfigFile = yaml.safeLoad(fs.readFileSync("/etc/webhook/config/sidecarconfig.yaml", "utf8"));
 app.use(bodyParser.json());
 
 function addContainers(data, containers) {
@@ -16,7 +17,7 @@ function addContainers(data, containers) {
     containers.forEach((container) => {
         data.push({
             "op":"add",
-            "path": (idx++ === 0) ? basePath : basePath + "/-",
+            "path": basePath + "/-",
             "value": container
         })
     });
@@ -28,31 +29,34 @@ function addVolume(data, volumes) {
     volumes.forEach((container) => {
         data.push({
             "op":"add",
-            "path": (idx++ === 0) ? basePath : basePath + "/-",
+            "path": basePath + "/-",
             "value": container
         })
     });
 }
 app.post('/mutate', (req, res) => {
-    console.log(req.body);
-    console.log(req.body.request.object);
-    let data = [{
+    console.log("body is ", req.body);
+    console.log("object is ", req.body.request.object);
+    let data = [];
+    console.log(sidecarConfigFile);
+    addVolume(data, sidecarConfigFile.volumes || []);
+    addContainers(data, sidecarConfigFile.containers || []);
+    data.push({
         "op":"add",
         "path":"/metadata/annotations",
         "value":{
             "sidecar-injector-webhook.morven.me/status":"injected"
-        }
-    }];
-    addContainers(data, sidecarConfigFile.containers || []);
-    addContainers(data, sidecarConfigFile.volumes || []);
+        }})
+    console.log(JSON.stringify(data));
     let adminResp = {response:{
+            uid: req.body.request.uid,
             allowed: true,
-            patch: Buffer.from(JSON.stringify([data
-            ])).toString('base64'),
+            patch: Buffer.from(JSON.stringify(data
+            )).toString('base64'),
             patchType: "JSONPatch",
-        }};
+        }}
     console.log(adminResp);
     res.send(adminResp)
 });
 
-const server = https.createServer(options, app);
+const server = https.createServer(options, app).listen(443);

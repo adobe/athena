@@ -14,14 +14,16 @@ spec:
       containers:
         - name: sidecar-injector
           image: atrifan/athena:v1
-          imagePullPolicy: IfNotPresent
-          args:
-            - -sidecarCfgFile=/etc/webhook/config/sidecarconfig.yaml
-            - -tlsCertFile=/etc/webhook/certs/cert.pem
-            - -tlsKeyFile=/etc/webhook/certs/key.pem
-            - -alsologtostderr
-            - -v=4
-            - 2>&1
+          imagePullPolicy: Always
+          command: ["npm"]
+          args: ["run", "sidecar"]
+#          args:
+#            - -sidecarCfgFile=/etc/webhook/config/sidecarconfig.yaml
+#            - -tlsCertFile=/etc/webhook/certs/cert.pem
+#            - -tlsKeyFile=/etc/webhook/certs/key.pem
+#            - -alsologtostderr
+#            - -v=4
+#            - 2>&1
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

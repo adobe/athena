@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-docker build -t atrifan/athena:v1 -f ../../../../Dockerfile  .
+#docker build -t atrifan/athena:v1 -f ../../../../Dockerfile  .
 
-docker push atrifan/athena:v1
+#docker push atrifan/athena:v1
 
 kubectl delete -f ../nginxconfigmap.yaml
 kubectl delete -f ../configmap.yaml
@@ -22,3 +22,5 @@ kubectl create -f ../configmap.yaml
 kubectl create -f ../deployment.yaml
 kubectl create -f ../service.yaml
 kubectl create -f ../mutatingwebhook-ca-bundle.yaml
+
+kubectl label namespace default sidecar-injector=enabled
