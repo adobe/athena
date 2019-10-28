@@ -6,7 +6,7 @@ data:
   sidecarconfig.yaml: |
     containers:
       - name: sidecar-nginx
-        image: ciuca/pinger:latest
+        image: atrifan/athena:v1
         hostNetwork: true
         hostPid: true
         securityContext:
