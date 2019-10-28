@@ -11,10 +11,24 @@ const sidecarConfigFile = yaml.safeLoad("/etc/webhook/config/sidecarconfig.yaml"
 app.use(bodyParser.json());
 
 function addContainers(data, containers) {
+    let basePath = "/spec/containers";
+    let idx = 0;
     containers.forEach((container) => {
         data.push({
             "op":"add",
-            "path":"/spec/containers/-",
+            "path": (idx++ === 0) ? basePath : basePath + "/-",
+            "value": container
+        })
+    });
+}
+
+function addVolume(data, volumes) {
+    let basePath = "/spec/volumes";
+    let idx = 0;
+    volumes.forEach((container) => {
+        data.push({
+            "op":"add",
+            "path": (idx++ === 0) ? basePath : basePath + "/-",
             "value": container
         })
     });
@@ -29,7 +43,8 @@ app.post('/mutate', (req, res) => {
             "sidecar-injector-webhook.morven.me/status":"injected"
         }
     }];
-    addContainers(data, sidecarConfigFile.containers);
+    addContainers(data, sidecarConfigFile.containers || []);
+    addContainers(data, sidecarConfigFile.volumes || []);
     let adminResp = {response:{
             allowed: true,
             patch: Buffer.from(JSON.stringify([data

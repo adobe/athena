@@ -7,6 +7,17 @@ data:
     containers:
       - name: sidecar-nginx
         image: ciuca/pinger:latest
+        hostNetwork:true
+        hostPid: true
+        securityContext:
+          privileged:true
         imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 8080
+        volumeMounts:
+          - name: nginx-conf
+            mountPath: /etc/nginx
+    volumes:
+        - name: nginx-conf
+          configMap:
+            name: nginx-configmap

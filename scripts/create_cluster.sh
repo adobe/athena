@@ -12,6 +12,7 @@
 
 
 envoy -c /etc/envoy/config/envoy.yaml -l info --concurrency 8 &
+./src/sidecar/k8/scripts/ip-tables-hook.sh
 node_modules/.bin/pm2
 node athena.js cluster --init --addr 0.0.0.0
 node_modules/.bin/pm2 logs athena-manager

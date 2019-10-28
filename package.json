@@ -5,6 +5,7 @@
     "start": "node atena.js",
     "test": "mocha ./tests/**/*.test.js",
     "create-cluster": "./scripts/create_cluster.sh",
+    "sidecar": "node ./src/sidecar/webHookMutating.js",
     "migrate": "node ./scripts/elasticsearch_migrate.js"
   },
   "dependencies": {
