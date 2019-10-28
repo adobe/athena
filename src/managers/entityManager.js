@@ -146,30 +146,6 @@ class EntityManager {
   }
 
   /**
-   * Filters, parses and instantiates suites.
-   * @private
-   */
-  _parseFunctionalSuites = () => {
-    const onlyFunctionalSuites = this.testFiles
-        .filter(isFunctionalSuite)
-        .map((suite) => {
-          const suiteName = suite.getName();
-          const suitePath = suite.getPath();
-          const suiteConfig = suite.getConfig();
-
-          return new FunctionalSuiteEntity(
-              suiteName,
-              suitePath,
-              suiteConfig
-          );
-        });
-
-    this.entities = this.entities.append(
-        ...onlyFunctionalSuites
-    );
-  };
-
-  /**
    * Filters, parses and instantiates fixtures.
    * @private
    */
@@ -227,15 +203,34 @@ class EntityManager {
   };
 
   /**
-   * Parses all functional test entities. It initially parses all
-   * functional test suites, continues with the independent tests
-   * and finally it attaches all functional test entities that
-   * provide any suite references, to that specific suite.
+   * Parses a single functional suite entity.
+   * @param {TestFileEntity} suite A functional suite entity, as a test file.
+   * @return {FunctionalSuiteEntity} A new functional suite entity instance,
+   * with all referenced tests attached.
    * @private
    */
-  _parseFunctionalTests = () => {
-    this._parseFunctionalSuites();
+  _parseFunctionalSuite = (suite) => {
+    const suiteName = suite.getName();
+    const suitePath = suite.getPath();
+    const suiteConfig = suite.getConfig();
 
+    const FunctionalSuiteInstance = new FunctionalSuiteEntity(
+        suiteName,
+        suitePath,
+        suiteConfig
+    );
+
+    // Check and see if this suite has any tests referenced.
+    if (!FunctionalSuiteInstance.hasTestsRefs()) {
+      this.log.warn(`The "${suiteName}" functional suite has no test references defined.`);
+
+      return FunctionalSuiteInstance;
+    }
+
+    // Get suite references.
+    const testRefs = FunctionalSuiteInstance.getTestsRefs();
+
+    // Filter all functional tests, specific to this suite only.
     const onlyFunctionalTests = this.testFiles
         .filter(isFunctionalTest);
 
@@ -245,6 +240,11 @@ class EntityManager {
       const testPath = functionalTest.getPath();
       const testConfig = functionalTest.getConfig();
 
+      // If this test is not associated with this suite, skip.
+      if (testRefs.indexOf(testName) === -1) {
+        continue;
+      }
+
       // Instantiate a new functional test entity.
       const FunctionalTestInstance = new FunctionalTestEntity(
           testName,
@@ -252,33 +252,28 @@ class EntityManager {
           testConfig
       );
 
-      // Independent functional test entity.
-      if (FunctionalTestInstance.hasNoSuiteRefs()) {
-        this.entities = L.append(
-            FunctionalTestInstance,
-            this.entities
-        );
-
-        continue;
-      }
-
-      // Attach this test to its particular suite.
-      const testSuiteRefs = FunctionalTestInstance.getSuiteRefs();
-
-      // Iterate over all suiteRef(s) specified by this test and attach the test.
-      for (const suiteRef of testSuiteRefs) {
-        const foundFunctionalSuite = this.getFunctionalSuiteBy('name', suiteRef);
-
-        if (!foundFunctionalSuite) {
-          this.log.warn(`${functionalLogFormat} Could not find the ` +
-            `"${suiteRef}" referenced in "${testName}".`);
-
-          continue;
-        }
-
-        foundFunctionalSuite.addTest(FunctionalTestInstance);
-      }
+      // Attach the test to the suite.
+      FunctionalSuiteInstance.addTest(FunctionalTestInstance);
     }
+
+    return FunctionalSuiteInstance;
+  };
+
+  /**
+   * Parses all functional test entities. It initially parses all
+   * functional test suites, continues with the independent tests
+   * and finally it attaches all functional test entities that
+   * provide any suite references, to that specific suite.
+   * @private
+   */
+  _parseFunctionalTests = () => {
+    const onlyFunctionalSuites = this.testFiles
+        .filter(isFunctionalSuite)
+        .map(this._parseFunctionalSuite);
+
+    this.entities = this.entities.append(
+        ...onlyFunctionalSuites
+    );
   };
 
   /**

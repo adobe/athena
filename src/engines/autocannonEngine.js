@@ -34,12 +34,12 @@ class AutocannonEngine extends Engine {
         autocannon
     );
 
-    const perfEntities = this.entityManager.getAllBy(
-        'engine',
-        this.name
-    );
-
-    this.entities = perfEntities.map(this._deepParseEntities);
+    // const perfEntities = this.entityManager.getAllBy(
+    //     'engine',
+    //     this.name
+    // );
+    //
+    // this.entities = perfEntities.map(this._deepParseEntities);
   }
 
     run = (testsConfig = null, cb = null) => {

@@ -10,25 +10,68 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+// External
+const {isArray} = require('lodash');
+
+// Project
 const Entity = require('./entity');
 const {ENTITY_TYPES} = require('./../enums');
 
+/**
+ * The main functional suite entity class.
+ */
 class FunctionalSuiteEntity extends Entity {
+  /**
+   * Creates a new functional suite instance.
+   * @param {string} name The name of the suite.
+   * @param {string} path The path of the suite definition file.
+   * @param {object} config The configuration object defined inside the definition file.
+   */
   constructor(name, path, config) {
     super(name, path, config);
 
-    this.tests = [];
+    this._tests = []; // The list of tests referenced by this suite.
 
     this.setType(ENTITY_TYPES.SUITE);
     this.validate();
   }
 
+  /**
+   * Adds a new test to the suite entity.
+   * @param {FunctionalTestEntity} test The test entity.
+   */
   addTest = (test) => {
-    this.tests.push(test);
+    this._tests.push(test);
   };
 
+  /**
+   * Returns the list of associated functional test instances.
+   * @return {Array} The list of associated functional test instances.
+   */
   getTests = () => {
-    return this.tests;
+    return this._tests;
+  };
+
+  /**
+   * Checks whether the suite has any functional test references.
+   * @return {boolean} True if the suite has any functional test references,
+   * false otherwise.
+   */
+  hasTestsRefs = () => {
+    const suiteConfig = this.getConfig();
+    return suiteConfig.tests &&
+      isArray(suiteConfig.tests) &&
+      suiteConfig.tests.length;
+  };
+
+  /**
+   * Returns the list of tests referenced by this suite.
+   * @return {Array} The list of tests referenced by this suite.
+   */
+  getTestsRefs = () => {
+    const suiteConfig = this.getConfig();
+
+    return suiteConfig.tests;
   }
 }
 
