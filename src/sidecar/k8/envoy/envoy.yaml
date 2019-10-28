@@ -1,0 +1,34 @@
+node:
+  id: id_1
+  cluster: test
+
+admin:
+  access_log_path: "/dev/null"
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9000
+
+dynamic_resources:
+  cds_config:
+    path: /etc/envoy/config/cds.conf
+
+static_resources:
+  listeners:
+    - address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9191
+      filter_chains:
+        - filters:
+            - name: envoy.http_connection_manager
+              config:
+                codec_type: auto
+                stat_prefix: ingress_http
+                rds:
+                  route_config_name: local_route
+                  config_source:
+                    path: /etc/envoy/config/rds.conf
+                http_filters:
+                  - name: envoy.router
+                    config: {}
