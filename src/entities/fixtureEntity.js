@@ -11,36 +11,36 @@ governing permissions and limitations under the License.
 */
 
 // node
-const path = require("path"),
-    fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 
 // project
-const Entity = require("./entity"),
-    {ENTITY_TYPES} = require('./../enums'),
-    {getParsedSettings} = require('./../utils');
+const Entity = require('./entity');
+const {ENTITY_TYPES} = require('./../enums');
+const {getParsedSettings} = require('./../utils');
 
 class FixtureEntity extends Entity {
-    constructor(name, path, config) {
-        super(name, path, config);
+  constructor(name, path, config) {
+    super(name, path, config);
 
-        this.setType(ENTITY_TYPES.FIXTURE);
-        this.validate();
-    }
+    this.setType(ENTITY_TYPES.FIXTURE);
+    this.validate();
+  }
 
     getModulePath = () => {
-        const settings = getParsedSettings();
-        const {config} = this.config;
-        const modulePath = path.resolve(settings.testsDir, config.source);
+      const settings = getParsedSettings();
+      const {config} = this.config;
+      const modulePath = path.resolve(settings.testsDir, config.source);
 
-        if (fs.existsSync(modulePath)) {
-            return modulePath;
-        }
+      if (fs.existsSync(modulePath)) {
+        return modulePath;
+      }
 
-        return null;
+      return null;
     };
 
     getSourcePath = () => {
-        return this.config.config.source;
+      return this.config.config.source;
     }
 }
 

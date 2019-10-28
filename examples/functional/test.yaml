@@ -1,12 +1,9 @@
 type: test
 name: ccecoTest # required
 description: this is the test description
-engine: chakram # assumed by default if type == test, inherited if none
+engine: chakram
 fixtures:
   - isServiceToken
-suiteRef:
-  - ccecoSuite # can miss
-  - mcSuite # one test can be part of multiple suites
 dependency:
   - name: ccecoSuite
   - name: mcSuite

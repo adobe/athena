@@ -10,16 +10,16 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const path = require("path"),
-    { version, description } = require("./../package.json");
+const path = require('path');
+const {version, description} = require('./../package.json');
 
 const CONF = {};
 
 CONF.DEBUG = false;
 CONF.VERSION = version;
 CONF.DESCRIPTION = description;
-CONF.BASEPATH = path.resolve(__dirname, "./..");
-CONF.EXAMPLES_DIR = "./examples";
-CONF.PLUGINS_DIR = "plugins";
+CONF.BASEPATH = path.resolve(__dirname, './..');
+CONF.EXAMPLES_DIR = './examples';
+CONF.PLUGINS_DIR = 'plugins';
 
 module.exports = CONF;

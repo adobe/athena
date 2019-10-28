@@ -13,4 +13,3 @@ hooks:
   onInit:
   onDestroy:
   onRequest:
-  onResponse:

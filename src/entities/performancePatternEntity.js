@@ -10,25 +10,63 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Entity = require("./entity"),
-    {ENTITY_TYPES} = require('./../enums');
+const Entity = require('./entity');
+const {ENTITY_TYPES} = require('./../enums');
 
-class PerformancePattern extends Entity {
-    constructor(name, path, config) {
-        super(name, path, config);
-        this.perfRuns = [];
+class PerformancePatternEntity extends Entity {
+  constructor(name, path, config) {
+    super(name, path, config);
+    this.perfRuns = [];
 
-        this.setType(ENTITY_TYPES.PATTERN);
-        this.validate();
+    this.setType(ENTITY_TYPES.PATTERN);
+    this.validate();
+  }
+
+  /**
+   * Gets the number of suites this test is referencing.
+   * @return {number} The number of suites referenced.
+   */
+  getSuitesCount = () => {
+    if (this.config &&
+        this.config.suiteRef &&
+        this.config.suiteRef.length) {
+      return this.config.suiteRef.length;
     }
 
-    addPerformanceRun = (perfRun) => {
-        this.perfRuns.push(perfRun);
-    };
+    return 0;
+  };
 
-    hasPerfRuns = () => {
-        return Boolean(this.perfRuns.length);
-    };
+  /**
+   * Checks whether this functional test has any suites referenced.
+   * @return {boolean} True if the test has any suites referenced, false otherwise.
+   */
+  hasNoSuiteRefs = () => {
+    return this.getSuitesCount() === 0;
+  };
+
+  /**
+   * Returns the name of this particular test entity.
+   * @return {string} The name of the test.
+   */
+  getName = () => {
+    return this.name;
+  };
+
+  addPerformanceRun = (perfRun) => {
+    this.perfRuns.push(perfRun);
+  };
+
+  hasPerfRuns = () => {
+    return Boolean(this.perfRuns.length);
+  };
+
+  hasPerfRunsRefs = () => {
+    return this.config.runs && this.config.runs.length;
+  };
+
+  getPerfRunsRefs = () => {
+    return this.config.runs.map((run) => run.ref);
+  };
 }
 
-module.exports = PerformancePattern;
+module.exports = PerformancePatternEntity;

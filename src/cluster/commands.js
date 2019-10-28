@@ -11,52 +11,52 @@ governing permissions and limitations under the License.
 */
 
 // External
-const pm2 = require("pm2"),
-    nanoid = require("nanoid");
+const pm2 = require('pm2');
+const nanoid = require('nanoid');
 
-const {makeLogger} = require("./../utils");
+const {makeLogger} = require('./../utils');
 
 const log = makeLogger();
-const MESSAGE_TOPIC = "ATHENA_CLUSTER_COMMAND";
+const MESSAGE_TOPIC = 'ATHENA_CLUSTER_COMMAND';
 
 function makeMessage(command, data) {
-    return {
-        id: nanoid(12),
-        topic: MESSAGE_TOPIC,
-        type: command,
-        data
-    };
+  return {
+    id: nanoid(12),
+    topic: MESSAGE_TOPIC,
+    type: command,
+    data,
+  };
 };
 
 const _sendManagerCommand = (messageType, data) => {
-    const _handleError = (error) => {
-        if (error) {
-            throw error;
-        }
+  const _handleError = (error) => {
+    if (error) {
+      throw error;
+    }
 
-        process.exit(0);
-    };
+    process.exit(0);
+  };
 
-    data = JSON.stringify(data);
+  data = JSON.stringify(data);
 
-    pm2.list(function (err, list) {
-        pm2.sendDataToProcessId(
-            list[0].pm2_env.pm_id,
-            makeMessage(messageType, {data}),
-            _handleError
-        );
-    });
+  pm2.list(function(err, list) {
+    pm2.sendDataToProcessId(
+        list[0].pm2_env.pm_id,
+        makeMessage(messageType, {data}),
+        _handleError
+    );
+  });
 
-    log.info(`Delegated a new cluster job! Please check the manager's logs for more details.`)
+  log.info(`Delegated a new cluster job! Please check the manager's logs for more details.`);
 };
 
 function callClusterCommand(messageType, data) {
-    pm2.connect(() => {
-        _sendManagerCommand(messageType, data)
-    });
+  pm2.connect(() => {
+    _sendManagerCommand(messageType, data);
+  });
 }
 
 module.exports = {
-    callClusterCommand,
-    makeMessage
+  callClusterCommand,
+  makeMessage,
 };
