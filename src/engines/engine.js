@@ -12,12 +12,22 @@ governing permissions and limitations under the License.
 
 const {makeLogger} = require('./../utils');
 
+/**
+ * The main Engine class.
+ */
 class Engine {
-  constructor(settings, entityManager, pluginManager, taxonomy, name, engine) {
+  /**
+   * Creates a new Engine instance.
+   * @param {object} settings The settings object.
+   * @param {EntityManager} entityManager The entity manager instance.
+   * @param {PluginsManager} pluginManager The plugins manager instance.
+   * @param {string} name The engine name.
+   * @param {any} engine The engine instance.
+   */
+  constructor(settings, entityManager, pluginManager, name, engine) {
     this.entityManager = entityManager;
     this.pluginManager = pluginManager;
     this.settings = settings;
-    this.taxonomy = taxonomy;
     this.name = name;
     this.engine = engine;
     this.log = makeLogger();

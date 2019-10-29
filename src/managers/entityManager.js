@@ -222,7 +222,8 @@ class EntityManager {
 
     // Check and see if this suite has any tests referenced.
     if (!FunctionalSuiteInstance.hasTestsRefs()) {
-      this.log.warn(`The "${suiteName}" functional suite has no test references defined.`);
+      this.log.warn(`${functionalLogFormat} The "${suiteName}" functional` +
+        ` suite has no test references defined.`);
 
       return FunctionalSuiteInstance;
     }
