@@ -1,33 +1,292 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-configmap
+  name: envoy-conf
 data:
-  nginx.conf: |
-    worker_processes  1;
-    
-    events {
-      worker_connections  1024;
+  lds.conf: |
+    {
+        "version_info": "0",
+        "resources": [{
+                "@type": "type.googleapis.com/envoy.api.v2.Listener",
+                "name": "listener_0",
+                "address": {
+                    "socket_address": {
+                        "address": "0.0.0.0",
+                        "port_value": 10000
+                    }
+                },
+                "filter_chains": [
+                    {
+                        "filters": [
+                            {
+                                "name": "envoy.http_connection_manager",
+                                "config": {
+                                    "stat_prefix": "ingress_http",
+                                    "codec_type": "AUTO",
+                                    "route_config": {
+                                        "name": "local_route",
+                                        "virtual_hosts": [
+                                            {
+                                                "name": "local_service",
+                                                "domains": [
+                                                    "*"
+                                                ],
+                                                "routes": [
+                                                    {
+                                                        "match": {
+                                                            "prefix": "/"
+                                                        },
+                                                        "route": {
+                                                            "cluster": "targetCluster"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "http_filters": [
+                                        {
+                                            "name": "envoy.router"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+        }]
     }
-    
-    http {
-      default_type  application/octet-stream;
-      
-      sendfile        on;
-      keepalive_timeout  65;
-      
-      server {
-        listen       80;
-        server_name  localhost;
-
-        location / {
-            root   html;
-            index  index.html index.htm;
-        }
-
-        error_page   500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   html;
-        }
-      }
+  cds.conf: |
+    {
+      "version_info": "0",
+      "resources": [{
+          "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+          "name": "targetCluster",
+                "connect_timeout": "0.25s",
+                "lb_policy": "ROUND_ROBIN",
+                "type": "EDS",
+                "eds_cluster_config": {
+                    "service_name": "localservices",
+                    "eds_config": {
+                        "path": "/etc/envoy/config/eds.conf"
+                    }
+                }
+      }]
     }
+  eds.conf: |
+    {
+      "version_info": "0",
+      "resources": [{
+        "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+        "cluster_name": "localservices",
+        "endpoints": [{
+          "lb_endpoints": [{
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "8.8.8.8",
+                  "port_value": 80
+                }
+              }
+            }
+          },
+            {
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "8.8.8.8",
+                  "port_value": 80
+                }
+              }
+            }
+          }]
+        }]
+      }]
+    }
+  rds.conf: |
+    {
+    	"version_info": "0",
+    	"resources": [
+    		{
+    			"@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+    			"name": "local_route",
+    			"virtual_hosts": [
+    				{
+    					"name": "backend",
+    					"domains": [
+    						"*"
+    					],
+    					"routes": [
+    						{
+    							"match": {
+    								"prefix": "/service/1"
+    							},
+    							"route": {
+    								"cluster": "targetCluster"
+    							}
+    						},
+    						{
+    							"match": {
+    								"prefix": "/service/2"
+    							},
+    							"route": {
+    								"cluster": "targetCluster"
+    							}
+    						}
+    					]
+    				}
+    			]
+    		}
+    	]
+    }
+  envoy.yaml: |
+    node:
+      id: id_1
+      cluster: test
+
+    admin:
+      access_log_path: "/dev/null"
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9000
+
+    dynamic_resources:
+      cds_config:
+        path: /etc/envoy/config/cds.conf
+
+    static_resources:
+      listeners:
+        - address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 9191
+          filter_chains:
+            - filters:
+                - name: envoy.http_connection_manager
+                  config:
+                    codec_type: auto
+                    stat_prefix: ingress_http
+                    rds:
+                      route_config_name: local_route
+                      config_source:
+                        path: /etc/envoy/config/rds.conf
+                    http_filters:
+                      - name: envoy.router
+                        config: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: perf-conf
+data:
+  pattern.yaml: |
+    name: "prod"
+    version: "1.0"
+    description: ""
+    engine: autocannon
+    type: perfPattern
+    runs:
+      - ref: "apiKey"
+        version: "1.0"
+        weight: 20%
+        config:
+          host:
+          path:
+          port:
+          headers:
+          body:
+          pipelining:
+        hooks:
+          onInit:
+          onDestroy:
+          onRequest: > #you will receive this.pool from the metadata of scenario
+            headers["Authorization"] = generateRandomToken(`${this.pool:30}`)
+          onResponse:
+  perfRun.yaml: |
+    name: "apiKey"
+    version: "1.0"
+    description: ""
+    engine: autocannon
+    type: perfRun
+    config:
+      url: https://api-gateway-qe-a-ue1.adobe.io/static-backend/blacklist
+      headers:
+        host: api-dm-performance-testing-qe.adobe.io
+      connections: 2000
+      duration: 120
+    hooks:
+      onInit:
+      onDestroy:
+      onRequest:
+  performance.yaml: |
+    name: perf
+    description: someDescr
+    engine: autocannon
+    type: perfTest
+    dependecy:
+      - name: cceco
+        type: api # ??
+    hooks:
+      skip:
+      onInit:
+      onDestroy:
+      onRequest:
+      onResponse:
+    config:
+      timeout: 60
+      host:
+      path:
+      headers:
+      debug: true | false
+      threads: 100
+      connections: 1000
+      keepalive: true
+      rps: 3000
+    pattern:
+      - ref: "prod"
+        version: "1.0"
+        config: # Default config for perfRuns
+          url: "http://localhost/"
+          socketPath: "" # not implemented
+          connections: 100
+          duration: ""
+          amount: "" # overrides duration
+          timeout: ""
+          pipelining: ""
+          bailout: ""
+          method: ""
+          title: ""
+          body: ""
+          headers: "" # object
+          maxConnectionRequests: ""
+          connectionRate: ""
+          overallRate: ""
+          reconnectRate: ""
+          requests: # Array of objects.
+          idReplacement: "" # Not supported yet
+          forever: "" # bool
+          servername: ""
+          excludeErrorStats: "" # boolean
+        rampUp:
+          every: 10s #or fixed
+          rps: 10
+          connections: 10
+          threads:
+          fixed: 30s #or every
+        coolDown:
+          every: 10s #or fixed
+          rps: 10
+          threads:
+          connections: 10
+          fixed: 30s #or every
+        spike:
+          every: 10s #or fixed
+          rps: 10
+          threads:
+          connections: 10
+          fixed: 30s #or every if fixed you need to specify after
+          after: 30s
+
+
+

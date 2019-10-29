@@ -6,7 +6,8 @@
     "test": "mocha ./tests/**/*.test.js",
     "create-cluster": "./scripts/create_cluster.sh",
     "sidecar": "node ./src/sidecar/webHookMutating.js",
-    "migrate": "node ./scripts/elasticsearch_migrate.js"
+    "migrate": "node ./scripts/elasticsearch_migrate.js",
+    "sidecar-test": "./scripts/run_tests.sh"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^7.4.0",

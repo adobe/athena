@@ -12,12 +12,19 @@ data:
         securityContext:
           privileged: true
         imagePullPolicy: IfNotPresent
+        command: ["npm"]
+        args: ["run", "sidecar-test"]
         ports:
           - containerPort: 8080
         volumeMounts:
-          - name: nginx-conf
-            mountPath: /etc/nginx
+          - name: envoy-conf
+            mountPath: /etc/envoy/config
+          - name: perf-conf
+            mountPath: /etc/tests
     volumes:
-      - name: nginx-conf
+      - name: envoy-conf
         configMap:
-          name: nginx-configmap
+          name: envoy-conf
+      - name: perf-conf
+        configMap:
+          name: perf-conf

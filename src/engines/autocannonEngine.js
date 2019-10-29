@@ -99,6 +99,7 @@ class AutocannonEngine extends Engine {
         engine.on('done', function (results) {
             delete stats.rpsCount;
             clearInterval(interval);
+            console.log(results);
         });
 
         autocannon.track(engine, {

@@ -9,8 +9,8 @@ spec:
   - port: 443
     targetPort: 443
     name: https
-  - port: 80
-    targetPort: 8080
+  - port: 9191
+    targetPort: 9191
     name: http
   selector:
     app: sidecar-injector
