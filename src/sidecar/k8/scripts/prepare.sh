@@ -8,6 +8,7 @@ kubectl delete -f ../configmap.yaml
 kubectl delete -f ../deployment.yaml
 kubectl delete -f ../service.yaml
 kubectl delete -f ../mutatingwebhook-ca-bundle.yaml
+kubectl delete -f ../network.yaml
 
 ../webhook-create-signed-cert.sh \
     --service sidecar-injector-webhook-svc \
@@ -22,5 +23,6 @@ kubectl create -f ../configmap.yaml
 kubectl create -f ../deployment.yaml
 kubectl create -f ../service.yaml
 kubectl create -f ../mutatingwebhook-ca-bundle.yaml
+kubectl create -f ../network.yaml
 
 kubectl label namespace default sidecar-injector=enabled

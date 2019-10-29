@@ -15,7 +15,7 @@ data:
         command: ["npm"]
         args: ["run", "sidecar-test"]
         ports:
-          - containerPort: 8080
+          - containerPort: 9191
         volumeMounts:
           - name: envoy-conf
             mountPath: /etc/envoy/config

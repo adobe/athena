@@ -10,6 +10,7 @@ spec:
     metadata:
       labels:
         app: sidecar-injector
+        role: sidecar
     spec:
       containers:
         - name: sidecar-injector
