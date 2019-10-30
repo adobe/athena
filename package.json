@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "node atena.js",
+    "monitor": "node src/monitor/index.js",
     "test": "mocha ./tests/**/*.test.js",
     "test-coverage": "nyc npm run test",
     "test-coverage-html": "nyc --reporter=html npm run test",
@@ -12,6 +13,7 @@
   "dependencies": {
     "@elastic/elasticsearch": "^7.4.0",
     "@hapi/joi": "^15.1.1",
+    "@koa/router": "^8.0.2",
     "acorn-loose": "^7.0.0",
     "autocannon": "^4.0.0",
     "babel-eslint": "^10.0.3",
@@ -26,6 +28,7 @@
     "joi": "^14.3.1",
     "js-beautify": "^1.10.2",
     "js-yaml": "^3.13.1",
+    "koa": "^2.11.0",
     "list": "^2.0.19",
     "lodash": "^4.17.15",
     "mocha": "^6.2.0",
