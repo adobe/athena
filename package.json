@@ -2,11 +2,11 @@
   "name": "atena",
   "version": "1.0.0",
   "scripts": {
-    "start": "node atena.js",
+    "start": "sudo node atena.js",
     "test": "mocha ./tests/**/*.test.js",
     "create-cluster": "./scripts/create_cluster.sh",
-    "sidecar": "node ./src/sidecar/webHookMutating.js",
-    "migrate": "node ./scripts/elasticsearch_migrate.js",
+    "sidecar": "sudo node ./src/sidecar/webHookMutating.js",
+    "migrate": "sudo node ./scripts/elasticsearch_migrate.js",
     "sidecar-test": "./scripts/run_tests.sh"
   },
   "dependencies": {

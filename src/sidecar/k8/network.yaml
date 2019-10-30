@@ -1,18 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-network-policy
-  namespace: default
+  name: allow-all
 spec:
-  podSelector:
-    matchLabels:
-      role: sidecar
+  podSelector: {}
+  egress:
+    - {}
   policyTypes:
     - Egress
-  egress:
-    - to:
-        - ipBlock:
-            cidr: 8.8.8.0/24
-      ports:
-        - protocol: TCP
-          port: 80

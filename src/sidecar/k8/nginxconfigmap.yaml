@@ -62,46 +62,36 @@ data:
       "resources": [{
           "@type": "type.googleapis.com/envoy.api.v2.Cluster",
           "name": "targetCluster",
-                "connect_timeout": "0.25s",
-                "lb_policy": "ROUND_ROBIN",
-                "type": "EDS",
-                "eds_cluster_config": {
-                    "service_name": "localservices",
-                    "eds_config": {
-                        "path": "/etc/envoy/config/eds.conf"
-                    }
+            "connect_timeout": "0.25s",
+            "lb_policy": "ROUND_ROBIN",
+            "type": "strict_dns",
+            "max_concurent_streams": 10,
+            "max_requests_per_connection": 10,
+            "hosts": [{
+                "socket_address": {
+                    "address": "httpbin.org",
+                    "port_value": 80
                 }
+            }]
       }]
     }
   eds.conf: |
     {
-      "version_info": "0",
-      "resources": [{
-        "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-        "cluster_name": "localservices",
-        "endpoints": [{
-          "lb_endpoints": [{
-            "endpoint": {
-              "address": {
-                "socket_address": {
-                  "address": "8.8.8.8",
-                  "port_value": 80
-                }
-              }
-            }
-          },
-            {
-            "endpoint": {
-              "address": {
-                "socket_address": {
-                  "address": "8.8.8.8",
-                  "port_value": 80
-                }
-              }
-            }
-          }]
-        }]
-      }]
+    	"version_info": "0",
+    	"resources": [{
+    		"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+    		"cluster_name": "localservices",
+    		"type": "strict_dns",
+    		"max_concurent_streams": 10,
+    		"max_requests_per_connection": 10,
+    		"lb_type": "round_robin",
+    		"hosts": [{
+    			"socket_address": {
+    				"address": "httpbin.org",
+    				"port_value": 80
+    			}
+    		}]
+    	}]
     }
   rds.conf: |
     {
@@ -119,7 +109,7 @@ data:
     					"routes": [
     						{
     							"match": {
-    								"prefix": "/service/1"
+    								"prefix": "/anything"
     							},
     							"route": {
     								"cluster": "targetCluster"
@@ -127,7 +117,7 @@ data:
     						},
     						{
     							"match": {
-    								"prefix": "/service/2"
+    								"prefix": "/get"
     							},
     							"route": {
     								"cluster": "targetCluster"
