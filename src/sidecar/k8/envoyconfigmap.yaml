@@ -64,15 +64,9 @@ data:
           "name": "targetCluster",
             "connect_timeout": "0.25s",
             "lb_policy": "ROUND_ROBIN",
-            "type": "strict_dns",
+            "type": "original_dst",
             "max_concurent_streams": 10,
-            "max_requests_per_connection": 10,
-            "hosts": [{
-                "socket_address": {
-                    "address": "httpbin.org",
-                    "port_value": 80
-                }
-            }]
+            "max_requests_per_connection": 10
       }]
     }
   eds.conf: |
