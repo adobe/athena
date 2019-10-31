@@ -3,7 +3,7 @@
 
 #docker push atrifan/athena:v1
 
-kubectl delete -f ../nginxconfigmap.yaml
+kubectl delete -f ../envoyconfigmap.yaml
 kubectl delete -f ../configmap.yaml
 kubectl delete -f ../deployment.yaml
 kubectl delete -f ../service.yaml

@@ -5,7 +5,7 @@ metadata:
 data:
   sidecarconfig.yaml: |
     containers:
-      - name: sidecar-nginx
+      - name: sidecar-athena
         image: atrifan/athena:v1
         hostNetwork: true
         hostPid: true
