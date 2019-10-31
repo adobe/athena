@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: sleep
+  name: nginx
 spec:
   replicas: 1
   template:
@@ -9,24 +9,61 @@ spec:
       annotations:
         sidecar-injector-webhook.morven.me/inject: "yes"
       labels:
-        app: sleep
+        app: nginx
     spec:
       containers:
-        - name: sleep
-          image: tutum/curl
-          command: ["/bin/sleep","infinity"]
-          imagePullPolicy:
+        - name: sidecar-nginx
+          image: nginx:1.12.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9191
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx
+        volumes:
+          - name: nginx-conf
+            configMap:
+              name: nginx-configmap
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: sleep
+  name: nginx
   labels:
-    app: sleep
+    app: nginx
 spec:
   ports:
     - port: 80
-      targetPort: 8080
+      targetPort: 9191
       name: http
   selector:
     app: sleep
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap
+data:
+  data:
+    nginx.conf: |
+      worker_processes  8;
+
+      events {
+        worker_connections  1024;
+      }
+
+      http {
+        default_type  application/octet-stream;
+
+        sendfile        on;
+        keepalive_timeout  65;
+
+        server {
+          listen       9191;
+          server_name  default;
+
+          location / {
+              proxy_pass http://httpbin.org/$request_uri$is_args$args;
+          }
+        }
+      }
