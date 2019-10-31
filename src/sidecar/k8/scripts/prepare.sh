@@ -18,7 +18,7 @@ cat ../mutatingwebhook.yaml | \
     ../webhook-patch-ca-bundle.sh > \
     ../mutatingwebhook-ca-bundle.yaml
 
-kubectl create -f ../nginxconfigmap.yaml
+kubectl create -f ../envoyconfigmap.yaml
 kubectl create -f ../configmap.yaml
 kubectl create -f ../deployment.yaml
 kubectl create -f ../service.yaml

@@ -12,18 +12,18 @@ spec:
         app: nginx
     spec:
       containers:
-        - name: sidecar-nginx
+        - name: nginx
           image: nginx:1.12.2
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 9191
+            - containerPort: 9292
           volumeMounts:
             - name: nginx-conf
               mountPath: /etc/nginx
-        volumes:
-          - name: nginx-conf
-            configMap:
-              name: nginx-configmap
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-configmap
 ---
 apiVersion: v1
 kind: Service
@@ -34,36 +34,35 @@ metadata:
 spec:
   ports:
     - port: 80
-      targetPort: 9191
+      targetPort: 9292
       name: http
   selector:
-    app: sleep
+    app: nginx
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-configmap
 data:
-  data:
-    nginx.conf: |
-      worker_processes  8;
+  nginx.conf: |
+    worker_processes  8;
 
-      events {
-        worker_connections  1024;
-      }
+    events {
+      worker_connections  1024;
+    }
 
-      http {
-        default_type  application/octet-stream;
+    http {
+      default_type  application/octet-stream;
 
-        sendfile        on;
-        keepalive_timeout  65;
+      sendfile        on;
+      keepalive_timeout  65;
 
-        server {
-          listen       9191;
-          server_name  default;
+      server {
+        listen       9292;
+        server_name  default;
 
-          location / {
-              proxy_pass http://httpbin.org/$request_uri$is_args$args;
-          }
+        location / {
+            proxy_pass http://httpbin.org/$request_uri$is_args$args;
         }
       }
+    }
