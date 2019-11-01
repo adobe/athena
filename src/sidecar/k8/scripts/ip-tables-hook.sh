@@ -10,7 +10,7 @@ prerouting() {
 }
 
 postrouting() {
-    sudo iptables --match multiport -t nat -A OUTPUT -p tcp -m owner ! --uid-owner sidecar --dports 80,443 -j DNAT --to-destination 127.0.0.1:9191
+    sudo iptables --match multiport -t nat -A OUTPUT -p tcp -m owner ! --uid-owner sidecar --dports 80,443 -j REDIRECT --to-ports 9191
 }
 
 postrouting

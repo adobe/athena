@@ -12,7 +12,7 @@ data:
                 "address": {
                     "socket_address": {
                         "address": "0.0.0.0",
-                        "port_value": 10000
+                        "port_value": 9191
                     }
                 },
                 "filter_chains": [
@@ -50,8 +50,53 @@ data:
                                         }
                                     ]
                                 }
-                            }
+                            },
+                            {
+                              "name": "envoy.http_connection_manager",
+                              "config": {
+                                  "stat_prefix": "ingress_http",
+                                  "codec_type": "AUTO",
+                                  "route_config": {
+                                      "name": "local_route",
+                                      "virtual_hosts": [
+                                          {
+                                              "name": "local_service",
+                                              "domains": [
+                                                  "google.com"
+                                              ],
+                                              "routes": [
+                                                  {
+                                                      "match": {
+                                                          "prefix": "/"
+                                                      },
+                                                      "route": {
+                                                          "cluster": "targetCluster"
+                                                      }
+                                                  }
+                                              ]
+                                          }
+                                      ]
+                                  },
+                                  "http_filters": [
+                                      {
+                                        "name": "envoy.lua",
+                                        "typed_config": {
+                                          "@type": "type.googleapis.com/envoy.config.filter.http.lua.v2.Lua",
+                                          "inline_code": "function envoy_on_request(request_handle) request_handle:respond({[':status'] = '403'},'nope')end"
+                                        }
+                                      },
+                                      {
+                                          "name": "envoy.router"
+                                      }
+                                  ]
+                              }
+                          }
                         ]
+                    }
+                ],
+                "listener_filters": [
+                    {
+                      "name": "envoy.listener.original_dst"
                     }
                 ]
         }]
@@ -65,6 +110,9 @@ data:
             "type": "ORIGINAL_DST",
               "connect_timeout": "6s",
               "dns_lookup_family": "V4_ONLY",
+              "http_protocol_options": {
+                "accept_http_10": "true"
+              },
               "lb_policy": "ORIGINAL_DST_LB"
       }]
     }
@@ -129,27 +177,29 @@ data:
     dynamic_resources:
       cds_config:
         path: /etc/envoy/config/cds.conf
+      lds_config:
+        path: "/etc/envoy/config/lds.conf"
 
-    static_resources:
-      listeners:
-        - address:
-            socket_address:
-              address: 0.0.0.0
-              port_value: 9191
-          filter_chains:
-            - filters:
-                - name: envoy.http_connection_manager
-                  config:
-                    codec_type: auto
-                    stat_prefix: ingress_http
-                    rds:
-                      route_config_name: local_route
-                      config_source:
-                        path: /etc/envoy/config/rds.conf
-                    http_filters:
-                      - name: envoy.router
-          listener_filters:
-            - name: envoy.listener.original_dst
+#    static_resources:
+#      listeners:
+#        - address:
+#            socket_address:
+#              address: 0.0.0.0
+#              port_value: 9191
+#          filter_chains:
+#            - filters:
+#                - name: envoy.http_connection_manager
+#                  config:
+#                    codec_type: auto
+#                    stat_prefix: ingress_http
+#                    rds:
+#                      route_config_name: local_route
+#                      config_source:
+#                        path: /etc/envoy/config/rds.conf
+#                    http_filters:
+#                      - name: envoy.router
+#          listener_filters:
+#            - name: envoy.listener.original_dst
 ---
 apiVersion: v1
 kind: ConfigMap

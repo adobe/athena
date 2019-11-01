@@ -15,7 +15,7 @@ spec:
       containers:
         - name: sidecar-injector
           image: atrifan/athena:v1
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           command: ["npm"]
           args: ["run", "sidecar"]
 #          args:
