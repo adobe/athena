@@ -5,9 +5,6 @@ const app = new Koa();
 
 const router = require('./routes').router;
 
-// DB
-// app.context.db = db();
-
 // Error handling
 app.on('error', (err, ctx) => {
     console.error('server error', err, ctx)
@@ -32,4 +29,4 @@ app.use(async (ctx, next) => {
 app.use(router.routes()).use(router.allowedMethods());
 
 // Run
-app.listen(3000);
+app.listen(8080);
