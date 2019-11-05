@@ -20,7 +20,7 @@ data:
           - name: envoy-conf
             mountPath: /etc/envoy/config
           - name: perf-conf
-            mountPath: /etc/tests
+            mountPath: /usr/src/app/examples
     volumes:
       - name: envoy-conf
         configMap:

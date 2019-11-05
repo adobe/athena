@@ -29,7 +29,7 @@ const {
 } = require("../utils");
 
 // todo: load dynamically
-const customPlugin = require("./../../examples/plugins/generatedPlugin");
+const customPlugin = require("./examples/plugins/generatedPlugin");
 
 // todo: move filter class in separate file
 class Filter {

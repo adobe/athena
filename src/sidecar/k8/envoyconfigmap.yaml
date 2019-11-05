@@ -3,165 +3,89 @@ kind: ConfigMap
 metadata:
   name: envoy-conf
 data:
-  lds.conf: |
-    {
-        "version_info": "0",
-        "resources": [{
-                "@type": "type.googleapis.com/envoy.api.v2.Listener",
-                "name": "listener_0",
-                "address": {
-                    "socket_address": {
-                        "address": "0.0.0.0",
-                        "port_value": 9191
-                    }
-                },
-                "filter_chains": [
-                    {
-                        "filters": [
-                            {
-                                "name": "envoy.http_connection_manager",
-                                "config": {
-                                    "stat_prefix": "ingress_http",
-                                    "codec_type": "AUTO",
-                                    "route_config": {
-                                        "name": "local_route",
-                                        "virtual_hosts": [
-                                            {
-                                                "name": "local_service",
-                                                "domains": [
-                                                    "*"
-                                                ],
-                                                "routes": [
-                                                    {
-                                                        "match": {
-                                                            "prefix": "/"
-                                                        },
-                                                        "route": {
-                                                            "cluster": "targetCluster"
-                                                        }
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    },
-                                    "http_filters": [
-                                        {
-                                            "name": "envoy.router"
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                              "name": "envoy.http_connection_manager",
-                              "config": {
-                                  "stat_prefix": "ingress_http",
-                                  "codec_type": "AUTO",
-                                  "route_config": {
-                                      "name": "local_route",
-                                      "virtual_hosts": [
-                                          {
-                                              "name": "local_service",
-                                              "domains": [
-                                                  "google.com"
-                                              ],
-                                              "routes": [
-                                                  {
-                                                      "match": {
-                                                          "prefix": "/"
-                                                      },
-                                                      "route": {
-                                                          "cluster": "targetCluster"
-                                                      }
-                                                  }
-                                              ]
-                                          }
-                                      ]
-                                  },
-                                  "http_filters": [
-                                      {
-                                        "name": "envoy.lua",
-                                        "typed_config": {
-                                          "@type": "type.googleapis.com/envoy.config.filter.http.lua.v2.Lua",
-                                          "inline_code": "function envoy_on_request(request_handle) request_handle:respond({[':status'] = '403'},'nope')end"
-                                        }
-                                      },
-                                      {
-                                          "name": "envoy.router"
-                                      }
-                                  ]
-                              }
-                          }
-                        ]
-                    }
-                ],
-                "listener_filters": [
-                    {
-                      "name": "envoy.listener.original_dst"
-                    }
-                ]
-        }]
-    }
-  cds.conf: |
-    {
-      "version_info": "0",
-      "resources": [{
-          "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-          "name": "targetCluster",
-            "type": "ORIGINAL_DST",
-              "connect_timeout": "6s",
-              "dns_lookup_family": "V4_ONLY",
-              "http_protocol_options": {
-                "accept_http_10": "true"
-              },
-              "lb_policy": "ORIGINAL_DST_LB"
-      }]
-    }
-  eds.conf: |
-    {
-    	"version_info": "0",
-    	"resources": [{
-    		"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-    		"cluster_name": "localservices",
-    		"type": "strict_dns",
-    		"max_concurent_streams": 10,
-    		"max_requests_per_connection": 10,
-    		"lb_type": "round_robin",
-    		"hosts": [{
-    			"socket_address": {
-    				"address": "httpbin.org",
-    				"port_value": 80
-    			}
-    		}]
-    	}]
-    }
-  rds.conf: |
-    {
-    	"version_info": "0",
-    	"resources": [
-    		{
-    			"@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
-    			"name": "local_route",
-    			"virtual_hosts": [
-    				{
-    					"name": "backend",
-    					"domains": [
-    						"*"
-    					],
-    					"routes": [
-    						{
-    							"match": {
-    								"prefix": "/"
-    							},
-    							"route": {
-    								"cluster": "targetCluster"
-    							}
-    						}
-    					]
-    				}
-    			]
-    		}
-    	]
-    }
+  lds.yaml: |
+    version_info: '0'
+    resources:
+      - "@type": type.googleapis.com/envoy.api.v2.Listener
+        name: listener_0
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 9191
+        filter_chains:
+          - filters:
+              - name: envoy.http_connection_manager
+                config:
+                  stat_prefix: ingress_http
+                  codec_type: AUTO
+                  route_config:
+                    name: local_route
+                    virtual_hosts:
+                      - name: local_service
+                        domains:
+                          - "*"
+                        routes:
+                          - match:
+                              prefix: "/"
+                            route:
+                              cluster: targetCluster
+                  http_filters:
+                    - name: envoy.lua
+                      typed_config:
+                        "@type": type.googleapis.com/envoy.config.filter.http.lua.v2.Lua
+                        inline_code: |
+                          function envoy_on_request(request)
+                            local headers = request:headers()
+                            local authority = headers:get(":authority")
+                            if authority == "google.com" then
+                              request:respond({[":status"] = 403}, "nope")
+                            end
+                          end
+
+                          function envoy_on_response(respons_handle)
+                          end
+                    - name: envoy.router
+        listener_filters:
+          - name: envoy.listener.original_dst
+
+  cds.yaml: |
+    version_info: '0'
+    resources:
+      - "@type": type.googleapis.com/envoy.api.v2.Cluster
+        name: targetCluster
+        type: ORIGINAL_DST
+        connect_timeout: 6s
+        dns_lookup_family: V4_ONLY
+        http_protocol_options:
+          accept_http_10: 'true'
+        lb_policy: ORIGINAL_DST_LB
+  eds.yaml: |
+    version_info: "0"
+    resources:
+      - "@type": type.googleapis.com/envoy.api.v2.ClusterLoadAssignment
+        cluster_name: localservices,
+        type: strict_dns
+        max_concurent_streams: 10
+        max_requests_per_connection: 10
+        lb_type: round_robin
+        hosts:
+          - socket_address:
+              - address: httpbin.org
+                port_value: 80
+  rds.yaml: |
+    version_info: "0"
+    resources:
+      - "@type": type.googleapis.com/envoy.api.v2.RouteConfiguration
+        name: local_route
+        virtual_hosts:
+          - name: backend
+            domains:
+              - "*"
+            routes:
+              - match:
+                  prefix: /
+                route:
+                  cluster: targetCluster
   envoy.yaml: |
     node:
       id: id_1
@@ -176,9 +100,9 @@ data:
 
     dynamic_resources:
       cds_config:
-        path: /etc/envoy/config/cds.conf
+        path: /etc/envoy/config/cds.yaml
       lds_config:
-        path: "/etc/envoy/config/lds.conf"
+        path: "/etc/envoy/config/lds.yaml"
 
 #    static_resources:
 #      listeners:
@@ -236,9 +160,7 @@ data:
     engine: autocannon
     type: perfRun
     config:
-      url: https://api-gateway-qe-a-ue1.adobe.io/static-backend/blacklist
-      headers:
-        host: api-dm-performance-testing-qe.adobe.io
+      url: http://nginx/google
       connections: 2000
       duration: 120
     hooks:
@@ -273,7 +195,7 @@ data:
       - ref: "prod"
         version: "1.0"
         config: # Default config for perfRuns
-          url: "http://nginx/get"
+          url: http://nginx/google
           socketPath: "" # not implemented
           connections: 100
           duration: ""
