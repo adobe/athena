@@ -10,22 +10,22 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const {makeLogger} = require("./../utils");
+const {makeLogger} = require('./../utils');
 
 class Engine {
-    constructor(settings, entityManager, pluginManager, taxonomy, name, engine) {
-        this.entityManager = entityManager;
-        this.pluginManager = pluginManager;
-        this.settings = settings;
-        this.taxonomy = taxonomy;
-        this.name = name;
-        this.engine = engine;
-        this.log = makeLogger();
-        this.entities = [];
-    }
+  constructor(settings, entityManager, pluginManager, taxonomy, name, engine) {
+    this.entityManager = entityManager;
+    this.pluginManager = pluginManager;
+    this.settings = settings;
+    this.taxonomy = taxonomy;
+    this.name = name;
+    this.engine = engine;
+    this.log = makeLogger();
+    this.entities = [];
+  }
 
     run = () => {
-        throw new Error(`${this.name} engine not implementing run method!`);
+      throw new Error(`${this.name} engine not implementing run method!`);
     };
 }
 

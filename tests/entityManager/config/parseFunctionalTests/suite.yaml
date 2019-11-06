@@ -1,0 +1,12 @@
+type: suite
+name: parentSuite
+engine: chakram
+description: this is a suite that has one test referencing it
+hooks:
+  beforeEach:
+  before:
+  after:
+  afterEach:
+  skip:
+config:
+  timeout:

@@ -1,0 +1,5 @@
+name: testPerfRun
+version: 1.0
+description: perf run used for testing
+engine: autocannon
+type: perfRun

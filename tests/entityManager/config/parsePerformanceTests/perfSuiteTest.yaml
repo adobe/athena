@@ -1,0 +1,8 @@
+name: testPerfSuite
+description: descriptiona
+engine: autocannon
+type: perfSuite
+hooks:
+config:
+pattern:
+  - ref: testPerfPattern

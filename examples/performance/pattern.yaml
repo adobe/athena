@@ -3,7 +3,7 @@ version: "1.0"
 description: ""
 engine: autocannon
 type: perfPattern
-mix:
+runs:
   - ref: "apiKey"
     version: "1.0"
     weight: 20%

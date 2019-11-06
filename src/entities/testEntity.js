@@ -10,24 +10,26 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Entity = require("./entity"),
-    {ENTITY_TYPES} = require('./../enums');
+const Entity = require('./entity');
+const {ENTITY_TYPES} = require('./../enums');
 
+/**
+ * Creates a new TestEntity instance.
+ */
 class TestEntity extends Entity {
-    constructor(name, path, config) {
-        super(name, path, config);
+  /**
+     * Creates a new TestEntity instance.
+     * @param {string} name The name.
+     * @param {string} path The path.
+     * @param {object} config The config object.
+     */
+  constructor(name, path, config) {
+    super(name, path, config);
 
-        this.setType(ENTITY_TYPES.TEST);
+    this.setType(ENTITY_TYPES.TEST);
 
-        this.validate();
-    }
+    this.validate();
+  }
 }
 
-class ChakramTest extends TestEntity {
-    constructor(name, path, config) {
-        super(name, path, config);
-    }
-}
-
-exports.TestEntity = TestEntity;
-exports.ChakramTest = ChakramTest;
+module.exports = TestEntity;

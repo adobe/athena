@@ -19,6 +19,8 @@
   - [What can Athena do?](#what-can-athena-do)
   - [How it Works](#how-it-works)
   - [Getting Started](#getting-started)
+- [Developer Guide](#developer-guide)
+  - [Coding Standards](#coding-standards)
 - [Distributed Load Testing](#distributed-load-testing)
   - [Creating a new Cluster](#creating-a-new-cluster)
     - [Standalone](#standalone)
@@ -99,6 +101,13 @@ You can start using Athena right away and run either performance and functional 
 node athena.js -t ./custom_tests_path --[performance|functional]
 ```
 
+### Developer Guide
+
+TBD
+
+#### Coding Standards
+
+Athena uses [ESLint](https://eslint.org/) for linting and it is following the [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html) with a couple of minor adjustments. If you are using IntelliJ as your preferred IDE, make sure to follow [this guide](https://www.jetbrains.com/help/idea/eslint.html) in order to learn more about integrating the two for a better development experience.
 
 ### Distributed Load Testing
 

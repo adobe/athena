@@ -1,7 +1,9 @@
-type: ssuite
+type: suite
 name: ccecoSuite # required
 engine: chakram # required for top level suite, nested values are ignored.
 description: some string
+tests:
+  - ref: ccecoTest
 dependecy:
   - name: cceco
     type: api
@@ -16,6 +18,6 @@ hooks:
 config:
   timeout: 10
   #think of other stuff
-scenario: #will run given inside the test
+scenario: # will run given inside the test
   given: >
     this.host = "override.host"

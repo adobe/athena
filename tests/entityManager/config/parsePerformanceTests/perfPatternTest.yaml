@@ -1,0 +1,7 @@
+name: testPerfPattern
+version: 1.0
+description: perf pattern used for testing
+engine: autocannon
+type: perfPattern
+runs:
+  - ref: testPerfRun
