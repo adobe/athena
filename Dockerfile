@@ -12,7 +12,7 @@ RUN adduser --disabled-password --disabled-login --gecos "" sidecar && echo "sid
 RUN echo "sidecar ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 USER sidecar
 
-WORKDIR /usr/src/app
+WORKDIR /etc/app
 COPY . .
 RUN sudo npm install
 EXPOSE 5000-5100

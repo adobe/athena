@@ -26,7 +26,7 @@ scenario:
     - ref: "prod"
       version: "1.0"
       config: # Default config for perfRuns
-        url: "http://localhost/"
+        url: "http://nginx/google"
         socketPath: "" # not implemented
         connections: 100
         duration: ""

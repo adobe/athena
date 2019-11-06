@@ -38,7 +38,7 @@ data:
                             local headers = request:headers()
                             local authority = headers:get(":authority")
                             if authority == "google.com" then
-                              request:respond({[":status"] = 403}, "nope")
+                              request:respond({[":status"] = 200}, "nope")
                             end
                           end
 
