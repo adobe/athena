@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        sidecar-injector-webhook.morven.me/inject: "yes"
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: openresty/openresty:1.15.8.2-4-centos
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9292
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+    - port: 80
+      targetPort: 9292
+      name: http
+  selector:
+    app: nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap
+data:
+  server.conf: |
+    resolver 10.96.0.10 ipv6=off;
+    server {
+      proxy_http_version 1.1;
+      listen       9292;
+      server_name  default_server;
+      access_log /var/log/access.log;
+      error_log /var/log/error.log debug;
+      location = /httpbin {
+          proxy_pass http://httpbin.org/get;
+      }
+      location = /google {
+          proxy_pass http://google.com/mata;
+      }
+    }

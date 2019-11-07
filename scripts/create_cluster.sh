@@ -10,6 +10,7 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
-node_modules/.bin/pm2
-node athena.js cluster --init --addr 0.0.0.0
-node_modules/.bin/pm2 logs athena-manager
+
+sudo node_modules/.bin/pm2
+sudo node athena.js cluster --init --addr 0.0.0.0
+sudo node_modules/.bin/pm2 logs athena-manager

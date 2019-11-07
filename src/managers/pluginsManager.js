@@ -28,8 +28,6 @@ const {
   getPackageInstallCommand,
 } = require('../utils');
 
-// todo: load dynamically
-const customPlugin = require('./../../examples/plugins/generatedPlugin');
 
 // todo: move filter class in separate file
 class Filter {
@@ -51,9 +49,6 @@ class PluginsManager {
     this.entityManager = entityManager;
 
     this._parseFixtures();
-
-    // todo: parse plugins dynamically
-    customPlugin(this);
   }
 
   // public
