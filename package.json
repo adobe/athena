@@ -44,7 +44,9 @@
     "uuid": "^3.3.3",
     "yaml-joi": "^1.1.1",
     "yargs": "^13.3.0",
-    "body-parser": "latest"
+    "body-parser": "latest",
+    "koa": "^2.11.0",
+    "koa-router": "^7.4.0"
   },
   "engineStrict": true,
   "engines": {
