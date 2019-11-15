@@ -1,7 +1,7 @@
 name: perf
 description: someDescr
 engine: autocannon
-type: perfTest
+type: perfSuite
 dependecy:
   - name: cceco
     type: api # ??
