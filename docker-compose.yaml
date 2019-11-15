@@ -1,18 +1,18 @@
 version: '3.7'
 services:
-  athena:
-    container_name: athena
-    ports:
-      - "5000-5100:5000-5100"
-    build: .
-    volumes:
-      - ./:/usr/src/app
-    depends_on:
-      - elasticsearch
-      - elasticsearch2
-    networks:
-      - elastic
-      - ingress
+#  athena:
+#    container_name: athena
+#    ports:
+#      - "5000-5100:5000-5100"
+#    build: .
+#    volumes:
+#      - ./:/usr/src/app
+#    depends_on:
+#      - elasticsearch
+#      - elasticsearch2
+#    networks:
+#      - elastic
+#      - ingress
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
     container_name: elasticsearch1

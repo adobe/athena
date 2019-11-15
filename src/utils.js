@@ -16,7 +16,7 @@ const path = require('path');
 const os = require('os');
 
 // External
-const chalk = require('chalk').default;
+const chalk = require('chalk');
 const argv = require('yargs').argv;
 const AstParser = require('acorn-loose');
 const Joi = require('@hapi/joi');
@@ -105,9 +105,7 @@ function getParsedSettings(options = {}) {
     options.functional = false;
   }
 
-  const final = {...defaults, ...cliArgs, ...options};
-
-  return final;
+  return {...defaults, ...cliArgs, ...options};
 }
 
 exports.getParsedSettings = getParsedSettings;

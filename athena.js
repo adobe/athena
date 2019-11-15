@@ -138,7 +138,7 @@ settings = getParsedSettings(options);
  * @return {boolean} True if the provided commands were used, false otherwise.
  */
 const requiredCommands = (...commands) => {
-  return settings._.every((cmd) => commands.indexOf(cmd) !== -1);
+  return settings._.some((cmd) => commands.indexOf(cmd) !== -1);
 };
 
 // Define conditions.

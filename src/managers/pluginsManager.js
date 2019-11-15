@@ -109,7 +109,8 @@ class PluginsManager {
 
     _parseFixtures = () => {
       const fixtures = this.entityManager.getAllFixtures(true);
-      const usedPackages = fixtures.map(this._parseUsedPackages).filter(String);
+      // const usedPackages = fixtures.map(this._parseUsedPackages).filter(String);
+      const usedPackages = false;
 
       if (usedPackages.length) {
         const spinner = startSpinner(`Installing ${usedPackages.length} fixtures module${usedPackages.length === 1 ? '' : 's'} ...\n`);

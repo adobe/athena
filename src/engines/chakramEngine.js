@@ -95,8 +95,6 @@ class ChakramEngine extends Engine {
 
   _parseFunctionalEntities = () => {
     const functionalSuites = this.entityManager.getAllFunctionalSuites();
-
-    console.log(functionalSuites);
   };
 
   _registerEntities = (entity) => {
