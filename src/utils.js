@@ -222,11 +222,24 @@ function removeEmpty(obj) {
   return Object.keys(obj)
       .filter((k) => obj[k] != null)
       .reduce(
-          (newObj, k) =>
-                typeof obj[k] === 'object' ?
-                    {...newObj, [k]: removeEmpty(obj[k])} :
-                    {...newObj, [k]: obj[k]},
-          {}
+          (newObj, k) => {
+            if (typeof obj[k] === 'object' && !(obj[k] instanceof Array)) {
+              return {...newObj, [k]: removeEmpty(obj[k])};
+            } else if (typeof obj[k] === 'object' && (obj[k] instanceof Array)) {
+              var oldArray = obj[k]
+              var newArray = new Array();
+
+              for (var i in oldArray) {
+                newArray = [...newArray, removeEmpty(oldArray[i])];
+              }
+
+              newObj[k] = newArray;
+
+              return newObj;
+            } else {
+              return {...newObj, [k]: obj[k]};
+            }
+          }, {},
       );
 }
 
