@@ -59,26 +59,15 @@ exports.makeLogger = makeLogger;
 exports.log = log;
 
 /**
- * Returns the CLI arguments, if any.
- * @return {commander.CommanderStatic | commander}
- */
-function getCliArgs() {
-  return {};
-}
-
-exports.getCliArgs = getCliArgs;
-
-/**
  * Returns the parsed settings based on the CLI args and defaults set.
  * @return object The parsed settings.
  */
 function getParsedSettings(options = {}) {
   const defaults = {};
-  const cliArgs = getCliArgs();
 
   defaults.examplesDir = CONFIG.EXAMPLES_DIR;
   defaults.basePath = CONFIG.BASEPATH;
-  defaults.testsDir = cliArgs.testsPath;
+  defaults.testsDir = options.tests || defaults.examplesDir;
   defaults.performance = false;
   defaults.functional = false;
 
@@ -91,7 +80,7 @@ function getParsedSettings(options = {}) {
   }
 
   // Define the default plugins directory.
-  defaults.pluginsDir = cliArgs.pluginsDir || CONFIG.PLUGINS_DIR;
+  defaults.pluginsDir = options.plugins || CONFIG.PLUGINS_DIR;
 
   // Define the proper paths for all the directories defined above.
   defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
@@ -105,7 +94,7 @@ function getParsedSettings(options = {}) {
     options.functional = false;
   }
 
-  return {...defaults, ...cliArgs, ...options};
+  return {...defaults, ...options};
 }
 
 exports.getParsedSettings = getParsedSettings;
