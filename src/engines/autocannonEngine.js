@@ -16,6 +16,8 @@ const autocannon = require('autocannon');
 // project
 const Engine = require('./engine');
 const {TAXONOMIES, ENGINES} = require('./../enums');
+const L = require('list/methods');
+
 const {
     makeLogger,
     isPerformanceTest,
@@ -34,12 +36,7 @@ class AutocannonEngine extends Engine {
         autocannon
     );
 
-    // const perfEntities = this.entityManager.getAllBy(
-    //     'engine',
-    //     this.name
-    // );
-    //
-    // this.entities = perfEntities.map(this._deepParseEntities);
+    this.entities = L.toArray(this.entityManager.getAllPerformanceSuites());
   }
 
     run = (testsConfig = null, cb = null) => {
@@ -177,25 +174,6 @@ class AutocannonEngine extends Engine {
 
       console.log(results);
     };
-
-    _deepParseEntities = (entity) => {
-      entity.setTaxonomy(this.taxonomy);
-
-      // todo: flatten the config
-      if (isPerformanceTest(entity) && entity.hasPerfPatterns()) {
-        entity.perfPatterns = entity.perfPatterns.map(this._deepParseEntities);
-
-        return entity;
-      }
-
-      if (isPerformancePattern(entity) && entity.hasPerfRuns()) {
-        entity.perfRuns = entity.perfRuns.map(this._deepParseEntities);
-
-        return entity;
-      }
-
-      return entity;
-    }
 }
 
 module.exports = AutocannonEngine;

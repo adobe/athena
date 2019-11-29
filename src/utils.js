@@ -16,7 +16,7 @@ const path = require('path');
 const os = require('os');
 
 // External
-const chalk = require('chalk').default;
+const chalk = require('chalk');
 const argv = require('yargs').argv;
 const AstParser = require('acorn-loose');
 const Joi = require('@hapi/joi');
@@ -59,26 +59,15 @@ exports.makeLogger = makeLogger;
 exports.log = log;
 
 /**
- * Returns the CLI arguments, if any.
- * @return {commander.CommanderStatic | commander}
- */
-function getCliArgs() {
-  return {};
-}
-
-exports.getCliArgs = getCliArgs;
-
-/**
  * Returns the parsed settings based on the CLI args and defaults set.
  * @return object The parsed settings.
  */
 function getParsedSettings(options = {}) {
   const defaults = {};
-  const cliArgs = getCliArgs();
 
   defaults.examplesDir = CONFIG.EXAMPLES_DIR;
   defaults.basePath = CONFIG.BASEPATH;
-  defaults.testsDir = cliArgs.testsPath;
+  defaults.testsDir = options.tests || defaults.examplesDir;
   defaults.performance = false;
   defaults.functional = false;
 
@@ -91,7 +80,7 @@ function getParsedSettings(options = {}) {
   }
 
   // Define the default plugins directory.
-  defaults.pluginsDir = cliArgs.pluginsDir || CONFIG.PLUGINS_DIR;
+  defaults.pluginsDir = options.plugins || CONFIG.PLUGINS_DIR;
 
   // Define the proper paths for all the directories defined above.
   defaults.examplesDirPath = path.resolve(defaults.basePath, defaults.examplesDir);
@@ -105,9 +94,7 @@ function getParsedSettings(options = {}) {
     options.functional = false;
   }
 
-  const final = {...defaults, ...cliArgs, ...options};
-
-  return final;
+  return {...defaults, ...options};
 }
 
 exports.getParsedSettings = getParsedSettings;
@@ -224,11 +211,24 @@ function removeEmpty(obj) {
   return Object.keys(obj)
       .filter((k) => obj[k] != null)
       .reduce(
-          (newObj, k) =>
-                typeof obj[k] === 'object' ?
-                    {...newObj, [k]: removeEmpty(obj[k])} :
-                    {...newObj, [k]: obj[k]},
-          {}
+          (newObj, k) => {
+            if (typeof obj[k] === 'object' && !(obj[k] instanceof Array)) {
+              return {...newObj, [k]: removeEmpty(obj[k])};
+            } else if (typeof obj[k] === 'object' && (obj[k] instanceof Array)) {
+              var oldArray = obj[k]
+              var newArray = new Array();
+
+              for (var i in oldArray) {
+                newArray = [...newArray, removeEmpty(oldArray[i])];
+              }
+
+              newObj[k] = newArray;
+
+              return newObj;
+            } else {
+              return {...newObj, [k]: obj[k]};
+            }
+          }, {},
       );
 }
 
