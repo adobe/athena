@@ -18,7 +18,7 @@ const {makeLogger} = require('./../utils');
 const log = makeLogger();
 
 class Storage {
-  constructor(url = 'http://localhost:9200') {
+  constructor(url = process.env.STORAGE_URI || 'http://localhost:9200') {
     this.client = new Client({
       node: url,
     });

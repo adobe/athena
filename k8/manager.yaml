@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: athena-manager
+  namespace: athena
+  labels:
+    app: athena-manager
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: athena-manager
+        role: manager
+    spec:
+      containers:
+        - name: athena-manager
+          image: atrifan/athena:v1
+          env:
+            - name: STORAGE_URI
+              value: "elastic-search:9200"
+          imagePullPolicy: IfNotPresent
+          command: ["node"]
+          args: ["athena.js", "cluster", "init", "--addr", "0.0.0.0"]
+          ports:
+            - containerPort: 5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: athena-manager
+  labels:
+    app: athena-manager
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+      name: http
+  selector:
+    app: athena-manager

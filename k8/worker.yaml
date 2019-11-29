@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: athena-worker
+  namespace: athena
+  labels:
+    app: athena-worker
+spec:
+  replicas: 8
+  template:
+    metadata:
+      labels:
+        app: athena-worker
+        role: worker
+    spec:
+      containers:
+        - name: athena-manager
+          image: atrifan/athena:v1
+          hostNetwork: true
+          hostPid: true
+          securityContext:
+            privileged: true
+          imagePullPolicy: IfNotPresent
+          command: ["node"]
+          args: ["athena.js", "cluster", "--join", "--token", "1", "athena-manager:5000"]
