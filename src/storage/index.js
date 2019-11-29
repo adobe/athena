@@ -23,7 +23,7 @@ dotenv.config()
 class Storage {
   constructor(url) {
       url = process.env.ELASTICSEARCH_URL;
-      if(url !== null && url !== '') {
+      if(url == null || url === '') {
           url = 'http://localhost:9200'
       }
 
