@@ -45,6 +45,11 @@
     "unique-names-generator": "^3.0.0",
     "uuid": "^3.3.3",
     "yaml-joi": "^1.1.1",
+    "body-parser": "latest",
+    "koa": "^2.11.0",
+    "@koa/router": "^8.0.2",
+    "@hapi/boom": "^8.0.1",
+    "koa-body": "^4.1.1",
     "yargs": "^13.3.0"
   },
   "engineStrict": true,
