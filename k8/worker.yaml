@@ -16,10 +16,6 @@ spec:
       containers:
         - name: athena-manager
           image: atrifan/athena:v1
-          hostNetwork: true
-          hostPid: true
-          securityContext:
-            privileged: true
           imagePullPolicy: IfNotPresent
           command: ["node"]
           args: ["athena.js", "cluster", "--join", "--token", "1", "athena-manager:5000"]

@@ -1,0 +1,154 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: elastic-master
+  namespace: athena
+  labels:
+    app: elastic-master
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: elastic-master
+    spec:
+      containers:
+        - name: elastic-master
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: node.name
+              value: elastic-master
+            - name: cluster.name
+              value: athena
+            - name: cluster.initial_master_nodes
+              value: elastic-master
+            - name: bootstrap.memory_lock
+              value: true
+            - name: ES_JAVA_OPTS
+              value: "Xms256M -Xmx256M"
+            - name: http.cors.enabled
+              value: true
+            - name: http.cors.allow-origin
+              value: *
+            - name: network.host
+              value: _eth0_
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elastic-master
+  labels:
+    app: elastic-master
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+      name: http
+    - port: 9300
+      targetPort: 9300
+      name: http
+  selector:
+    app: elastic-master
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: elastic-slave
+  namespace: athena
+  labels:
+    app: elastic-slave
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: elastic-slave
+    spec:
+      containers:
+        - name: elastic-slave
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: node.name
+              value: elastic-slave
+            - name: cluster.initial_master_nodes
+              value: elastic-master
+            - name: ES_JAVA_OPTS
+              value: "-Xms256M -Xmx256M"
+            - name: discovery.zen.ping.unicast.hosts
+              value: elastic-master
+            - name: http.cors.enabled
+              value: true
+            - name: http.cors.allow-origin
+              value: *
+            - name: network.host
+              value: _eth0_
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elastic-slave
+  labels:
+    app: elastic-slave
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+      name: http
+    - port: 9300
+      targetPort: 9300
+      name: http
+  selector:
+    app: elastic-slave
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: athena
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:7.4.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVER_NAME
+              value: kibana
+            - name: ELASTICSEARCH_URL
+              value: http://elastic-master:9200/
+          ports:
+            - containerPort: 5601
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  labels:
+    app: kibana
+spec:
+  ports:
+    - port: 5601
+      targetPort: 5601
+      name: http
+  selector:
+    app: kibana

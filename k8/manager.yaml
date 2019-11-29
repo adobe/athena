@@ -18,7 +18,7 @@ spec:
           image: atrifan/athena:v1
           env:
             - name: STORAGE_URI
-              value: "elastic-search:9200"
+              value: "elastic-master:9200"
           imagePullPolicy: IfNotPresent
           command: ["node"]
           args: ["athena.js", "cluster", "init", "--addr", "0.0.0.0"]
