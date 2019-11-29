@@ -16,10 +16,20 @@ const {Client} = require('@elastic/elasticsearch');
 // project
 const {makeLogger} = require('./../utils');
 const log = makeLogger();
+const dotenv = require('dotenv');
+
+dotenv.config()
 
 class Storage {
-  constructor(url = 'http://localhost:9200') {
-    this.client = new Client({
+  constructor(url) {
+      url = process.env.ELASTICSEARCH_URL;
+      if(url !== null && url !== '') {
+          url = 'http://localhost:9200'
+      }
+
+      log.info('Elasticsearch url is ', url);
+
+      this.client = new Client({
       node: url,
     });
   }
@@ -69,7 +79,7 @@ class Storage {
       });
       log.success(`Successfully stored new index [${index}] in ElasticSearch!`);
     } catch (error) {
-      log.warn(`Failed to store document of type "${type}": \n${error}`);
+      log.warn(`Failed to store document : \n${error}`);
     }
   }
 }
