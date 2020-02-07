@@ -328,3 +328,14 @@ exports.isPerformanceRun = makeDecoratedEntityCheckFunction(
     'type',
     ENTITY_TYPES.PERFORMANCE_RUN
 );
+
+/**
+ * Checks whether a given URL is a valid Git URL.
+ * @param {String} str The string.
+ */
+function isGitUrl(str) {
+  var regex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$/;
+  return regex.test(str);
+};
+
+exports.exports = isGitUrl;
