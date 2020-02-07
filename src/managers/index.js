@@ -14,8 +14,10 @@ const EntityManager = require('./entityManager');
 const PluginsManager = require('./pluginsManager');
 const EngineManager = require('./engineManager');
 const ScaffoldManager = require('./scaffoldManager');
+const KubernetesManager = require('./k8sManager');
 
 exports.EntityManager = EntityManager;
 exports.PluginsManager = PluginsManager;
 exports.EngineManager = EngineManager;
 exports.ScaffoldManager = ScaffoldManager;
+exports.KubernetesManager = KubernetesManager;
