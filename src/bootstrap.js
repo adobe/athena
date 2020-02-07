@@ -22,12 +22,13 @@ const {
   EngineManager,
   PluginsManager,
   ScaffoldManager,
+  KubernetesManager
 } = require('./managers');
 
 format.extend(String.prototype, {});
 
 class Athena {
-  constructor(options) { // settings !!!
+  constructor(options) {
     this.settings = getParsedSettings(options);
     this.cluster = null;
 
@@ -35,7 +36,8 @@ class Athena {
     // should be parsed either way and loaded in memory.
     this.entityManager = new EntityManager(this.settings);
     this.pluginManager = new PluginsManager(this.settings, this.entityManager);
-
+    this.k8sManager = new KubernetesManager();
+    
     // Initialize the engine manager.
     const [AutocannonEngine, ChakramEngine] = new EngineManager(
         this.settings,
