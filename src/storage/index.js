@@ -10,18 +10,13 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// external
-const {Client} = require('@elastic/elasticsearch');
-
-// project
+const storageClients = require('./clients');
 const {makeLogger} = require('./../utils');
 const log = makeLogger();
 
 class Storage {
-  constructor(url = 'http://localhost:9200') {
-    this.client = new Client({
-      node: url,
-    });
+  constructor() {
+    this.client = storageClients.elastic
   }
 
   async storeAgent(agent) {
@@ -56,6 +51,8 @@ class Storage {
       await this.client.bulk({
         body: actions,
       });
+
+      log.info(`Successfully stored bulk data in ElasticSearch!`);
     } catch (error) {
       log.warn(`Failed to handle bulk actions:\n${error}`);
     }
