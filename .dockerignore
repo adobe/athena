@@ -5,3 +5,4 @@ logs/*.log
 !logs/.gitkeep
 npm-debug.log
 .idea
+client
