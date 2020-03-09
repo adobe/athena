@@ -1,14 +1,21 @@
-name: "apiKey"
+name: "GTXTesting"
 version: "1.0"
-description: ""
+description: "GTX Throttling Testing"
 engine: autocannon
 type: perfRun
 config:
-  url: https://httpbin.org/get
+  url: https://api-gateway-cc-qa-va6-a.adobe.io/api-key-validation-only
   headers:
-  connections: 2000
-  duration: 30
-hooks:
-  onInit:
-  onDestroy:
-  onRequest:
+    host: "gtx-test.adobe.io"
+    "x-api-key": "api-dm-test-automation"
+  connections: 20
+  duration: 60
+  hooks:
+    onRequest: >
+      const uuid = require('uuid');
+      
+      return function(request) {
+          request.headers.push({
+            "X-Some-Header": uuid()
+          })
+      }

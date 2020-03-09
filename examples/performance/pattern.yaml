@@ -4,7 +4,7 @@ description: ""
 engine: autocannon
 type: perfPattern
 runs:
-  - ref: "apiKey"
+  - ref: "GTXTesting"
     version: "1.0"
     weight: 20%
     config:
