@@ -11,19 +11,11 @@ governing permissions and limitations under the License.
 */
 
 // external
-const {isFunction} = require('lodash');
 const format = require('string-format');
 
 // project
-const {COMMANDS} = require('./enums');
-const {log, getCliArgs, getParsedSettings} = require('./utils');
-const {
-  EntityManager,
-  EngineManager,
-  PluginsManager,
-  ScaffoldManager,
-  KubernetesManager
-} = require('./managers');
+const {getParsedSettings} = require('./utils');
+const {EntityManager, EngineManager, PluginsManager, KubernetesManager} = require('./managers');
 
 format.extend(String.prototype, {});
 
@@ -32,75 +24,33 @@ class Athena {
     this.settings = getParsedSettings(options);
     this.cluster = null;
 
-    // Initialize the entity and plugins managers as tests and plugins
-    // should be parsed either way and loaded in memory.
+    // Initialize the entity and plugins managers as tests and plugins should be
+    // parsed either way and loaded in memory.
     this.entityManager = new EntityManager(this.settings);
     this.pluginManager = new PluginsManager(this.settings, this.entityManager);
     this.k8sManager = new KubernetesManager();
-    
-    // Initialize the engine manager.
-    const [AutocannonEngine, ChakramEngine] = new EngineManager(
-        this.settings,
-        this.pluginManager,
-        this.entityManager
-    );
 
-    this.autocannon = AutocannonEngine;
-    this.chakram = ChakramEngine;
+    // [AutocannonEngine, ChakramEngine]
+    const [FunctionalEngine] = new EngineManager(this.settings, this.pluginManager, this.entityManager)
+
+    // this.autocannon = AutocannonEngine; this.chakram = ChakramEngine;
+
+    this.FunctionalEngine = FunctionalEngine;
   }
 
-    runPerformanceTests = (perfTests = null, cb = null) => {
-      this.autocannon.run(perfTests, cb);
-    };
+  runPerformanceTests = (perfTests = null, cb = null) => this
+    .autocannon
+    .run(perfTests, cb);
 
-    runFunctionalTests = () => {
-      this.chakram.run();
-    };
+  runFunctionalTests = () => this
+    .FunctionalEngine
+    .run();
 
-    getSettings = () => {
-      return this.settings;
-    };
+  getSettings = () => this.settings;
 
-    getPerformanceTests = () => {
-      return this.autocannon.getPerformanceTests();
-    };
-
-    // private
-
-    // todo: this should be handled separately by a scaffold manager.
-    _maybeHandleScaffolding = () => {
-      let scaffoldCommandUsed = false;
-      const scaffold = new ScaffoldManager(this.settings);
-      const cliArgs = getCliArgs();
-
-      const handleScaffoldCommand = (command) => {
-        const commandName = command.substr(0, 1).toUpperCase() + command.slice(1);
-        const fullCommandName = `handle${commandName}`;
-
-        if (typeof scaffold[fullCommandName] === 'undefined') {
-          log.debug(`Could not handle the "${command}" scaffolding command.`);
-          return;
-        }
-
-        if (isFunction(scaffold[fullCommandName])) {
-          log.debug(`Scaffolding: Handling command "${fullCommandName}".`);
-          scaffoldCommandUsed = true;
-          scaffold[fullCommandName]();
-        }
-      };
-
-      for (const COMMAND of Object.keys(COMMANDS)) {
-        const ACTION = COMMANDS[COMMAND];
-
-        if (cliArgs[ACTION]) {
-          handleScaffoldCommand(ACTION);
-        }
-      }
-
-      if (scaffoldCommandUsed) {
-        process.exit(0);
-      }
-    };
+  getPerformanceTests = () => this
+    .autocannon
+    .getPerformanceTests()
 }
 
 exports = module.exports = Athena;
