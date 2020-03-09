@@ -167,7 +167,6 @@ should.initAthena = should.initCluster || should.runTests;
     cluster = new Cluster(athena);
   }
 
-
   // Join a k8s cluster in non-interactive mode.
   // command: node athena.js cluster --join --foreground --k8s
   if (should.k8sNonInteractive) {
