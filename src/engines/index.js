@@ -12,8 +12,10 @@ governing permissions and limitations under the License.
 
 const AutocannonEngine = require('./autocannonEngine');
 const ChakramEngine = require('./chakramEngine');
+const FunctionalEngine = require('./funcEngine');
 
 module.exports = {
   AutocannonEngine,
   ChakramEngine,
+  FunctionalEngine,
 };

@@ -11,8 +11,11 @@ governing permissions and limitations under the License.
 */
 
 const storageClients = require('./clients');
+const maybeSetupMappings = require('./mappings');
 const {makeLogger} = require('./../utils');
 const log = makeLogger();
+
+maybeSetupMappings();
 
 class Storage {
   constructor() {

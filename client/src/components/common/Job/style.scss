@@ -1,0 +1,92 @@
+// Job Styles
+
+.job {
+    border: 0;
+    font-size: 0.9375rem;
+    line-height: 2;
+
+    svg {
+        width: 18px;
+        margin-bottom: 2px;
+        margin-right: 5px;
+        color: #a1a5a9;
+    }
+
+    a {
+        color: inherit;
+        font-weight: 500;
+    }
+
+    &--success {
+        border-left: 5px solid var(--success);
+    }
+
+    &--running {
+        border-left: 5px solid var(--secondary);
+
+        .job__status svg {
+            color: var(--secondary);
+            -webkit-animation:spin 4s linear infinite;
+            -moz-animation:spin 4s linear infinite;
+            animation:spin 4s linear infinite;
+        }
+    }
+
+    &__status {
+        width: 40px;
+
+        svg {
+            width: 25px;
+        }
+    }
+
+    &__id {
+        width: 140px;
+    }
+
+    &__agents {
+        width: 130px;
+    }
+
+    &__cpu {
+        width: 100px;
+    }
+
+    &__memory {
+        width: 120px;
+    }
+
+    &__rpsCount {
+        width: 200px;
+    }
+
+    &__date {
+        width: 180px;
+    }
+
+    &__duration {
+        width: 120px;
+    }
+}
+
+.perf-test {
+    &__name {
+        width: 300px;
+    }
+
+    &__agents {
+        width: 120px;
+    }
+
+    &__rps {
+        width: 200px;
+    }
+
+    &__reqtypes {
+        width: 150px;
+    }
+    
+    &__lastrun {
+        width:180px;
+    }
+}

@@ -11,22 +11,47 @@ governing permissions and limitations under the License.
 */
 
 const net = require('net');
+const fs = require('fs');
+const path = require('path');
 
 const {uniqueNamesGenerator} = require('unique-names-generator');
-const getPort = require('get-port');
-const nanoid = require('nanoid');
+const uuid = require('nanoid');
+const nanoidGenerate = require('nanoid/generate');
+const Koa = require('koa');
+const KoaHelmet = require('koa-helmet');
+const KoaRouter = require('koa-router');
+const KoaAsyncValidator = require('koa-async-validator');
+const KoaJSON = require('koa-json');
+const KoaCors = require('@koa/cors');
+
+const jsYaml = require('js-yaml');
+const request = require('request');
+const KoaBodyparser = require('koa-bodyparser');
 
 const {makeLogger} = require('./../utils');
 const {makeMessage} = require('./commands');
 const Storage = require('./../storage');
-
+const StorageRepository = require('./../storage/repository');
 const log = makeLogger();
 const storage = new Storage();
 
-const COMMANDS = {
-  // Intra-Cluster
+const NANOID_ALPHA = `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890`;
 
-  // Manager -> Agents
+function nanoid() {
+  return nanoidGenerate(NANOID_ALPHA, 20);
+}
+
+const RESPONSES = {
+  K8S_NI_AGENT: {
+    START_RUN: {
+      status: 200,
+      message: "Started running the provided tests configuration!"
+    }
+  }
+}
+
+const COMMANDS = {
+  // Intra-Cluster Manager -> Agents
   REQ_RUN_PERF: 'REQ_RUN_PERF',
   REQ_RUN_FUNC: 'REQ_RUN_FUNC',
 
@@ -37,100 +62,105 @@ const COMMANDS = {
   RES_REPORT: 'RES_REPORT',
   RES_STATUS: 'RES_STATUS',
 
-  REQ_PROC_JOB_RES: 'REQ_PROC_JOB_RES',
+  REQ_PROC_JOB_RES: 'REQ_PROC_JOB_RES'
 };
 
 const AGENT_STATUS = {
   READY: 'READY',
   BUSY: 'BUSY',
-  ERROR: 'ERROR',
+  ERROR: 'ERROR'
 };
 
 const JOB_STATUS = {
   FINISHED: 'FINISHED',
   PENDING: 'PENDING',
-  UNSTABLE: 'UNSTABLE',
+  UNSTABLE: 'UNSTABLE'
 };
 
 class Cluster {
   constructor(athena) {
     this.athena = athena;
-    this.settings = this.athena.getSettings();
+    this.settings = this
+      .athena
+      .getSettings();
 
     // props
     this.manager = null;
     this.agent = null;
-
     this.addr = null;
     this.agents = [];
   }
 
   // public
+  init = () => {
+    this.manager = new ManagerNode(
+      this.athena,
+      this.settings,
+      this.k8sManager
+    );
 
-    init = () => {
-      this.manager = new ManagerNode(this.athena, this.settings);
-      process.on('message', this._handleCallCommand);
-    };
+    process.on('message', this._handleCallCommand);
+  };
 
-    join = () => {
-      this.agent = new AgentNode(this.athena, this.settings);
-      this.agent.joinCluster();
-    };
+  joinCluster = () => {
+    this._initAgentNode();
+    this
+      .agent
+      .joinCluster();
+  };
 
-    _handleCallCommand = (command) => {
-      if (!command || !command.type) {
-        log.warn(`Could not parse the command!`);
-      }
+  joinNonInteractive = () => {
+    this._initAgentNode();
+    this
+      .agent
+      .joinNonInteractive();
+  }
 
-      log.info(`Handling the "${command.type}" command.`);
+  _initAgentNode = () => {
+    this.agent = new AgentNode(this.athena, this.settings);
 
-      switch (command.type) {
-        case COMMANDS.REQ_RUN_PERF:
-          log.info(`Delegating a new performance job to the cluster...`);
-          this._clusterRunPerformance();
-          break;
-        case COMMANDS.REQ_RUN_FUNC:
-          log.info(`Delegating a new functional job to the cluster...`);
-          break;
-        case COMMANDS.REQ_REPORT:
-          log.info(`Requesting the last job report from all agents...`);
-          break;
-        case COMMANDS.REQ_STATUS:
-          log.info(`Requesting the status of all agents...`);
-          break;
-      }
-    };
+    return true;
+  }
 
-    _clusterRunPerformance = () => {
-      log.info(`Preparing performance test data...`);
-
-      // create the perf job
-      const PerfJob = new PerformanceJob();
-      const perfJobData = this.athena.getPerformanceTests();
-      PerfJob.setData(perfJobData);
-
-      log.success(`Performance test data ready!`);
-      log.info(`Delegating new cluster performance job...`);
-
-      // send the perf tests to all workers
-      this.manager.delegateClusterCommand(
-          COMMANDS.REQ_RUN_PERF,
-          PerfJob.describe()
-      );
-
-      log.success(`👍 Successfully delegated a new performance job to the cluster!`);
+  _handleCallCommand = (command) => {
+    if (!command || !command.type) {
+      log.warn(`Could not parse the command!`);
     }
+
+    log.info(`Handling the "${command.type}" command.`);
+
+    switch (command.type) {
+      case COMMANDS.REQ_RUN_PERF:
+        log.info(`Delegating a new performance job to the cluster...`);
+        this._clusterRunPerformance();
+        break;
+      case COMMANDS.REQ_RUN_FUNC:
+        log.info(`Delegating a new functional job to the cluster...`);
+        break;
+      case COMMANDS.REQ_REPORT:
+        log.info(`Requesting the last job report from all agents...`);
+        break;
+      case COMMANDS.REQ_STATUS:
+        log.info(`Requesting the status of all agents...`);
+        break;
+    }
+  };
+
+  _clusterRunPerformance = () => {
+    log.info(`Preparing performance test data...`);
+    const PerfJob = new PerformanceJob();
+    const perfJobData = this.athena.getPerformanceTests();
+    PerfJob.setData(perfJobData);
+    log.info(`Delegating new cluster performance job...`);
+    this.manager.delegateClusterCommand(COMMANDS.REQ_RUN_PERF, PerfJob.describe());
+    log.success(`👍 Successfully delegated a new performance job to the cluster!`);
+  }
 }
 
 class GenericNode {
   constructor(settings) {
     this.settings = settings;
-
-    this._enumerableProps = [
-      '_id',
-      '_name',
-      '_status',
-    ];
+    this._enumerableProps = ['_id', '_name', '_status'];
     this._id = null;
     this._name = null;
     this._status = null;
@@ -139,29 +169,31 @@ class GenericNode {
     this.setName(this._generateNodeName());
   }
 
-    setID = (id) => {
-      this._id = id;
-    };
+  setID = (id) => {
+    this._id = id;
+  };
 
-    getID = () => {
-      return this._id;
-    };
+  getID = () => {
+    return this._id;
+  };
 
-    setName = (name) => {
-      this._name = name;
-    };
+  setName = (name) => {
+    this._name = name;
+  };
 
-    getName = () => {
-      return this._name;
-    };
+  getName = () => {
+    return this._name;
+  };
 
-    setStatus = (status) => {
-      this._status = status;
-    };
+  setStatus = (status) => {
+    this._status = status;
+  };
 
-    describe = () => {
-      const description = {};
-      this._enumerableProps.forEach((p) => {
+  describe = () => {
+    const description = {};
+    this
+      ._enumerableProps
+      .forEach((p) => {
         let idx = p;
         if (p.charAt(0) === '_') {
           idx = p.slice(1, p.length);
@@ -170,38 +202,34 @@ class GenericNode {
         description[idx] = this[p];
       });
 
-      return description;
-    };
+    return description;
+  };
 
-    // private
+  // private
+  _generateNodeName = () => {
+    const newNodeName = uniqueNamesGenerator({length: 2, separator: '-'});
 
-    _generateNodeName = () => {
-      const newNodeName = uniqueNamesGenerator({
-        length: 2,
-        separator: '-',
-      });
+    while (this._isNameUsed(newNodeName)) {
+      this._generateNodeName();
+    }
 
-      while (this._isNameUsed(newNodeName)) {
-        this._generateNodeName();
-      }
+    return newNodeName;
+  };
 
-      return newNodeName;
-    };
+  _isNameUsed = (name) => {
+    return false;
+  };
 
-    _isNameUsed = (name) => {
-      return false; // todo: not implemented
-    };
+  _generateUUID = () => {
+    let nodeHashLength = Number(process.env.NODE_HASH_LENGTH);
 
-    _generateUUID = () => {
-      let nodeHashLength = Number(process.env.NODE_HASH_LENGTH);
+    if (!nodeHashLength) {
+      log.warn(`The "NODE_HASH_LENGTH" environment variable is missing. Using the default value (12).`);
+      nodeHashLength = 12;
+    }
 
-      if (!nodeHashLength) {
-        log.warn(`The "NODE_HASH_LENGTH" environment variable is missing. Using the default value (12).`);
-        nodeHashLength = 12;
-      }
-
-      return nanoid(nodeHashLength);
-    };
+    return nanoid();
+  };
 }
 
 class ManagerNode extends GenericNode {
@@ -209,323 +237,833 @@ class ManagerNode extends GenericNode {
     super(settings);
 
     this.athena = athena;
+    this.jobReportsRetrieved = 0;
 
-    // props
     this._addr = null;
     this._port = null;
     this._socket = null;
-    this._accessToken = null;
+    this._accessToken = null; 
     this._agents = [];
 
-    this.jobReportsRetrieved = 0; // todo: refactor
-
-    // setup
     this.setAddr(this.settings.addr);
-    const accessToken = this._generateAccessToken();
-    this.setAccessToken(accessToken);
+    this.setAccessToken(this._generateAccessToken());
 
-    (async () => {
-      const port = await getPort({port: getPort.makeRange(5000, 5100)});
+    const _self = this;
 
-      this.setPort(port);
-      this.createTCPServer();
+    (async() => {
+      this.setPort(process.env.API_PORT);
+
+      const AthenaAPI = new Koa();
+      const Router = new KoaRouter();
+
+      // ------------------
+      // Rest API Endpoints
+      // ------------------
+
+      Router.get('/version', async (ctx, next) => {
+        ctx.status = 200;
+        ctx.body = { version: "1.0.0" }
+
+        await next();
+      })
+
+      Router.post('/api/v1/projects', handleCreateNewProject);
+      Router.get('/api/v1/projects', handleReadAllProjects);
+      Router.get('/api/v1/projects/:projectId', handleReadSingleProject);
+      Router.post('/api/v1/projects/:projectId/performance', handleCreatePerformanceTest);
+      Router.get('/api/v1/projects/:projectId/performance', handleReadPerformanceTests);
+      Router.get('/api/v1/projects/:projectId/performance/:testId', handleReadSinglePerformanceTest);
+      Router.get('/api/v1/projects/:projectId/performance/:testId/runs', handleReadSinglePerformanceTestRuns);
+      Router.get('/api/v1/projects/:projectId/performance/:testId/schedule', handleSchedulePerformanceTestRun);
+
+      // TODO: Not implemented.
+      // Router.put('/api/v1/projects/:projectId', handleUpdateSingleProject);
+      // Router.delete('/api/v1/projects/:projectId', handleDeleteSingleProject);
+      // Router.post('/api/v1/projects/:projectId/performance/:testId', handleCreatePerformanceTest);
+      // Router.put('/api/v1/projects/:projectId/performance/:testId', handleUpdatePerformanceTest);
+      // Router.delete('/api/v1/projects/:projectId/performance/:testId', handleDeletePerformanceTest);
+      // Router.post('/api/v1/projects/:projectId/performance/:testId/runs', handleCreatePerformanceTestRun); // Schedules a new perf test run.
+      // Router.get('/api/v1/projects/:projectId/performance/:testId/runs', handleReadPerformanceTestRuns);
+
+      // ----------------------------
+      // Internal / K8S API Endpoints 
+      // ----------------------------
+      // TODO(nvasile): The following endpoints should be protected from outside access.
+      Router.post('/api/v1/k8s/internal/performance/parse-agent-report', _handleProcessAgentReport);
+      
+      async function handleCreateNewProject(ctx, next) {
+        // Validate
+        ctx.checkBody({
+          name: {
+            notEmpty: true,
+            errorMessage: 'The project name is required!'
+          }
+        });
+        
+        let errors = await ctx.validationErrors(true);
+
+        if (errors) {
+          ctx.status = 400;
+          ctx.body = {
+            errors
+          };
+        } else {
+          const { name, description, repoUrl } = ctx.request.body;
+          await StorageRepository.createProject({ name, description, repoUrl });
+
+          ctx.status = 201;
+          ctx.body = {
+            message: `The "${ctx.request.body.name}" project was successfully created!`
+          }
+        }
+
+        await next();
+      }
+
+      // Read all projects.
+      async function handleReadAllProjects(ctx, next) {
+        const projects = await StorageRepository.readAllProjects();
+
+        ctx.status = 200;
+        ctx.body = {
+          projects
+        }
+
+        await next();
+      }
+
+      // Read a single project's details.
+      async function handleReadSingleProject(ctx, next) {
+        // TODO: Validate params and make sure that projectId is provided, otherwise return error.
+        const project = await StorageRepository.readSingleProject(ctx.params.projectId);
+
+        ctx.status = 200;
+        ctx.body = {
+          project
+        }
+
+        await next();
+      }
+
+      // Create a single performance test for a single project.
+      async function handleCreatePerformanceTest(ctx, next) {
+        // TODO: Validate params and make sure that the projectId and the data are provided, otherwise return errors.
+        const { projectId } = ctx.params;
+        const { testData: yamlTestData } = ctx.request.body;
+        let testData;
+
+        try {
+          testData = jsYaml.safeLoad(yamlTestData);
+        } catch (error) {
+          ctx.status = 400;
+          ctx.body = {
+            error,
+            message: "Could not parse the provided test data!"
+          };
+
+          await next();
+        }
+
+        await StorageRepository.storeSinglePerfTest({projectId, testData});
+
+        ctx.status = 201
+        ctx.body = { success: true }
+
+        await next();
+      }
+
+      // Read all performance tests for a single project.
+      async function handleReadPerformanceTests(ctx, next) {
+        const { projectId } = ctx.params;
+        const perfTests = await StorageRepository.readAllPerfTests(projectId);
+      
+        ctx.status = 200;
+        ctx.body = {
+          perfTests
+        }
+
+        await next();
+      }
+
+      // Read a single performance test for a single project.
+      async function handleReadSinglePerformanceTest(ctx, next) {
+        const { testId } = ctx.params;
+        let perfTest, perfRuns
+
+        try {
+          perfTest = await StorageRepository.readSinglePerfTest(testId);
+        } catch (error) {
+          ctx.status = 400;
+          ctx.body = { error };
+        }
+
+        ctx.status = 200;
+        ctx.body = perfTest
+
+        await next();
+      }
+
+      // Read performance test runs for a single performance test.
+      async function handleReadSinglePerformanceTestRuns(ctx, next) {
+        const { testId } = ctx.params;
+        let perfRuns
+
+        try {
+          perfRuns = await StorageRepository.readAllPerfRuns(testId);
+        } catch (error) {
+          ctx.status = 400;
+          ctx.body = { error };
+        }
+
+        ctx.status = 200;
+        ctx.body = perfRuns
+
+        await next();
+      }
+
+      // Schedule a single performance test run inside the cluster.
+      async function handleSchedulePerformanceTestRun(ctx, next) {
+        const { testId } = ctx.params;
+        console.info(`Preparing to schedule a new performance test run for test id: ${testId}`)
+
+        try {
+          // Get the perf test definition by id.
+          const perfTest = await StorageRepository.readSinglePerfTest(testId);
+          const perfJob = await StorageRepository.storeSinglePerfRun(testId, perfTest.config);
+          
+          // Setup the perf job.
+          const { _id: jobId } = perfJob;
+          const job = new PerformanceJob(perfTest);
+          job.setId(jobId);
+          const jobAgentsCount = perfTest.config.resources.agents || 1;
+
+          // Process the non-interactive job config.
+          let nonInteractiveJobConfig = fs.readFileSync(path.resolve(__dirname, 'nonInteractiveAgentJob.yaml'), 'utf8');
+          nonInteractiveJobConfig = jsYaml.safeLoad(nonInteractiveJobConfig);
+
+          // Update the ni-job conf.
+          nonInteractiveJobConfig.metadata.name = `athena-ni-agent-${jobId}`;
+          nonInteractiveJobConfig.metadata.labels = {
+            athena_jid: jobId
+          }
+
+          const { cpu: resCpu, memory: resMemory } = perfTest.config.resources;
+          nonInteractiveJobConfig.spec.completions = jobAgentsCount;
+          nonInteractiveJobConfig.spec.parallelism = jobAgentsCount;
+
+          nonInteractiveJobConfig.spec.template.spec.containers[0].resources.limits.cpu = resCpu || "0";
+          nonInteractiveJobConfig.spec.template.spec.containers[0].resources.limits.memory = resMemory || "0"
+          
+          nonInteractiveJobConfig.metadata.labels = {
+            "app": "athena",
+            "type": "ni-agent",
+            "jobId": jobId
+          };
+          nonInteractiveJobConfig.spec.template.spec.containers[0].command = [
+            "node",
+            "athena.js",
+            "cluster",
+            "--join",
+            "--foreground",
+            "--k8s",
+            `--jobId=${jobId}`,
+            `--jobConfig="${JSON.stringify(perfTest.config.config)}"` // TODO: fix this
+          ]
+
+          // Spawn agents.
+          await _self.athena.k8sManager.spawnShortlivedAgents(nonInteractiveJobConfig, jobAgentsCount);
+
+          ctx.status = 200;
+          ctx.body = { message: "success" };
+
+        } catch (error) {
+          console.log(error);
+
+          ctx.status = 400;
+          ctx.body = { error };
+        }
+
+        await next();
+      }
+
+      // Run a single performance test by ID. GET:   /api/v1/performance/run/:id
+      Router.get('/api/v1/performance/run/:id', async(ctx, next) => {
+        // TODO: Get the perf job by ID. Schedule the perf job to run.
+        ctx.body = {};
+
+        await next();
+      });
+
+      // Post a performance job JSON and schedule it to run. POST:
+      // /api/v1/k8s/performance/run
+      Router.post('/api/v1/k8s/performance/run', async(ctx, next) => {
+        const perfJob = ctx.request.body;
+        const perfJobInstance = new PerformanceJob(perfJob);
+        const jobId = perfJobInstance.getId();
+
+        // Parse the non-interactive job config yaml file.
+        let nonInteractiveJobConfig = fs.readFileSync(path.resolve(__dirname, 'nonInteractiveAgentJob.yaml'), 'utf8');
+        nonInteractiveJobConfig = jsYaml.safeLoad(nonInteractiveJobConfig);
+
+        console.log(JSON.stringify(nonInteractiveJobConfig, null, 2))
+        const count = perfJob.config.agents || 1;
+
+        nonInteractiveJobConfig.metadata.name = `athena-ni-agent`;
+        nonInteractiveJobConfig.metadata.labels = {
+          "app": "athena",
+          "type": "ni-agent",
+          "jobId": jobId
+        };
+
+        nonInteractiveJobConfig.spec.completions = count;
+        nonInteractiveJobConfig.spec.parallelism = count;
+        nonInteractiveJobConfig.spec.template.spec.containers[0].command = [
+          "node",
+          "athena.js",
+          "cluster",
+          "--join",
+          "--foreground",
+          "--k8s",
+          `--jobId=${jobId}`,
+          `--jobConfig="${JSON.stringify(perfJob)}"`
+        ]
+
+        this.athena.k8sManager.spawnShortlivedAgents(nonInteractiveJobConfig, count);
+
+        ctx.body = {
+          status: 200,
+          message: `Deploying ${count} shortlived Athena agents and attempting to run the tests!`
+        };
+
+        await next();
+      });
+
+      // Update a single project's details.
+      async function handleUpdateSingleProject(ctx, next) {
+        next();
+      }
+
+      // Delete a single project by ID.
+      async function handleDeleteSingleProject(ctx, next) {
+        // Cascade delete tests and test runs.
+        next();
+      }
+
+      // Update a performance test for a single project.
+      async function handleUpdatePerformanceTest(ctx, next) {
+        next();
+      }
+
+      // Delete a performance test for a single project.
+      async function handleDeletePerformanceTest(ctx, next) {
+        next();
+      }
+
+      // Creates a new performance test run for a single project.
+      async function handleCreatePerformanceTestRun(ctx, next) {
+        next();
+      }
+
+      // Creates a new performance test run for a single project.
+      async function handleCreatePerformanceTestRun(ctx, next) {
+        next();
+      }
+
+      // Reads all performance test runs for a given performance test.
+      async function handleReadPerformanceTestRuns(ctx, next) {
+        next();
+      }
+
+      // Process incoming non-interactive Athena agent's report.
+      // TODO(nvasile): Make sure that the incoming max client body size is large enough.
+      async function _handleProcessAgentReport(ctx, next) {
+        // TODO(nvasile): Try/Catch ;)
+        const perfJobResults = ctx.request.body;
+        const { id: jobId } = perfJobResults;
+        
+        log.info(`Attempting to parse incoming agent [${perfJobResults.agent_id}:${perfJobResults.agent_name}] info (non-interactive) for job: ${jobId}!`);
+        _self._handleResRunPerf({ data: perfJobResults });
+        const perfRun = await StorageRepository.incrPerfRunReports(jobId);
+
+        // Mark the job as complete and prune agents.
+        const { agents } = perfRun.config.resources;
+        console.log(`agentsCount = ${agents} : perfRun.reports = ${perfRun.reports}`)
+        if (perfRun.reports == agents) {
+          perfRun.status = "COMPLETED";
+          await perfRun.save();
+          await _self.athena.k8sManager.pruneShortlivedAgents(jobId);
+        }
+
+        ctx.status = 200;
+        ctx.body = {
+          status: "success"
+        }
+
+        await next();
+      }
+
+      // Returns the available cluster resources.
+      async function getClusterInfo() {
+        const nodes = await _self.athena.k8sManager.listClusterNodes();
+        const pods = await _self.athena.k8sManager.listClusterPods();
+
+        const { body: nodesList } = nodes.response;
+        const { body: podsList } = pods.response;
+
+        return {
+          nodesList,
+          podsList
+        }
+      }
+
+      // Checks whether the cluster has the appropriate resources available.
+      async function resourcesAvailable(cpuNeeded = 1, memoryNeeded = "1Mi") {
+        const resources = await getClusterInfo();
+
+        const nodes = resources.nodesList.items.map(node => {
+          return {
+            name: node.metadata.name,
+            arch: node.metadata.labels["beta.kubernetes.io/arch"],
+            os: node.metadata.labels["beta.kubernetes.io/os"],
+            hostname: node.metadata.labels["kubernetes.io/hostname"],
+            role: Object.keys(node.metadata.labels).filter(k => k.indexOf("node-role") !== -1)[0].split('/')[1],
+            resources: {
+              capacity: node.status.capacity,
+              allocatable: node.status.allocatable
+            }
+          }
+        });
+
+        const pods = resources.podsList.items.map(pod => {
+          return {
+            name: pod.metadata.name,
+            namespace: pod.metadata.namespace,
+            volumes: pod.spec.volumes.length,
+            containers: pod.spec.containers.map(container => {
+              return {
+                name: container.name,
+                resources: container.resources
+              }
+            }),
+            status: pod.status.phase,
+          }
+        });
+
+        let availableMemoryBytes = nodes.map(n => Number(n.resources.capacity.memory.split('Ki')[0]))
+          .reduce((a, b) => a + b, 0) * 1024
+
+        function getPrettyMemSize(memBytes) {
+          if (memBytes === 0) {
+            return memBytes
+          }
+
+          const memSizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+          const memI = parseInt(Math.floor(Math.log(memBytes) / Math.log(1024)), 10);
+          
+          if (memI === 0) {
+            return `${memBytes} ${memSizes[memI]}`;
+          }
+  
+          return `${(memBytes / (1024 ** memI)).toFixed(1)} ${memSizes[memI]}`
+        }
+
+        const usedMemoryBytes = resources.podsList.items.map(p => p.spec.containers.map(c => {
+          if (!c || !c.resources || !c.resources.limits || !c.resources.limits.memory) return 0;
+          const dtm = { Ki: 1000, Mi: 1e+6, Gi: 1e+9 }
+          const { memory } = c.resources.limits;
+          const u = ['Ki', 'Mi', 'Gi'].filter(u => memory.indexOf(u) !== -1)[0];
+          return parseInt(memory.split(u)[0]) * dtm[u];
+        })).reduce((a, b) => parseInt(a) + parseInt(b), 0);
+
+        const cpusCount = pods.map(p => {
+          return Number(p.containers.map(c => {
+            if (c && c.resources && c.resources.limits && c.resources.limits.cpu) {
+              const cpu = parseInt(c.resources.limits.cpu);
+              return cpu < 50 ? cpu : 0;
+            }
+            return 0;
+          }))
+        }).reduce((a, b) => a + b, 0)
+
+        const cluster = {
+          nodes: nodes.length,
+          resources: {
+            available: {
+              cpus: nodes.map(n => Number(n.resources.capacity.cpu)).reduce((a, b) => a + b, 0),
+              memory: getPrettyMemSize(availableMemoryBytes),
+              memBytes: availableMemoryBytes,
+              pods: nodes.map(n => Number(n.resources.capacity.pods)).reduce((a, b) => a + b, 0)
+            },
+            used: {
+              cpus: cpusCount,
+              memory: getPrettyMemSize(usedMemoryBytes),
+              memBytes: usedMemoryBytes,
+              pods: pods.length,
+            }
+          }
+        }
+
+        return {
+          cluster,
+          nodes,
+          pods
+        };
+      }
+
+      // TODO: Delete this
+      Router.get('/some-test', async (ctx, next) => {
+        ctx.body = await StorageRepository.incrPerfRunReports("5e99f334058b330010c92dfc");
+        ctx.status = 200;
+
+        await next();
+      });
+
+      // Bootstrap
+      AthenaAPI
+        .use(KoaHelmet())
+        .use(KoaBodyparser())
+        .use(KoaAsyncValidator())
+        .use(KoaJSON())
+        .use(KoaCors({ origin: '*' })) // TODO(nvasile): only in dev mode.
+        .use(Router.routes())
+        .use(Router.allowedMethods())
+        .use(this._APIErrorHandler)
+        .on('error', this._handleAPIErrorEvent)
+        .listen(process.env.API_PORT, this._handleAPIBootstrap);
+
+      log.info(`Started REST API on port ${process.env.API_PORT}`)
     })();
   }
 
-    _generateAccessToken = () => {
-      let hashLength = Number(process.env.TOKEN_HASH_LENGTH);
+  _APIErrorHandler = async(ctx, next) => {
+    try {
+      await next();
+    } catch (err) {
+      ctx.status = err.status || 500;
+      ctx.body = err.message;
+      ctx.app.emit('error', err, ctx);
+    }
+  }
 
-      if (!hashLength) {
-        log.warn(`The "TOKEN_HASH_LENGTH" environment variable is missing. using the default value (64).`);
-        hashLength = 64;
-      }
+  _handleAPIErrorEvent = (err, ctx) => {
+    console.error(err);
+    /* centralized error handling:
+     * TODO: ...
+     *   console.log error
+     *   write error to log file
+     *   save error and request information to database if ctx.request match condition
+     */
+  }
 
-      return nanoid(hashLength);
-    };
+  _handleAPIBootstrap = () => {
+    log.info(`Athena manager started listening on ${process.env.API_PORT}!`);
+  }
 
-    createTCPServer = () => {
-      const addr = this.getAddr();
-      const port = this.getPort();
+  _generateAccessToken = () => {
+    let hashLength = Number(process.env.TOKEN_HASH_LENGTH);
 
-      log.info(`Creating a new Athena cluster on: ${addr}:${port} ...`);
-      this._socket = net.createServer();
-      this._socket.listen(port, addr, this._handleServerCreated);
-      this._socket.on('connection', this._handleNewAgentConnection);
-    };
+    if (!hashLength) {
+      log.warn(`The "TOKEN_HASH_LENGTH" environment variable is missing. using the default value (64).`);
+      hashLength = 64;
+    }
 
-    delegateClusterCommand = (command, data) => {
-      // get the TCP server
-      const socket = this.getSocket();
+    return nanoid();
+  };
 
-      // prepare the message
-      const message = makeMessage(command, data);
+  createTCPServer = () => {
+    const addr = this.getAddr();
+    const port = this.getPort();
 
-      // send it to all workers
-      const agents = this.getAgents();
+    log.info(`Creating a new Athena cluster on: ${addr}:${port} ...`);
+    this._socket = net.createServer();
+    this
+      ._socket
+      .listen(port, addr, this._handleServerCreated);
+    this
+      ._socket
+      .on('connection', this._handleNewAgentConnection);
 
-      if (!agents.length) {
-        log.warn(`Could not delegate command. There are currently no agents in this cluster.`);
-        return;
-      }
+  };
 
-      agents.forEach((agent) => {
-        const sock = agent.getSocket();
-        sock.write(JSON.stringify(message));
-      });
-    };
+  delegateClusterCommand = (command, data) => {
+    const socket = this.getSocket();
+    const message = makeMessage(command, data);
+    const agents = this.getAgents();
 
-    getSocket = () => {
-      return this._socket;
-    };
+    if (!agents.length) {
+      log.warn(`Could not delegate command. There are currently no agents in this cluster.`);
+      return;
+    }
 
-    getAddr = () => {
-      return this._addr;
-    };
+    agents.forEach((agent) => {
+      const sock = agent.getSocket();
+      sock.write(JSON.stringify(message));
+    });
+  };
 
-    setAddr = (addr) => {
-      if (!addr) {
-        log.error(`Could not initialize a new Athena cluster as the "--addr" required flag is missing.`);
-      }
+  getSocket = () => {
+    return this._socket;
+  };
 
-      this._addr = addr;
-    };
+  getAddr = () => {
+    return this._addr;
+  };
 
-    getPort = () => {
-      return this._port;
-    };
+  setAddr = (addr) => {
+    if (!addr) {
+      log.error(`Could not initialize a new Athena cluster as the "--addr" required flag is missing.`);
+    }
 
-    setPort = (port) => {
-      if (!port) {
-        log.error(`Could not set port using invalid or missing value.`);
-      }
+    this._addr = addr;
+  };
 
-      this._port = port;
-    };
+  getPort = () => {
+    return this._port;
+  };
 
-    getAccessToken = () => {
-      return this._accessToken;
-    };
+  setPort = (port) => {
+    if (!port) {
+      log.error(`Could not set port using invalid or missing value.`);
+    }
 
-    setAccessToken = (accessToken) => {
-      if (!accessToken) {
-        log.error(`Could not set access token using invalid or missing value.`);
-      }
+    this._port = port;
+  };
 
-      this._accessToken = accessToken;
-    };
+  getAccessToken = () => {
+    return this._accessToken;
+  };
 
-    getAgents = () => {
-      return this._agents;
-    };
+  setAccessToken = (accessToken) => {
+    if (!accessToken) {
+      log.error(`Could not set access token using invalid or missing value.`);
+    }
 
-    addAgent = (agent) => {
-      this._agents.push(agent);
-    };
+    this._accessToken = accessToken;
+  };
 
-    _handleServerCreated = () => {
-      const accessToken = this.getAccessToken();
-      const addr = this.getAddr();
-      const port = this.getPort();
+  getAgents = () => {
+    return this._agents;
+  };
 
-      log.info(`Athena cluster successfully initiated: current node (${this.getID()}) is now a manager.
+  addAgent = (agent) => {
+    this
+      ._agents
+      .push(agent);
+  };
+
+  _handleServerCreated = () => {
+    const accessToken = this.getAccessToken();
+    const addr = this.getAddr();
+    const port = this.getPort();
+
+    log.info(`Athena cluster successfully initiated: current node (${this.getID()}) is now a manager.
         
         👋 Hello! My name is "${this.getName()}" and I was assigned to manage this Athena cluster!
         
         To add more workers to this cluster, run the following command:
         athena cluster --join --token ${accessToken} ${addr}:${port}`);
-    };
+  };
 
-    _handleNewAgentConnection = (sock) => {
-      (async () => {
-        // create and store a new Agent
-        const Agent = new AgentNode(this.athena, this.settings);
-        Agent.setSocket(sock);
-        this.addAgent(Agent);
-        const {remoteAddress, remotePort} = sock;
-        log.info(`New Athena agent (${Agent.getName()}) connected: ${remoteAddress}:${remotePort}`);
-        await storage.storeAgent(Agent.describe());
+  _handleNewAgentConnection = (sock) => {
+    (async() => {
+      // create and store a new Agent
+      const Agent = new AgentNode(this.athena, this.settings);
+      Agent.setSocket(sock);
+      this.addAgent(Agent);
+      const {remoteAddress, remotePort} = sock;
+      log.info(`New Athena agent (${Agent.getName()}) connected: ${remoteAddress}:${remotePort}`);
+      await storage.storeAgent(Agent.describe());
 
-        // send new agent details to the agent node
-        const message = makeMessage(
-            'REQ_UPDATE_INFO',
-            Agent.describe()
-        );
-        sock.write(JSON.stringify(message));
+      // send new agent details to the agent node
+      const message = makeMessage('REQ_UPDATE_INFO', Agent.describe());
+      sock.write(JSON.stringify(message));
 
-        // hook handlers on socket events
-        sock.setEncoding('utf8');
-        sock.on('data', (message) => {
-          this._handleIncomingAgentData(sock, message);
-        });
-        sock.on('close', (data) => {
-          this._handleRemoveAgent(data, sock);
-        });
-      })();
-    };
-
-    _handleIncomingAgentData = (sock, message) => {
-      // parse data
-      let data = null;
-
-      try {
-        data = JSON.parse(message);
-      } catch (e) {
-        log.warn(`Could not parse incoming agent message!\n${error}`);
-        // todo: poll the agent again for the latest job results.
-        return;
-      }
-
-      // parse incoming message type
-      switch (data.type) {
-        case 'RES_RUN_PERF':
-          this._handleResRunPerf(data);
-          break;
-        default:
-          break;
-      }
-    };
-
-    _handleResRunPerf = (results) => {
-      const data = results.data;
-      log.success(`[job_id: ${data.id}] Successfully retrieved new agent report!`);
-
-      this.jobReportsRetrieved++;
-      const agentsCount = this.getAgents().length;
-      const lastAgentInQueue = agentsCount === this.jobReportsRetrieved;
-
-      if (lastAgentInQueue) {
-        log.info(`Retrieved the last job report from ${agentsCount} agents!`);
-      }
-
-      // if (lastAgentInQueue) {
-      //     this.jobReportsRetrieved = 0;
-      //     log.info(`Retrieved the last report!`);
-      //     printReportURLForJobID(data.id);
-      // }
-
-      const actions = [];
-
-      // ac_job // todo: handle this only once !
-      actions.push({
-        index: {
-          _index: 'ac_job',
-        },
-      }, {
-        job_id: data.id,
-        created_at: data.created_at,
-        updated_at: data.updated_at, // todo: propagate value
+      // hook handlers on socket events
+      sock.setEncoding('utf8');
+      sock.on('data', (message) => {
+        this._handleIncomingAgentData(sock, message);
       });
-
-      // ac_result_overview
-      actions.push({
-        index: {
-          _index: 'ac_result_overview',
-        },
-      }, {
-        'job_id': data.id,
-        'agent_id': data.agent_id,
-        'agent_name': data.agent_name,
-        'url': data.results.url,
-        'responses': data.results.stats.responses,
-        'errors': data.results.errors,
-        'timeouts': data.results.timeouts,
-        'duration': data.results.duration,
-        'start': data.results.start,
-        'finish': data.results.finish,
-        'connections': data.results.connections,
-        'pipelining': data.results.pipelining,
-        'non2xx': data.results.non2xx,
-        '1xx': data.results['1xx'],
-        '2xx': data.results['2xx'],
-        '3xx': data.results['3xx'],
-        '4xx': data.results['4xx'],
-        '5xx': data.results['5xx'],
+      sock.on('close', (data) => {
+        this._handleRemoveAgent(data, sock);
       });
+    })();
+  };
 
-      // ac_results_requests
+  _handleIncomingAgentData = (sock, message) => {
+    // parse data
+    let data = null;
+
+    try {
+      data = JSON.parse(message);
+    } catch (e) {
+      log.warn(`Could not parse incoming agent message!\n${error}`);
+      // todo: poll the agent again for the latest job results.
+      return;
+    }
+
+    // parse incoming message type
+    switch (data.type) {
+      case 'RES_RUN_PERF':
+        this._handleResRunPerf(data);
+        break;
+      default:
+        break;
+    }
+  };
+
+  _handleResRunPerf = (results) => {
+    const data = results.data;
+    log.success(`[job_id: ${data.id}] Successfully retrieved new agent report!`);
+
+    this.jobReportsRetrieved++;
+    const agentsCount = this
+      .getAgents()
+      .length;
+    const lastAgentInQueue = agentsCount === this.jobReportsRetrieved;
+
+    if (lastAgentInQueue) {
+      log.info(`Retrieved the last job report from ${agentsCount} agents!`);
+    }
+
+    const actions = [];
+
+    // ac_job // todo: handle this only once !
+    actions.push({
+      index: {
+        _index: 'ac_job'
+      }
+    }, {
+      job_id: data.id,
+      created_at: data.created_at,
+      updated_at: data.updated_at, // todo: propagate value
+    });
+
+    // ac_result_overview
+    actions.push({
+      index: {
+        _index: 'ac_result_overview'
+      }
+    }, {
+      'job_id': data.id,
+      'agent_id': data.agent_id,
+      'agent_name': data.agent_name,
+      'url': data.results.url,
+      'responses': data.results.stats.responses,
+      'errors': data.results.errors,
+      'timeouts': data.results.timeouts,
+      'duration': data.results.duration,
+      'start': data.results.start,
+      'finish': data.results.finish,
+      'connections': data.results.connections,
+      'pipelining': data.results.pipelining,
+      'non2xx': data.results.non2xx,
+      '1xx': data.results['1xx'],
+      '2xx': data.results['2xx'],
+      '3xx': data.results['3xx'],
+      '4xx': data.results['4xx'],
+      '5xx': data.results['5xx']
+    });
+
+    // ac_results_requests
+    actions.push({
+      index: {
+        _index: 'ac_results_requests'
+      }
+    }, {
+      job_id: data.id,
+      agent_id: data.agent_id,
+      agent_name: data.agent_name,
+      ...data.results.requests
+    });
+
+    // ac_results_latency
+    actions.push({
+      index: {
+        _index: 'ac_results_latency'
+      }
+    }, {
+      job_id: data.id,
+      agent_id: data.agent_id,
+      agent_name: data.agent_name,
+      ...data.results.latency
+    });
+
+    // ac_results_throughput
+    actions.push({
+      index: {
+        _index: 'ac_results_throughput'
+      }
+    }, {
+      job_id: data.id,
+      agent_id: data.agent_id,
+      agent_name: data.agent_name,
+      ...data.results.throughput
+    });
+
+    // ac_result_rps
+    const pushRpsEntry = (rpsEntry) => {
       actions.push({
         index: {
-          _index: 'ac_results_requests',
-        },
+          _index: 'ac_result_rps'
+        }
       }, {
         job_id: data.id,
         agent_id: data.agent_id,
         agent_name: data.agent_name,
-        ...data.results.requests,
+        ...rpsEntry
       });
+    }
 
-      // ac_results_latency
+    if (typeof data.results.stats.rpsMap === "object") {
+      Object.keys(data.results.stats.rpsMap).map(k => pushRpsEntry(data.results.stats.rpsMap[k]))
+    } else if (typeof data.results.stats.rpsMap === "array") {
+      data.results.stats.rpsMap.forEach(rpsEntry => pushRpsEntry(rpsEntry));
+    } else {
+      // noop
+    }
+
+    // ac_result_resincr
+    const pushResEntry = (resEntry) => {
       actions.push({
         index: {
-          _index: 'ac_results_latency',
-        },
+          _index: 'ac_result_resincr'
+        }
       }, {
         job_id: data.id,
         agent_id: data.agent_id,
         agent_name: data.agent_name,
-        ...data.results.latency,
+        ...resEntry
       });
+    }
 
-      // ac_results_throughput
-      actions.push({
-        index: {
-          _index: 'ac_results_throughput',
-        },
-      }, {
-        job_id: data.id,
-        agent_id: data.agent_id,
-        agent_name: data.agent_name,
-        ...data.results.throughput,
-      });
+    if (typeof data.results.stats.resIncrMap === "object") {
+      Object.keys(data.results.stats.resIncrMap).map(k => pushResEntry(data.results.stats.resIncrMap[k]))
+    } else if  (typeof data.results.stats.resIncrMap === "array") {
+      data.results.stats.resIncrMap.forEach((resEntry) => pushResEntry(resEntry));
+    } else {
+      // noop
+    }
 
-      // ac_result_rps
-      data.results.stats.rpsMap.forEach((rpsEntry) => {
-        actions.push({
-          index: {
-            _index: 'ac_result_rps',
-          },
-        }, {
-          job_id: data.id,
-          agent_id: data.agent_id,
-          agent_name: data.agent_name,
-          ...rpsEntry,
-        });
-      });
+    // store in bulk
+    storage.bulk(actions);
+  };
 
-      // ac_result_resincr
-      data.results.stats.resIncrMap.forEach((resEntry) => {
-        actions.push({
-          index: {
-            _index: 'ac_result_resincr',
-          },
-        }, {
-          job_id: data.id,
-          agent_id: data.agent_id,
-          agent_name: data.agent_name,
-          ...resEntry,
-        });
-      });
+  _handleRemoveAgent = (data, sock) => {
+    const agents = this.getAgents();
+    const index = agents.findIndex(function (agent) {
+      const agentSock = agent.getSocket();
+      return agentSock.remoteAddress === sock.remoteAddress && agentSock.remotePort === sock.remotePort;
+    });
 
-      // store in bulk
-      storage.bulk(actions);
-    };
+    const agent = agents[index];
+    storage.deleteAgentById(agent.getID());
 
-    _handleRemoveAgent = (data, sock) => {
-      const agents = this.getAgents();
-      const index = agents.findIndex(function(agent) {
-        const agentSock = agent.getSocket();
-        return agentSock.remoteAddress === sock.remoteAddress && agentSock.remotePort === sock.remotePort;
-      });
+    if (index !== -1) {
+      agents.splice(index, 1);
+    }
 
-      const agent = agents[index];
-      storage.deleteAgentById(agent.getID());
-
-      if (index !== -1) {
-        agents.splice(index, 1);
-      }
-
-      log.warn(`Closed connection with Athena agent (${agent.getName()}): ${sock.remoteAddress}:${sock.remotePort}!`);
-    };
+    log.warn(`Closed connection with Athena agent (${agent.getName()}): ${sock.remoteAddress}:${sock.remotePort}!`);
+  };
 }
 
 class AgentNode extends GenericNode {
@@ -541,94 +1079,128 @@ class AgentNode extends GenericNode {
     log.info(`Initializing myself as a new Agent: [id: ${this.getID()}] [name: ${this.getName()}]!`);
   }
 
-    setSocket = (sock) => {
-      this._socket = sock;
-    };
+  setSocket = (sock) => {
+    this._socket = sock;
+  };
 
-    getSocket = () => {
-      return this._socket;
-    };
+  getSocket = () => {
+    return this._socket;
+  };
 
-    joinCluster = () => {
-      const token = this.settings.token; // todo: auth
-      const [host, port] = this.settings.addr.split(':');
-      const _self = this;
+  // Assumed bare metal.
+  joinCluster = () => {
+    const token = this.settings.token; // todo: auth
+    const [host, port] = this.settings.addr.split(':');
+    const _self = this;
+  };
 
-      console.log(`Connecting to ${host}:${port}`);
+  joinNonInteractive = () => {
+    const perfTest =  JSON.parse(this.settings.jobConfig);
+    const _self = this;
 
-      const socket = new net.Socket();
-      this.setSocket(socket);
+    // Try to evaluate any provided hooks.
+    if (perfTest.hooks) {
+      perfTest.setupClient = function(client) {
+        client.on('request', () => {
+          if (perfTest.hooks.onRequest) {
+            try {
+              eval(perfTest.hooks.onRequest);
+            } catch (e) {
+              log.error(`Could not parse performance test hook [onRequest]:\n${e}`);
+            }
+          }
+        });
+      }
+    }
+  
+    this.athena.runPerformanceTests(perfTest, async function (err, results, stats) {
+      // check for any errors
+      if (err) {
+        console.error(`Could not run the job!`, err);
+        return;
+        // todo: return error message to manager
+      }
 
-      // todo: run with PM2
-      socket.connect(port, host, function() {
-        _self.setStatus(AGENT_STATUS.READY);
-        const status = _self.describe();
-        const message = makeMessage(COMMANDS.PROC_STATUS, status);
-        socket.write(JSON.stringify(message));
-      });
+      results.stats = stats;
+      log.success(`Successfully ran the performance test!`);
+      log.info(`Attempting to notify the manager about the test results...`);
 
-      socket.on('data', (message) => {
-        log.info(`Received new data from the manager node!`);
-        let data = null;
+      const PerfJob = new PerformanceJob(perfTest);
+      PerfJob.setResults(results);
+      PerfJob.setId(_self.settings.jobId);
+
+      try {
+        request.post('http://athena-manager:5000/api/v1/k8s/internal/performance/parse-agent-report', {
+          form: {
+            agent_id: _self.getID(),
+            agent_name: _self.getName(),
+            ...PerfJob.describe()
+          }
+        }, function(err) {
+          // todo: hamdle error here
+          _process.exit(0);
+        })
+      } catch (e) {
+        console.error(e);
+        // ctx.throw(500, 'Could not notify the manager about the tests results.');
+      } finally {
+        // _process.kill(_process.pid);
+      }
+    });
+
+    const NonInteractiveAgentAPI = new Koa();
+    const Router = new KoaRouter();
+    const _process = process;
+
+    NonInteractiveAgentAPI
+      .use(KoaHelmet())
+      .use(KoaBodyparser())
+      .use(KoaJSON())
+      .use(Router.routes())
+      .use(Router.allowedMethods())
+      .use(async(ctx, next) => {
         try {
-          data = JSON.parse(message);
-        } catch (error) {
-          log.warn(`Could not parse the incoming data from the manager node!`);
-          console.error(error);
-
-          const msg = makeMessage((
-            COMMANDS.PROC_LAST_REPORT
-          ));
-          return;
+          await next();
+        } catch (err) {
+          ctx.status = err.status || 500;
+          ctx.body = err.message;
+          ctx
+            .app
+            .emit('error', err, ctx);
         }
+      })
+      .listen(5000, () => {
+        console.log(`The Athena agent is listening in non-interactive mode.`);
+      })
 
-        log.info(`Attempting to parse the incoming data from the manager...`);
+  }
 
-        // process message type
-        switch (data.type) {
-          case COMMANDS.REQ_RUN_PERF:
-            log.success(`Successfully identified the incoming data as a new performance test job!`);
-            this._handleReqRunPerf(data);
-            break;
+  _handleReqUpdateInfo = (message) => {
+    const data = message.data;
 
-          case 'REQ_UPDATE_INFO':
-            this._handleReqUpdateInfo(data);
-            break;
-            // todo: handle all command types
-          default:
-            break;
-        }
-      });
+    // update id
+    if (data.id) {
+      this.setID(data.id);
+      log.info(`Successfully updated my ID to: "${data.id}"!`);
+    }
 
-      socket.on('close', () => {
-        log.info(`The agent has closed the connection...`);
-      });
-    };
+    // update name
+    if (data.name) {
+      this.setName(data.name);
+      log.info(`Successfully updated my name to: "${data.name}"!`);
+    }
+  };
 
-    _handleReqUpdateInfo = (message) => {
-      const data = message.data;
+  _handleReqRunPerf = (message) => {
+    const perfTest = message.data;
+    const _self = this;
 
-      // update id
-      if (data.id) {
-        this.setID(data.id);
-        log.info(`Successfully updated my ID to: "${data.id}"!`);
-      }
+    log.info(`Preparing to run a new performance job (id: ${perfTest.id}) ...`);
 
-      // update name
-      if (data.name) {
-        this.setName(data.name);
-        log.info(`Successfully updated my name to: "${data.name}"!`);
-      }
-    };
-
-    _handleReqRunPerf = (message) => {
-      const perfTest = message.data;
-      const _self = this;
-
-      log.info(`Preparing to run a new performance job (id: ${perfTest.id}) ...`);
-
-      // run performance tests
-      this.athena.runPerformanceTests(perfTest.data, function(err, results, stats) {
+    // run performance tests
+    this
+      .athena
+      .runPerformanceTests(perfTest.data, function (err, results, stats) {
         // check for any errors
         if (err) {
           console.error(`Could not run the job!`, err);
@@ -646,21 +1218,18 @@ class AgentNode extends GenericNode {
         const PerfJob = new PerformanceJob(perfTest);
         PerfJob.setResults(results);
 
-        const resRunPerfMessage = makeMessage(
-            'RES_RUN_PERF',
-            {
-              agent_id: _self.getID(),
-              agent_name: _self.getName(),
-              ...PerfJob.describe(),
-            }
-        );
+        const resRunPerfMessage = makeMessage('RES_RUN_PERF', {
+          agent_id: _self.getID(),
+          agent_name: _self.getName(),
+          ...PerfJob.describe()
+        });
 
         // notify
         socket.write(JSON.stringify(resRunPerfMessage), 'utf8', () => {
           log.success(`Successfully sent the test results!`);
         });
       });
-    };
+  };
 }
 
 class PerformanceJob {
@@ -676,41 +1245,54 @@ class PerformanceJob {
     }
 
     // maybe provision
-    if (perfTest.id) this._id = perfTest.id;
-    if (perfTest.created_at) this._created_at = perfTest.created_at;
-    if (perfTest.updated_at) this._updated_at = perfTest.updated_at;
-    if (perfTest.data) this._data = perfTest.data;
-    if (perfTest.results) this._results = perfTest.results;
+    if (perfTest.id) 
+      this._id = perfTest.id;
+    if (perfTest.created_at) 
+      this._created_at = perfTest.created_at;
+    if (perfTest.updated_at) 
+      this._updated_at = perfTest.updated_at;
+    if (perfTest.data) 
+      this._data = perfTest.data;
+    if (perfTest.results) 
+      this._results = perfTest.results;
+    }
+  
+  setId = (id) => {
+    this._id = id;
   }
 
-    setData = (data) => {
-      this._data = data;
+  getId = () => {
+    return this._id;
+  }
+
+  setData = (data) => {
+    this._data = data;
+  };
+
+  setResults = (results) => {
+    this._results = results;
+    this.refreshUpdatedAt();
+  };
+
+  refreshUpdatedAt = () => {
+    this._updated_at = new Date().toJSON();
+  };
+
+  describe = (asString = false) => {
+    const description = {
+      id: this._id,
+      created_at: this._created_at,
+      updated_at: this._updated_at,
+      data: this._data,
+      results: this._results
     };
 
-    setResults = (results) => {
-      this._results = results;
-      this.refreshUpdatedAt();
-    };
-
-    refreshUpdatedAt = () => {
-      this._updated_at = new Date().toJSON();
-    };
-
-    describe = (asString = false) => {
-      const description = {
-        id: this._id,
-        created_at: this._created_at,
-        updated_at: this._updated_at,
-        data: this._data,
-        results: this._results,
-      };
-
-      if (asString) {
-        return JSON.stringify(description);
-      }
-
-      return description;
+    if (asString) {
+      return JSON.stringify(description);
     }
+
+    return description;
+  }
 }
 
 module.exports = Cluster;

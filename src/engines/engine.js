@@ -26,7 +26,7 @@ class Engine {
 
     run = () => {
       throw new Error(`${this.name} engine not implementing run method!`);
-    };
+    }
 }
 
 module.exports = Engine;

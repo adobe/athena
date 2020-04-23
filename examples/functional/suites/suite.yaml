@@ -1,0 +1,16 @@
+type: suite # for tests, type is assumed by default.
+name: CC Suite
+description: This is the suite description.
+tests:
+  - cc-test
+  - cc-test-2
+dependecy:
+  - Some other suite
+hooks:
+  skip: funcReturnsBool()
+  beforeEach: >
+    this.token = getServiceToken()
+    this.host = "http://localhost:9191/get"
+  afterEach:
+  before:
+  after:

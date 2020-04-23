@@ -45,7 +45,7 @@ class TestFileEntity {
       this._config = jsYaml.safeLoad(fs.readFileSync(filePath, 'utf-8'));
       this._fileData = path.parse(filePath);
     } catch (error) {
-      log.error(`Could not parse test file.\n${error}`);
+      log.error(`Could not parse test file: ${filePath}\n${error}`);
     }
 
     this._path = filePath;

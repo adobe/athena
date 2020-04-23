@@ -1,0 +1,24 @@
+name: cc-test
+type: test
+description: This is the test description # optional
+fixtures: # List of fixtures to load in this test's context.
+  - isServiceToken
+dependency:
+  - someOtherTest
+  - someOtherTest2
+version: 1.0.2 # The latest version of the test will run always.
+hooks:
+  skip: gwVersionIs("<= 6.1.0")
+  setup: >
+    console.log(`✅ Running beforeGiven!`);
+    console.log(`this.host value is ${this.host}`);
+  teardown: console.log(`✅ Running afterThen!`)
+config:
+  timeout: 10
+scenario:
+  given: >
+    this.host = "https://google.com";
+  when: >
+    this.response = chakram.get(this.host);
+  then: >
+    expect(this.response).to.have.status(200);

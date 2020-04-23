@@ -228,11 +228,13 @@ const maybePutMappingForIndex = (index, callback) => {
     });
 }
 
-// Make sure to update indices only once.
-maybePutMappingForIndex(INDEXES.AC_JOB);
-maybePutMappingForIndex(INDEXES.AC_RESULT_OVERVIEW);
-maybePutMappingForIndex(INDEXES.AC_RESULT_RESINCR);
-maybePutMappingForIndex(INDEXES.AC_RESULT_RPS);
-maybePutMappingForIndex(INDEXES.AC_RESULTS_REQUESTS);
-maybePutMappingForIndex(INDEXES.AC_RESULTS_THROUGHPUT);
-maybePutMappingForIndex(INDEXES.AC_RESULTS_LATENCY);
+module.exports = () => {
+    // Make sure to update indices only once.
+    maybePutMappingForIndex(INDEXES.AC_JOB);
+    maybePutMappingForIndex(INDEXES.AC_RESULT_OVERVIEW);
+    maybePutMappingForIndex(INDEXES.AC_RESULT_RESINCR);
+    maybePutMappingForIndex(INDEXES.AC_RESULT_RPS);
+    maybePutMappingForIndex(INDEXES.AC_RESULTS_REQUESTS);
+    maybePutMappingForIndex(INDEXES.AC_RESULTS_THROUGHPUT);
+    maybePutMappingForIndex(INDEXES.AC_RESULTS_LATENCY);
+}

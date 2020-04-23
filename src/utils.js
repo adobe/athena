@@ -30,6 +30,31 @@ const {ENTITY_TYPES} = require('./enums');
 const schemas = require('./schemas');
 const log = makeLogger();
 
+Object.defineProperty(global, '__stack', {
+  get: function () {
+    var orig = Error.prepareStackTrace;
+
+    Error.prepareStackTrace = function (_, stack) {
+      return stack;
+    };
+
+    var err = new Error;
+    Error.captureStackTrace(err, arguments.callee);
+    var stack = err.stack;
+    Error.prepareStackTrace = orig;
+
+    return stack;
+  }
+});
+
+const _getFunctionName = (stackLevel  = 1) => {
+  return __stack[stackLevel].getFunctionName();
+}
+
+const _getLineNumber  = (stackLevel = 1) => {
+  return __stack[stackLevel].getLineNumber();
+}
+
 /**
  * Creates a logger instance.
  * @return object The logger instance.
@@ -48,7 +73,7 @@ function makeLogger() {
 
   logger.debug = (...m) => {
     if (yargs.argv.debug) {
-      console.log(chalk.gray(`🐛 DEBUG: `), ...m);
+      console.log(chalk.gray(`🐛 DEBUG [${_getFunctionName(2)}():${_getLineNumber(2)}]: `), ...m);
     }
   };
 
@@ -71,7 +96,8 @@ function getParsedSettings(options = {}) {
   defaults.performance = false;
   defaults.functional = false;
 
-  // Check whether the specified tests directory exists, otherwise use the default examples.
+  // Check whether the specified tests directory exists, otherwise use the default
+  // examples.
   if (!fs.existsSync(defaults.testsDir)) {
     if (!isUndefined(defaults.testsDir)) {
       log.warn(`The specified tests directory does not exist: (${defaults.testsDir}). Using the example tests instead.`);
@@ -94,7 +120,10 @@ function getParsedSettings(options = {}) {
     options.functional = false;
   }
 
-  return {...defaults, ...options};
+  return {
+    ...defaults,
+    ...options
+  };
 }
 
 exports.getParsedSettings = getParsedSettings;
@@ -104,12 +133,7 @@ exports.getParsedSettings = getParsedSettings;
  * @param str string The string that needs to be converted.
  * @return string The initial string, converted to camelCase.
  */
-const snakeToCamel = (str) => str.replace(
-    /([-_][a-z])/g,
-    (group) => group.toUpperCase()
-        .replace('-', '')
-        .replace('_', '')
-);
+const snakeToCamel = (str) => str.replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace('-', '').replace('_', ''));
 
 exports.snakeToCamel = snakeToCamel;
 
@@ -134,9 +158,12 @@ exports.maybeCreateDirSync = (path) => {
  */
 exports.parseAstExpressions = (script) => {
   const ast = AstParser.parse(script);
-  if (!ast.body || !script) return [];
-
-  return ast.body.map((e) => script.substring(e.start, e.end)) || [];
+  if (!ast.body || !script) 
+    return [];
+  
+  return ast
+    .body
+    .map((e) => script.substring(e.start, e.end)) || [];
 };
 
 /**
@@ -146,7 +173,9 @@ exports.parseAstExpressions = (script) => {
 exports.makeContainer = () => {
   function Container() {
     this.entries = [];
-    this.add = (el) => this.entries.push(el);
+    this.add = (el) => this
+      .entries
+      .push(el);
     this.remove = (elToRemove) => remove(this.entries, (el) => el === elToRemove);
 
     return this;
@@ -208,15 +237,18 @@ exports.getPackageInstallCommand = (packageName) => {
  * @return {object} The object without empty properties.
  */
 function removeEmpty(obj) {
-  return Object.keys(obj)
-      .filter((k) => obj[k] != null)
-      .reduce(
-          (newObj, k) =>
-                typeof obj[k] === 'object' ?
-                    {...newObj, [k]: removeEmpty(obj[k])} :
-                    {...newObj, [k]: obj[k]},
-          {}
-      );
+  return Object
+    .keys(obj)
+    .filter((k) => obj[k] != null)
+    .reduce((newObj, k) => typeof obj[k] === 'object'
+      ? {
+        ...newObj,
+        [k]: removeEmpty(obj[k])
+      }
+      : {
+        ...newObj,
+        [k]: obj[k]
+      }, {});
 }
 
 exports.removeEmpty = removeEmpty;
@@ -231,8 +263,10 @@ exports.removeEmpty = removeEmpty;
  */
 function decorateCheckTestFile(callback) {
   /* eslint-disable */
-  let currentContext = arguments.callee.toString()
-      .substr('function '.length);
+  let currentContext = arguments
+    .callee
+    .toString()
+    .substr('function '.length);
   currentContext = currentContext.substr(0, currentContext.indexOf('('));
   /* eslint-enable */
 
@@ -240,7 +274,7 @@ function decorateCheckTestFile(callback) {
     throw new Error(`A callback is required in ${currentContext}.`);
   }
 
-  return function(entity) {
+  return function (entity) {
     const allowedEntityTypes = [
       'TestFileEntity',
       'FunctionalSuiteEntity',
@@ -248,12 +282,11 @@ function decorateCheckTestFile(callback) {
       'FixtureEntity',
       'PerformanceTestEntity',
       'PerformancePatternEntity',
-      'PerformanceRunEntity',
+      'PerformanceRunEntity'
     ];
 
     if (allowedEntityTypes.indexOf(entity.constructor.name) === -1) {
-      throw new Error(`A TestFile instance is required for this check ` +
-          `in ${currentContext}().`);
+      throw new Error(`A TestFile instance is required for this check ` + `in ${currentContext}().`);
     }
 
     return callback(entity);
@@ -279,55 +312,37 @@ function makeDecoratedEntityCheckFunction(argument, type) {
  * Checks whether an entity type is a functional suite.
  * @return {boolean} True if the entity is a functional suite, false otherwise.
  */
-exports.isFunctionalSuite = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.SUITE
-);
+exports.isFunctionalSuite = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.SUITE);
 
 /**
  * Checks whether an entity type is a functional test.
  * @return {boolean} True if the entity is a functional test, false otherwise.
  */
-exports.isFunctionalTest = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.TEST
-);
+exports.isFunctionalTest = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.TEST);
 
 /**
  * Checks whether an entity type is a fixture.
  * @return {boolean} True if the entity is a fixture, false otherwise.
  */
-exports.isFixture = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.FIXTURE
-);
+exports.isFixture = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.FIXTURE);
 
 /**
  * Checks whether an entity type is a performance suite.
  * @return {boolean} True if the entity is a performance suite, false otherwise.
  */
-exports.isPerformanceSuite = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.PERFORMANCE_SUITE
-);
+exports.isPerformanceSuite = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.PERFORMANCE_SUITE);
 
 /**
  * Checks whether an entity type is a performance pattern.
  * @return {boolean} True if the entity is a performance pattern, false otherwise.
  */
-exports.isPerformancePattern = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.PERFORMANCE_PATTERN
-);
+exports.isPerformancePattern = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.PERFORMANCE_PATTERN);
 
 /**
  * Checks whether an entity type is a performance run.
  * @return {boolean} True if the entity is a performance run, false otherwise.
  */
-exports.isPerformanceRun = makeDecoratedEntityCheckFunction(
-    'type',
-    ENTITY_TYPES.PERFORMANCE_RUN
-);
+exports.isPerformanceRun = makeDecoratedEntityCheckFunction('type', ENTITY_TYPES.PERFORMANCE_RUN);
 
 /**
  * Checks whether a given URL is a valid Git URL.
