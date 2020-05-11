@@ -140,6 +140,69 @@ class StorageRepository {
             });
          });   
     }
+
+    updatePerfTestById = (id, updatedData) => {
+        return new Promise((resolve, reject) => {
+            Models.PerformanceTest.findOneAndUpdate({ _id: id }, updatedData, { new: true }, function(err, perfTest) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(perfTest);
+                }
+            });
+         });     
+    }
+
+    // TODO! Delete ES records as well.
+    deletePerformanceTestById = (testId) => {
+        return new Promise((resolve, reject) => {
+            Models.PerformanceTest.deleteOne({ _id: testId }, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    Models.PerformanceTestRun.deleteMany({ testId: testId }, function(err) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                }
+            });
+         });   
+    }
+
+    // TODO! Delete ES records as well.
+    deleteProjectById = (projectId) => {
+        return new Promise((resolve, reject) => {
+            Models.Project.deleteOne({ _id: projectId }, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    Models.PerformanceTest.find({ projectId }, null, {sort: {createdAt: -1}}, function(err, perfTests) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            const ptIdsToDelete = perfTests.map(p => { return p._id });
+                            Models.PerformanceTestRun.deleteMany({ testId: ptIdsToDelete }, function(err) {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    Models.PerformanceTest.deleteMany({ projectId }, function(err) {
+                                        if (err) {
+                                            reject(err);
+                                        } else {
+                                            resolve();
+                                        }
+                                    })
+                                }
+                            })
+                        }
+                    });
+                }
+            });
+         });   
+    }
 }
 
 module.exports = new StorageRepository();

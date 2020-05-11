@@ -31,15 +31,21 @@ class Athena {
     this.k8sManager = new KubernetesManager();
 
     // [AutocannonEngine, ChakramEngine]
-    const [FunctionalEngine] = new EngineManager(this.settings, this.pluginManager, this.entityManager)
+    const [
+      FunctionalEngine,
+      PerformanceEngine
+    ] = new EngineManager(
+      this.settings,
+      this.pluginManager,
+      this.entityManager
+    )
 
-    // this.autocannon = AutocannonEngine; this.chakram = ChakramEngine;
-
+    this.PerformanceEngine = PerformanceEngine;
     this.FunctionalEngine = FunctionalEngine;
   }
 
   runPerformanceTests = (perfTests = null, cb = null) => this
-    .autocannon
+    .PerformanceEngine
     .run(perfTests, cb);
 
   runFunctionalTests = () => this
@@ -49,7 +55,7 @@ class Athena {
   getSettings = () => this.settings;
 
   getPerformanceTests = () => this
-    .autocannon
+    .PerformanceEngine
     .getPerformanceTests()
 }
 

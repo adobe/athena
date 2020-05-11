@@ -30,18 +30,32 @@ const log = makeLogger();
 
 module.exports = class FunctionalEngine extends Engine {
   constructor([settings, pluginManager, entityManager]) {
-    super(settings, pluginManager, entityManager, TAXONOMIES.FUNCTIONAL, ENGINES.CHAKRAM, new Mocha({
-      reporter: 'json-stream'
-    }));
+    super(
+      settings,
+      pluginManager,
+      entityManager,
+      TAXONOMIES.FUNCTIONAL,
+      ENGINES.CHAKRAM,
+      new Mocha({
+        reporter: (() => {
+          let reporter = settings.reporter;
+
+          if (settings.reporter === 'athena-json-stream') {
+            return `${path.resolve(__dirname)}/funcJSONStreamReporter.js`;
+          }
+
+          if (settings.reporter === 'junit') {
+            log.info(`Running tests using the JUnit reporter!`);
+            return 'mocha-junit-reporter';
+          }
+
+          return reporter;
+        })()
+      })
+    );
 
     this.entityManager = entityManager;
-
-    // Preserved native methods placeholders.
-    this._nativeMethods = {
-      readFileSync: null,
-      findPath: null
-    }
-
+    this._nativeMethods = { readFileSync: null, findPath: null }
     this._overrideDefaultMethods();
     this.entities = this._registerEntities();
   }
@@ -285,10 +299,6 @@ function _overrideDefaultMethods() {
 }
 
 function _run() {
-
-
-
-
   this
     .engine
     .run((fail) => {

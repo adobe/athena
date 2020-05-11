@@ -275,21 +275,23 @@ class ManagerNode extends GenericNode {
       Router.get('/api/v1/projects/:projectId/performance/:testId', handleReadSinglePerformanceTest);
       Router.get('/api/v1/projects/:projectId/performance/:testId/runs', handleReadSinglePerformanceTestRuns);
       Router.get('/api/v1/projects/:projectId/performance/:testId/schedule', handleSchedulePerformanceTestRun);
-
+      Router.put('/api/v1/projects/:projectId/performance/:testId', handleUpdatePerformanceTest);
+      Router.delete('/api/v1/projects/:projectId/performance/:testId', handleDeletePerformanceTest);
+      Router.delete('/api/v1/projects/:projectId', handleDeleteSingleProject);
+      
       // TODO: Not implemented.
       // Router.put('/api/v1/projects/:projectId', handleUpdateSingleProject);
-      // Router.delete('/api/v1/projects/:projectId', handleDeleteSingleProject);
-      // Router.post('/api/v1/projects/:projectId/performance/:testId', handleCreatePerformanceTest);
-      // Router.put('/api/v1/projects/:projectId/performance/:testId', handleUpdatePerformanceTest);
-      // Router.delete('/api/v1/projects/:projectId/performance/:testId', handleDeletePerformanceTest);
+      // Router.post('/api/v1/projects/:projectId/performance/:testId', handleCreatePerformanceTest);    
       // Router.post('/api/v1/projects/:projectId/performance/:testId/runs', handleCreatePerformanceTestRun); // Schedules a new perf test run.
       // Router.get('/api/v1/projects/:projectId/performance/:testId/runs', handleReadPerformanceTestRuns);
 
       // ----------------------------
       // Internal / K8S API Endpoints 
       // ----------------------------
+
       // TODO(nvasile): The following endpoints should be protected from outside access.
       Router.post('/api/v1/k8s/internal/performance/parse-agent-report', _handleProcessAgentReport);
+      Router.post('/api/v1/k8s/internal/perf/process-buffered-agent-report', _handleProcessBufferedAgentReport);
       
       async function handleCreateNewProject(ctx, next) {
         // Validate
@@ -438,28 +440,28 @@ class ManagerNode extends GenericNode {
           const jobAgentsCount = perfTest.config.resources.agents || 1;
 
           // Process the non-interactive job config.
-          let nonInteractiveJobConfig = fs.readFileSync(path.resolve(__dirname, 'nonInteractiveAgentJob.yaml'), 'utf8');
-          nonInteractiveJobConfig = jsYaml.safeLoad(nonInteractiveJobConfig);
+          let agentJobConfig = fs.readFileSync(path.resolve(__dirname, 'config/agent-job-config.yaml'), 'utf8');
+          agentJobConfig = jsYaml.safeLoad(agentJobConfig);
 
           // Update the ni-job conf.
-          nonInteractiveJobConfig.metadata.name = `athena-ni-agent-${jobId}`;
-          nonInteractiveJobConfig.metadata.labels = {
+          agentJobConfig.metadata.name = `athena-ni-agent-${jobId}`;
+          agentJobConfig.metadata.labels = {
             athena_jid: jobId
           }
 
           const { cpu: resCpu, memory: resMemory } = perfTest.config.resources;
-          nonInteractiveJobConfig.spec.completions = jobAgentsCount;
-          nonInteractiveJobConfig.spec.parallelism = jobAgentsCount;
+          agentJobConfig.spec.completions = jobAgentsCount;
+          agentJobConfig.spec.parallelism = jobAgentsCount;
 
-          nonInteractiveJobConfig.spec.template.spec.containers[0].resources.limits.cpu = resCpu || "0";
-          nonInteractiveJobConfig.spec.template.spec.containers[0].resources.limits.memory = resMemory || "0"
+          agentJobConfig.spec.template.spec.containers[0].resources.limits.cpu = resCpu || "0";
+          agentJobConfig.spec.template.spec.containers[0].resources.limits.memory = resMemory || "0"
           
-          nonInteractiveJobConfig.metadata.labels = {
+          agentJobConfig.metadata.labels = {
             "app": "athena",
             "type": "ni-agent",
             "jobId": jobId
           };
-          nonInteractiveJobConfig.spec.template.spec.containers[0].command = [
+          agentJobConfig.spec.template.spec.containers[0].command = [
             "node",
             "athena.js",
             "cluster",
@@ -471,7 +473,7 @@ class ManagerNode extends GenericNode {
           ]
 
           // Spawn agents.
-          await _self.athena.k8sManager.spawnShortlivedAgents(nonInteractiveJobConfig, jobAgentsCount);
+          await _self.athena.k8sManager.spawnShortlivedAgents(agentJobConfig, jobAgentsCount);
 
           ctx.status = 200;
           ctx.body = { message: "success" };
@@ -502,22 +504,20 @@ class ManagerNode extends GenericNode {
         const jobId = perfJobInstance.getId();
 
         // Parse the non-interactive job config yaml file.
-        let nonInteractiveJobConfig = fs.readFileSync(path.resolve(__dirname, 'nonInteractiveAgentJob.yaml'), 'utf8');
-        nonInteractiveJobConfig = jsYaml.safeLoad(nonInteractiveJobConfig);
-
-        console.log(JSON.stringify(nonInteractiveJobConfig, null, 2))
+        let agentJobConfig = fs.readFileSync(path.resolve(__dirname, 'config/agent-job-config.yaml'), 'utf8');
+        agentJobConfig = jsYaml.safeLoad(agentJobConfig);
         const count = perfJob.config.agents || 1;
 
-        nonInteractiveJobConfig.metadata.name = `athena-ni-agent`;
-        nonInteractiveJobConfig.metadata.labels = {
+        agentJobConfig.metadata.name = `athena-ni-agent`;
+        agentJobConfig.metadata.labels = {
           "app": "athena",
           "type": "ni-agent",
           "jobId": jobId
         };
 
-        nonInteractiveJobConfig.spec.completions = count;
-        nonInteractiveJobConfig.spec.parallelism = count;
-        nonInteractiveJobConfig.spec.template.spec.containers[0].command = [
+        agentJobConfig.spec.completions = count;
+        agentJobConfig.spec.parallelism = count;
+        agentJobConfig.spec.template.spec.containers[0].command = [
           "node",
           "athena.js",
           "cluster",
@@ -528,7 +528,7 @@ class ManagerNode extends GenericNode {
           `--jobConfig="${JSON.stringify(perfJob)}"`
         ]
 
-        this.athena.k8sManager.spawnShortlivedAgents(nonInteractiveJobConfig, count);
+        this.athena.k8sManager.spawnShortlivedAgents(agentJobConfig, count);
 
         ctx.body = {
           status: 200,
@@ -538,24 +538,47 @@ class ManagerNode extends GenericNode {
         await next();
       });
 
-      // Update a single project's details.
-      async function handleUpdateSingleProject(ctx, next) {
-        next();
-      }
-
-      // Delete a single project by ID.
-      async function handleDeleteSingleProject(ctx, next) {
-        // Cascade delete tests and test runs.
-        next();
-      }
-
       // Update a performance test for a single project.
       async function handleUpdatePerformanceTest(ctx, next) {
-        next();
+          const updatedData = ctx.request.body;
+          const { testId } = ctx.params;
+
+          await StorageRepository.updatePerfTestById(testId, {
+            config: updatedData
+          });
+  
+          ctx.status = 200;
+          ctx.body = { status: "updated!" }
+  
+          await next();
       }
 
       // Delete a performance test for a single project.
       async function handleDeletePerformanceTest(ctx, next) {
+        const { testId } = ctx.params;
+
+        await StorageRepository.deletePerformanceTestById(testId);
+
+        ctx.status = 200;
+        ctx.body = { status: "perf test deleted!" }
+
+        await next();
+      }
+
+      // Delete a single project by ID.
+      async function handleDeleteSingleProject(ctx, next) {
+        const { projectId } = ctx.params;
+
+        await StorageRepository.deleteProjectById(projectId);
+
+        ctx.status = 200;
+        ctx.body = { status: "project deleted!" }
+
+        await next();
+      }
+
+      // Update a single project's details.
+      async function handleUpdateSingleProject(ctx, next) {
         next();
       }
 
@@ -577,9 +600,14 @@ class ManagerNode extends GenericNode {
       // Process incoming non-interactive Athena agent's report.
       // TODO(nvasile): Make sure that the incoming max client body size is large enough.
       async function _handleProcessAgentReport(ctx, next) {
+
         // TODO(nvasile): Try/Catch ;)
         const perfJobResults = ctx.request.body;
         const { id: jobId } = perfJobResults;
+
+        // console.log('---')
+        // console.log(JSON.stringify(perfJobResults, null, 2));
+        // console.log('---')
         
         log.info(`Attempting to parse incoming agent [${perfJobResults.agent_id}:${perfJobResults.agent_name}] info (non-interactive) for job: ${jobId}!`);
         _self._handleResRunPerf({ data: perfJobResults });
@@ -588,7 +616,8 @@ class ManagerNode extends GenericNode {
         // Mark the job as complete and prune agents.
         const { agents } = perfRun.config.resources;
         console.log(`agentsCount = ${agents} : perfRun.reports = ${perfRun.reports}`)
-        if (perfRun.reports == agents) {
+
+        if (perfRun.reports == agents) {          
           perfRun.status = "COMPLETED";
           await perfRun.save();
           await _self.athena.k8sManager.pruneShortlivedAgents(jobId);
@@ -599,6 +628,12 @@ class ManagerNode extends GenericNode {
           status: "success"
         }
 
+        await next();
+      }
+
+      // This endpoint processes the incoming agent reports in a buffered way.
+      async function _handleProcessBufferedAgentReport(ctx, next) {
+        // TODO! Not implemented.
         await next();
       }
 
@@ -709,14 +744,6 @@ class ManagerNode extends GenericNode {
           pods
         };
       }
-
-      // TODO: Delete this
-      Router.get('/some-test', async (ctx, next) => {
-        ctx.body = await StorageRepository.incrPerfRunReports("5e99f334058b330010c92dfc");
-        ctx.status = 200;
-
-        await next();
-      });
 
       // Bootstrap
       AthenaAPI
@@ -1154,7 +1181,11 @@ class AgentNode extends GenericNode {
 
     NonInteractiveAgentAPI
       .use(KoaHelmet())
-      .use(KoaBodyparser())
+      .use(KoaBodyparser({
+        formLimit: "50mb",
+        jsonLimit: "50mb",
+        textLimit: "50mb"
+      }))
       .use(KoaJSON())
       .use(Router.routes())
       .use(Router.allowedMethods())
@@ -1172,7 +1203,6 @@ class AgentNode extends GenericNode {
       .listen(5000, () => {
         console.log(`The Athena agent is listening in non-interactive mode.`);
       })
-
   }
 
   _handleReqUpdateInfo = (message) => {

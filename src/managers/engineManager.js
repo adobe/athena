@@ -10,12 +10,15 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const {ChakramEngine, AutocannonEngine, FunctionalEngine} = require('./../engines');
+const {ChakramEngine, AutocannonEngine, FunctionalEngine, PerformanceEngine} = require('./../engines');
 
 class EngineManager {
   constructor(settings, pluginManager, entityManager) {
     const _ = [settings, pluginManager, entityManager];
-    return [new FunctionalEngine(_)];
+    return [
+      new FunctionalEngine(_),
+      new PerformanceEngine(_)
+    ];
   }
 }
 

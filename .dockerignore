@@ -1,8 +1,7 @@
 node_modules
-client/node_modules
 logs
 logs/*.log
 !logs/.gitkeep
 npm-debug.log
 .idea
-client
+dashboard

@@ -81,6 +81,11 @@ const options = yargs
       describe: 'run the tests inside the cluster [performance]',
       type: 'boolean',
       default: false
+    },
+    'reporter': {
+      describe: 'provide the reporter type',
+      type: 'string',
+      default: 'athena-json-stream'
     }
   })
   .command('cluster', 'manage an Athena cluster', {
