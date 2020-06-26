@@ -98,7 +98,7 @@ Behind the scenes, Athena uses [Autocannon](https://github.com/mcollina/autocann
 You can start using Athena right away and run either performance and functional tests using the following command:
 
 ```bash
-node athena.js -t ./custom_tests_path --[performance|functional]
+node athena.js run -t ./custom_tests_path --[performance|functional]
 ```
 
 ### Developer Guide
