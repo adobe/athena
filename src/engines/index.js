@@ -10,10 +10,20 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+// OLD
 const AutocannonEngine = require('./autocannonEngine');
 const ChakramEngine = require('./chakramEngine');
 
+// NEW
+const FunctionalEngine = require('./funcEngine');
+const PerformanceEngine = require('./perfEngine');
+
 module.exports = {
+  // OLD
   AutocannonEngine,
   ChakramEngine,
+
+  // NEW
+  FunctionalEngine,
+  PerformanceEngine
 };

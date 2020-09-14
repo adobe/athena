@@ -1,18 +1,36 @@
 version: '3.7'
 services:
-#  athena:
-#    container_name: athena
-#    ports:
-#      - "5000-5100:5000-5100"
-#    build: .
-#    volumes:
-#      - ./:/usr/src/app
-#    depends_on:
-#      - elasticsearch
-#      - elasticsearch2
-#    networks:
-#      - elastic
-#      - ingress
+
+  athena_manager:
+    container_name: athena_manager
+    ports:
+      - 5000
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    volumes:
+      - ./:/usr/src/app
+    networks:
+      - elastic
+      - ingress
+
+  athena_agent:
+    container_name: athena_agent
+    ports:
+      - 5000
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: ["cluster", "--join", "--addr", "athena_manager:5000", "--token", "1", "--foreground"]
+    volumes:
+      - ./:/usr/src/app
+    depends_on:
+      - athena_manager
+      - elasticsearch
+    networks:
+      - elastic
+      - ingress
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
     container_name: elasticsearch1
@@ -45,6 +63,8 @@ services:
     ports:
       - 9200:9200
       - 9300:9300
+    logging:
+      driver: none
   elasticsearch2:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
     container_name: elasticsearch2
@@ -79,6 +99,8 @@ services:
       - ingress
     ports:
       - 9201:9200
+    logging:
+      driver: none
   kibana:
     image: docker.elastic.co/kibana/kibana:7.4.0
     container_name: kibana
@@ -105,6 +127,8 @@ services:
     networks:
       - elastic
       - ingress
+    logging:
+      driver: none
   filebeat:
     image: docker.elastic.co/beats/filebeat:7.4.0
     command: --strict.perms=false
@@ -117,11 +141,13 @@ services:
     ports:
       - 9000:9000
     volumes:
-      # - ${PWD}/configs/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - elastic
+      - ingress
+    logging:
+      driver: none
 volumes:
   esdata1:
   esdata2:

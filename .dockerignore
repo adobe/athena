@@ -1,2 +1,10 @@
 node_modules
+logs
+logs/*.log
+!logs/.gitkeep
 npm-debug.log
+.idea
+dashboard
+deploy
+tests-results.xml
+api-gateway-athena-tests

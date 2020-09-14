@@ -1,0 +1,20 @@
+.single-project-menu {
+    position: relative;
+    top: 8px;
+
+    svg {
+        width: 18px;
+        position: relative;
+        bottom: 2px;
+        margin-right: 5px;
+    }
+
+    a {
+        margin-left: 20px;
+        color: #6c757d;
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
+}

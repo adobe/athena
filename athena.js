@@ -26,7 +26,7 @@ const commands = require('./src/cluster/commands');
 
 dotenv.config();
 
-process.on('uncaughtException', function(error) {
+process.on('uncaughtException', function (error) {
   log.error(error);
 });
 
@@ -42,93 +42,98 @@ const MAIN_SCRIPT_NAME = `${APP_NAME}.js`;
 
 // CLI commands and flags.
 const options = yargs
-    .options({
-      'debug': {
-        alias: 'D',
-        describe: 'enable debug mode',
-        type: 'boolean',
-      },
-    })
-    .command('run', 'manage Athena tests', {
-      'tests': {
-        alias: 't',
-        describe: 'the tests directory [functional, performance]',
-        type: 'string',
-      },
-      'grep': {
-        alias: 'g',
-        describe: 'run only specific tests [functional]',
-        type: 'string',
-      },
-      'bail': {
-        alias: 'b',
-        describe: 'fail fast after the first test failure [functional]',
-        type: 'boolean',
-      },
-      'functional': {
-        alias: 'f',
-        describe: 'run functional tests',
-        type: 'boolean',
-        default: true,
-      },
-      'performance': {
-        alias: 'p',
-        describe: 'run only performance tests',
-        type: 'boolean',
-        default: false,
-      },
-      'cluster': {
-        describe: 'run the tests inside the cluster [performance]',
-        type: 'boolean',
-        default: false,
-      },
-    })
-    .command('cluster', 'manage an Athena cluster', {
-      'addr': {
-        alias: 'a',
-        describe: 'the cluster manager\'s address',
-        type: 'string',
-      },
-      'token': {
-        alias: 'T',
-        describe: 'the cluster\'s access token',
-        type: 'string',
-      },
-      'init': {
-        alias: 'i',
-        describe: 'initiate a new Athena cluster',
-        type: 'boolean',
-      },
-      'join': {
-        alias: 'j',
-        describe: 'join an Athena cluster',
-        type: 'boolean',
-      },
-      'foreground': {
-        describe: 'whether to run the cluster in foreground (internal)',
-        type: 'boolean',
-        default: false,
-      },
-      'run': {
-        describe: '', // todo:
-        type: 'boolean',
-      },
-    })
-    .command('preview', 'pretty print the structure of a tests suite', {
-      'performance': {
-        describe: 'the performance tests tree view',
-        type: Boolean,
-        default: false,
-      },
-      'functional': {
-        describe: 'the functional tests tree view',
-        type: Boolean,
-        default: false,
-      },
-    })
-    .help()
-    .version()
-    .argv;
+  .options({
+  'debug': {
+    alias: 'D',
+    describe: 'enable debug mode',
+    type: 'boolean'
+  }
+})
+  .command('run', 'manage Athena tests', {
+    'tests': {
+      alias: 't',
+      describe: 'the tests directory [functional, performance]',
+      type: 'string'
+    },
+    'grep': {
+      alias: 'g',
+      describe: 'run only specific tests [functional]',
+      type: 'string'
+    },
+    'bail': {
+      alias: 'b',
+      describe: 'fail fast after the first test failure [functional]',
+      type: 'boolean'
+    },
+    'functional': {
+      alias: 'f',
+      describe: 'run functional tests',
+      type: 'boolean',
+      default: true
+    },
+    'performance': {
+      alias: 'p',
+      describe: 'run only performance tests',
+      type: 'boolean',
+      default: false
+    },
+    'cluster': {
+      describe: 'run the tests inside the cluster [performance]',
+      type: 'boolean',
+      default: false
+    },
+    'reporter': {
+      describe: 'provide the reporter type',
+      type: 'string',
+      default: null // athena-json-stream
+    }
+  })
+  .command('cluster', 'manage an Athena cluster', {
+    'addr': {
+      alias: 'a',
+      describe: 'the cluster manager\'s address',
+      type: 'string'
+    },
+    'token': {
+      alias: 'T',
+      describe: 'the cluster\'s access token',
+      type: 'string'
+    },
+    'init': {
+      alias: 'i',
+      describe: 'initiate a new Athena cluster',
+      type: 'boolean'
+    },
+    'join': {
+      alias: 'j',
+      describe: 'join an Athena cluster',
+      type: 'boolean'
+    },
+    'foreground': {
+      describe: 'whether to run the cluster in foreground (internal)',
+      type: 'boolean',
+      default: false
+    },
+    'run': {
+      describe: '', // todo:
+      type: 'boolean'
+    }
+  })
+  .command('preview', 'pretty print the structure of a tests suite', {
+    'performance': {
+      describe: 'the performance tests tree view',
+      type: Boolean,
+      default: false
+    },
+    'functional': {
+      describe: 'the functional tests tree view',
+      type: Boolean,
+      default: false
+    }
+  })
+  .help()
+  .version()
+  .argv;
 
 settings = getParsedSettings(options);
 
@@ -138,26 +143,26 @@ settings = getParsedSettings(options);
  * @return {boolean} True if the provided commands were used, false otherwise.
  */
 const requiredCommands = (...commands) => {
-  return settings._.some((cmd) => commands.indexOf(cmd) !== -1);
+  return settings
+    ._
+    .some((cmd) => commands.indexOf(cmd) !== -1);
 };
 
-// Define conditions.
-should.initClusterInForeground = requiredCommands('cluster') &&
-                                 settings.init && settings.foreground;
-should.initClusterInBackground = requiredCommands('cluster') &&
-                                 settings.init && !settings.foreground;
+// Define CLI conditions.
+should.initClusterInForeground = requiredCommands('cluster') && settings.init && settings.foreground;
+should.initClusterInBackground = requiredCommands('cluster') && settings.init && !settings.foreground;
 should.joinCluster = requiredCommands('cluster') && settings.join;
 should.joinClusterInForeground = should.joinCluster && settings.foreground;
-should.initCluster = should.initClusterInBackground ||
-                     should.initClusterInForeground || should.joinCluster;
+should.initCluster = should.initClusterInBackground || should.initClusterInForeground || should.joinCluster;
 should.delegateClusterCommand = requiredCommands('cluster') && settings.run;
 should.runFunctionalTests = requiredCommands('run') && settings.functional;
 should.runPerformanceTests = requiredCommands('run') && settings.performance;
+should.k8sNonInteractive = requiredCommands('cluster') && settings.foreground && settings.k8s;
 should.runTests = should.runFunctionalTests || should.runPerformanceTests;
 should.initAthena = should.initCluster || should.runTests;
 
 // Iife to avoid process exits.
-(function() {
+(function () {
   if (should.initAthena) {
     athena = new Athena(settings);
   }
@@ -167,18 +172,22 @@ should.initAthena = should.initCluster || should.runTests;
     cluster = new Cluster(athena);
   }
 
+  // Join a k8s cluster in non-interactive mode.
+  // command: node athena.js cluster --join --foreground --k8s
+  if (should.k8sNonInteractive) {
+    cluster.joinNonInteractive();
+
+    return;
+  }
+
   // command: node athena.js cluster --init --addr <IP>
+  // Initiates a new Athena
   if (should.initClusterInBackground) {
     if (!settings.addr) {
       log.error(`The --addr is required when initializing a new Athena cluster.`);
     }
 
-    const args = [
-      'cluster',
-      '--init',
-      `--addr ${settings.addr}`,
-      '--foreground',
-    ];
+    const args = ['cluster', '--init', `--addr ${settings.addr}`, '--foreground'];
 
     let maybeWatch = false;
 
@@ -189,13 +198,13 @@ should.initAthena = should.initCluster || should.runTests;
 
     log.info(`Preparing to setup a new cluster on "${settings.addr}" ...`);
 
-    pm2.connect(function(err) {
+    pm2.connect(function (err) {
       if (err) {
         console.error(err);
         process.exit(2);
       }
 
-      (async function() {
+      (async function () {
         const processName = `${APP_NAME}-manager`;
         await pm2.start({
           name: processName,
@@ -206,8 +215,8 @@ should.initAthena = should.initCluster || should.runTests;
           watch: maybeWatch,
           maxRestarts: 0,
           output: path.resolve(__dirname, 'logs', `${processName}-out.log`),
-          error: path.resolve(__dirname, 'logs', `${processName}-error.log`),
-        }, function(error, res) {
+          error: path.resolve(__dirname, 'logs', `${processName}-error.log`)
+        }, function (error, res) {
           if (error) {
             throw error;
           }
@@ -249,12 +258,22 @@ should.initAthena = should.initCluster || should.runTests;
   }
 
   // command: node athena.js cluster --join --foreground --token <TOKEN> \
+  //
   // --addr <IP>:<PORT>
   if (should.joinClusterInForeground) {
-    cluster.join();
+    cluster.joinCluster();
 
     return;
   }
+
+  // if (should.fetchTestsFromGitRepo) {
+    // todo: fetch the tests from the given Git repo use utils.isGitRepo
+    // try {
+      // await GitClient.cloneRepoInTempDir('some.git.url.here');
+    // } catch (e) {
+      // log.error(e);
+    // }
+  // }
 
   // command: node athena.js cluster --join --token <TOKEN> --addr <IP>:<PORT>
   if (should.joinCluster) {
@@ -266,13 +285,7 @@ should.initAthena = should.initCluster || should.runTests;
       log.error(`The --addr is required when joining a new Athena cluster.`);
     }
 
-    const args = [
-      'cluster',
-      '--join',
-      `--token ${settings.token}`,
-      `--addr ${settings.addr}`,
-      '--foreground',
-    ];
+    const args = ['cluster', '--join', `--token ${settings.token}`, `--addr ${settings.addr}`, '--foreground'];
 
     let maybeWatch = false;
 
@@ -283,13 +296,13 @@ should.initAthena = should.initCluster || should.runTests;
 
     log.info(`Attempting to join a new cluster on "${settings.addr}"...`);
 
-    pm2.connect(function(err) {
+    pm2.connect(function (err) {
       if (err) {
         console.error(err);
         process.exit(2);
       }
 
-      (async function() {
+      (async function () {
         const processName = `${APP_NAME}-agent`;
         await pm2.start({
           name: processName,
@@ -299,8 +312,8 @@ should.initAthena = should.initCluster || should.runTests;
           instances: 1, // todo: instances: settings.cpusLength,
           watch: maybeWatch,
           output: path.resolve(__dirname, 'logs', `${processName}-out.log`),
-          error: path.resolve(__dirname, 'logs', `${processName}-error.log`),
-        }, function(error, res) {
+          error: path.resolve(__dirname, 'logs', `${processName}-error.log`)
+        }, function (error, res) {
           if (error) {
             throw error;
           }

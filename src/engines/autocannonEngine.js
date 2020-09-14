@@ -10,6 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+const fs = require('fs');
+
 // external
 const autocannon = require('autocannon');
 
@@ -41,11 +43,34 @@ class AutocannonEngine extends Engine {
 
     run = (testsConfig = null, cb = null) => {
       if (!testsConfig) {
-        testsConfig = this.getPerformanceTests();
+        testsConfig = {
+          url: 'http://localhost:9191/',
+          connections: 100,
+          duration: 30,
+          requests: [
+            {
+              method: 'GET',
+              path: '/test-optional-token',
+              headers: testOptionalTokenHeaders,
+            },
+            {
+              method: 'GET',
+              path: '/mandatory-service-token',
+              headers: mandatoryServiceTokenHeaders
+            }
+          ]
+        }
       }
 
       if (!cb) {
         cb = this._handleTestFinish;
+      }
+
+      // Temporary stats map.
+      // Used by the custom PoC code to compute the x-rvt time percentiles.
+      // TODO: Delete me.
+      const tempStats = {
+          rvt: []
       }
 
       const stats = {
@@ -53,9 +78,15 @@ class AutocannonEngine extends Engine {
         errors: 0,
         timeouts: 0,
         rpsCount: 0,
+        statuses: {},
         resIncrMap: [],
         rpsMap: [],
       };
+
+      // TODO: Delete me.
+      if (testsConfig.pocTest) {
+          stats.rvt = [];
+      }
 
       const engine = autocannon(testsConfig, (err, results) => {
         cb(err, results, stats);
@@ -65,19 +96,45 @@ class AutocannonEngine extends Engine {
         engine.stop();
       });
 
-      const _incrResponses = () => {
+      const _incrResponses = (res, status, resBytes, resData) => {
+        // TODO: Delete me.
+        if (testsConfig.pocTest) {
+            const xrvtidx = res.resData[0].headers.headers.indexOf("x-rvt");
+            const rvt = xrvtidx != -1 ? res.resData[0].headers.headers[xrvtidx + 1] : 0;
+
+            tempStats.rvt.push(rvt);
+        }
+
+        if (!stats.statuses[status]) {
+          stats.statuses[status] = 0
+        } 
+
+        stats.statuses[status]++;
         stats.responses++;
         stats.rpsCount++;
       };
 
       const _incrErrors = (error) => {
+        // console.log(error)
         stats.errors++;
         stats.rpsCount++;
-
         // todo: handle request timeout based on error
       };
 
       engine.on('response', _incrResponses);
+
+      let clients = 0;
+
+      engine.on('request', (client) => {
+        clients++
+        console.log(`This is client: ${clients}`);
+        eval(testsConfig.hooks.onRequest);
+      })
+
+
+      // engine.on('body', (body) => {
+        // console.log(body.toString())
+      // })
       engine.on('reqError', _incrErrors);
 
       const interval = setInterval(function() {
@@ -93,10 +150,30 @@ class AutocannonEngine extends Engine {
           date: now,
         });
 
+        // TODO: Delete me.
+        if (testsConfig.pocTest) {
+            // Take a snapshot of xrvt every 1s
+            const perc = percentile([95, 97, 99], tempStats.rvt);
+            stats.rvt.push({
+                p1: parseInt(perc[0]), // p95
+                p2: parseInt(perc[1]), // p97
+                p3: parseInt(perc[2]), // p99
+                a: parseInt(tempStats.rvt.reduce((avg, value, _, { length }) =>
+                    (parseInt(avg) + parseInt(value) / length), 0)), // avg
+                d: now                 // date
+            });
+
+            // clean up the rvt map
+            tempStats.rvt = [];
+        }
+
         stats.rpsCount = 0;
       }, 1000);
 
+
       engine.on('done', function(results) {
+        console.log(results)
+        console.log(stats)
         delete stats.rpsCount;
         clearInterval(interval);
       });
@@ -111,7 +188,6 @@ class AutocannonEngine extends Engine {
       const perfTest = this.entities[0];
       const perfPattern = perfTest.perfPatterns[0];
       const perfRun = perfPattern.perfRuns[0];
-
       // merge config
       // todo: do this recursively
 
@@ -171,8 +247,6 @@ class AutocannonEngine extends Engine {
       if (error) {
         console.error(`There was a problem while running the performance test!\n${error}`);
       }
-
-      console.log(results);
     };
 }
 
