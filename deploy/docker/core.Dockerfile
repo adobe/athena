@@ -14,5 +14,4 @@ EXPOSE 5000
 
 COPY . .
 
-ENTRYPOINT [ "pm2-runtime", "athena.js", "--" ]
-CMD ["cluster", "--init", "--addr", "0.0.0.0", "--foreground"]
+CMD [ "node", "athena.js", "run"]
