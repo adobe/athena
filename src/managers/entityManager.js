@@ -36,6 +36,7 @@ const PerformanceSuiteEntity = require('../entities/performanceSuiteEntity');
 const PerformancePatternEntity = require('../entities/performancePatternEntity');
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 const TestFileEntity = require('../entities/testFileEntity');
+const { only } = require('joi');
 
 // Log formats
 const functionalLogFormat = '[Functional Entity Parsing]';
@@ -87,6 +88,8 @@ class EntityManager {
    * @return {List/Array} The list or array of found fixtures.
    */
   getAllFixtures = (asArray = false) => {
+    var ent = this.entities;
+
     const allFixtureEntities = L.filter((entity) => {
       return entity && entity.constructor.name === 'FixtureEntity';
     }, this.entities);
@@ -156,17 +159,12 @@ class EntityManager {
     const onlyFixtures = this
       .testFiles
       .filter(isFixture)
-      .map((fixture) => {
-        const fixtureName = fixture.getName();
-        const fixturePath = fixture.getPath();
-        const fixtureConfig = fixture.getConfig();
+      .map((fixture) => new FixtureEntity(fixture.getName(), fixture.getPath(), fixture.getConfig()));
 
-        return new FixtureEntity(fixtureName, fixturePath, fixtureConfig);
-      });
-
-    this.entities = this
-      .entities
-      .append(...onlyFixtures);
+      onlyFixtures.forEach(function processSingleFixture(f) {
+        this.log.debug(`Processing ${f.name} fixture...`);
+        this.entities = L.append(f, this.entities);
+      }.bind(this));
   };
 
   /**

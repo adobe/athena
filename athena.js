@@ -85,7 +85,7 @@ const options = yargs
     'reporter': {
       describe: 'provide the reporter type',
       type: 'string',
-      default: 'athena-json-stream'
+      default: null // athena-json-stream
     }
   })
   .command('cluster', 'manage an Athena cluster', {

@@ -11,7 +11,10 @@ const INDEXES = {
     AC_RESULT_RPS: 'ac_result_rps',
     AC_RESULTS_REQUESTS: 'ac_results_requests',
     AC_RESULTS_THROUGHPUT: 'ac_results_throughput',
-    AC_RESULTS_LATENCY: 'ac_results_latency'
+    AC_RESULTS_LATENCY: 'ac_results_latency',
+    AC_RESULT_RVT: 'ac_result_rvt',
+    AC_RESULTS_STATUSES: 'ac_results_statuses',
+    AC_RESULT_RESPONSE_TIMES: 'ac_result_response_times'
 }
 
 // Mappings.
@@ -24,6 +27,21 @@ MAPPINGS[INDEXES.AC_JOB] = {
             created_at: { type: "date" },
             updated_at: { type: "date" },
             job_id: { type: "text" }
+        }
+    }
+}
+
+MAPPINGS[INDEXES.AC_RESULTS_STATUSES] = {
+    index: INDEXES.AC_RESULTS_STATUSES,
+    body: {
+        properties: {
+            created_at: { type: "date" },
+            updated_at: { type: "date" },
+            "1XX": { type: "integer" },
+            "2XX": { type: "integer" },
+            "3XX": { type: "integer" },
+            "4XX": { type: "integer" },
+            "5XX": { type: "integer" },
         }
     }
 }
@@ -63,6 +81,39 @@ MAPPINGS[INDEXES.AC_RESULT_RESINCR] = {
             count: { type: "integer" },
             date: { type: "date" },
             job_id: { type: "text" }
+        }
+    }
+}
+
+MAPPINGS[INDEXES.AC_RESULT_RVT] = {
+    index: INDEXES.AC_RESULT_RVT,
+    body: {
+        properties: {
+            agent_id: { type: "text" },
+            agent_name: { type: "text" },
+            job_id: { type: "text" },
+            d: { type: "date" },
+            a: { type: "integer" },
+            p1: { type: "integer" },
+            p2: { type: "integer" },
+            p3: { type: "integer" },
+        }
+    }
+}
+
+
+MAPPINGS[INDEXES.AC_RESULT_RESPONSE_TIMES] = {
+    index: INDEXES.AC_RESULT_RESPONSE_TIMES,
+    body: {
+        properties: {
+            agent_id: { type: "text" },
+            agent_name: { type: "text" },
+            job_id: { type: "text" },
+            d: { type: "date" },
+            a: { type: "integer" },
+            p1: { type: "integer" },
+            p2: { type: "integer" },
+            p3: { type: "integer" },
         }
     }
 }
@@ -202,9 +253,8 @@ const makeResolver = (message = null, callback) => {
 
 const maybePutMappingForIndex = (index, callback) => {
     client.indices.getMapping({index},
-    function (error,response) {  
+    function (error, response) { 
         let error_type;
-
         try {
             error_type = error.meta.body.error.type
             if (error_type === "index_not_found_exception") {
@@ -237,4 +287,7 @@ module.exports = () => {
     maybePutMappingForIndex(INDEXES.AC_RESULTS_REQUESTS);
     maybePutMappingForIndex(INDEXES.AC_RESULTS_THROUGHPUT);
     maybePutMappingForIndex(INDEXES.AC_RESULTS_LATENCY);
+    maybePutMappingForIndex(INDEXES.AC_RESULT_RVT);
+    maybePutMappingForIndex(INDEXES.AC_RESULTS_STATUSES);
+    maybePutMappingForIndex(INDEXES.AC_RESULT_RESPONSE_TIMES);
 }

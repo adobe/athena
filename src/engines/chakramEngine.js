@@ -47,7 +47,9 @@ class ChakramEngine extends Engine {
         pluginManager,
         TAXONOMIES.FUNCTIONAL,
         ENGINES.CHAKRAM,
-        new Mocha()
+        new Mocha({
+          reporter: 'json-stream'
+        })
     );
 
     this.nativeMethods = {
@@ -67,7 +69,6 @@ class ChakramEngine extends Engine {
   };
 
   // public
-
 
   run = () => {
     const {grep, bail} = this.settings;
@@ -256,6 +257,9 @@ class ChakramEngine extends Engine {
       }
 
       const entity = find(this.entities, {fileName});
+
+      console.log(this.entities)
+      console.log(entity);
 
       if (!entity) {
         throw new Error(`Could not find registered entity (test/suite): "${fileName}".`);

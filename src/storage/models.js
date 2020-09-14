@@ -25,7 +25,20 @@ const PerformanceTestSchema = new Schema({
     timestamps: true
 });
 
-// Model: Performance Test Run
+const PerformanceTestAgentSchema = new Schema({
+    agentId: String,
+    name: String,
+    partialReportsCount: Number,
+
+    // PENDING - waiting
+    // READY
+    // RUNNING
+    // COMPLETED
+    // FAILED
+    status: String
+});
+
+// Model: PerformanceTestRun
 const PerformanceTestRunSchema = new Schema({
     testId: {
         type: Schema.Types.ObjectId,
@@ -37,10 +50,16 @@ const PerformanceTestRunSchema = new Schema({
 
     // One of:
     // PENDING - The job is pending, waiting for all agents to be marked as ready. (Not implemented.) 
-    // RUNNING - The job is currently running, once all agents were reported as ready.
+    // READY - All agents are ready, starting right now.
+    // RUNNING - The job is currently running, all agents are sending traffic.
     // COMPLETED - The job is completed.
     // FAILED - The job failed for some reason.
     status: String,
+
+    agents: {
+        type: Schema.Types.ObjectId,
+        ref: 'PerformanceAgent'
+    },
 
     // The generated Kibana URL
     reportUrl: String,
@@ -53,6 +72,8 @@ const PerformanceTestRunSchema = new Schema({
     timestamps: true
 });
 
+const PerformanceTestRunModel = mongoose.model('PerformanceTestRun', PerformanceTestRunSchema);
+
 // Extends Mongoose as we need the atomic operation provided by findAndModify.
 // This is mainly used when parsing and counting incoming reports from Athena agents
 // in order to avoid concurrency issues. Otherwise, we risk having indefinite pending jobs
@@ -61,7 +82,21 @@ PerformanceTestRunSchema.statics.findAndModify = function (opts) {
     return this.collection.findAndModify(opts);
 };
 
+// Cascade delete PerformanceTestRun(s) for this test.
+// TODO! Fix cascade deletes. The deleteOne does not pass the perf test instance.
+PerformanceTestSchema.pre('remove', function(next) {   
+    console.log(JSON.stringify(next, null, 2));
+    // const { _id: deletedPerfTestId } = deletedPerfTest;
+    // console.log(`Attempting to delete the perf test runs for testId: ${deletedPerfTestId}`);
+    // await PerformanceTestRunModel.deleteMany({ testId: deletedPerfTestId });
+});
+
 // Register and export the models.
-exports.Project = mongoose.model('Project', ProjectSchema);
-exports.PerformanceTest = mongoose.model('PerformanceTest', PerformanceTestSchema);
-exports.PerformanceTestRun = mongoose.model('PerformanceTestRun', PerformanceTestRunSchema);
+const ProjectModel = mongoose.model('Project', ProjectSchema);
+const PerformanceTestModel = mongoose.model('PerformanceTest', PerformanceTestSchema);
+const PerformanceTestAgentModel = mongoose.model('PerformanceAgent', PerformanceTestAgentSchema);
+
+exports.Project = ProjectModel;
+exports.PerformanceTest = PerformanceTestModel;
+exports.PerformanceTestRun = PerformanceTestRunModel;
+exports.PerformanceTestAgent = PerformanceTestAgentModel;

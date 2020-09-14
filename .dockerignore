@@ -5,3 +5,6 @@ logs/*.log
 npm-debug.log
 .idea
 dashboard
+deploy
+tests-results.xml
+api-gateway-athena-tests

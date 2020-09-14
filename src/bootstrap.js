@@ -44,9 +44,9 @@ class Athena {
     this.FunctionalEngine = FunctionalEngine;
   }
 
-  runPerformanceTests = (perfTests = null, cb = null) => this
+  runPerformanceTests = (perfTests = null, cb = null, callbacks =  {}) => this
     .PerformanceEngine
-    .run(perfTests, cb);
+    .run(perfTests, cb, callbacks);
 
   runFunctionalTests = () => this
     .FunctionalEngine

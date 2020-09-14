@@ -278,12 +278,14 @@ class ManagerNode extends GenericNode {
       Router.put('/api/v1/projects/:projectId/performance/:testId', handleUpdatePerformanceTest);
       Router.delete('/api/v1/projects/:projectId/performance/:testId', handleDeletePerformanceTest);
       Router.delete('/api/v1/projects/:projectId', handleDeleteSingleProject);
-      
+    
       // TODO: Not implemented.
       // Router.put('/api/v1/projects/:projectId', handleUpdateSingleProject);
       // Router.post('/api/v1/projects/:projectId/performance/:testId', handleCreatePerformanceTest);    
       // Router.post('/api/v1/projects/:projectId/performance/:testId/runs', handleCreatePerformanceTestRun); // Schedules a new perf test run.
       // Router.get('/api/v1/projects/:projectId/performance/:testId/runs', handleReadPerformanceTestRuns);
+
+      Router.get('/api/v1/cluster-resources', handleShowAvailableResources);
 
       // ----------------------------
       // Internal / K8S API Endpoints 
@@ -291,7 +293,7 @@ class ManagerNode extends GenericNode {
 
       // TODO(nvasile): The following endpoints should be protected from outside access.
       Router.post('/api/v1/k8s/internal/performance/parse-agent-report', _handleProcessAgentReport);
-      Router.post('/api/v1/k8s/internal/perf/process-buffered-agent-report', _handleProcessBufferedAgentReport);
+      Router.post('/api/v1/k8s/internal/perf/process-partial-report', _handleProcessPartialAgentReport);
       
       async function handleCreateNewProject(ctx, next) {
         // Validate
@@ -461,6 +463,7 @@ class ManagerNode extends GenericNode {
             "type": "ni-agent",
             "jobId": jobId
           };
+
           agentJobConfig.spec.template.spec.containers[0].command = [
             "node",
             "athena.js",
@@ -471,6 +474,11 @@ class ManagerNode extends GenericNode {
             `--jobId=${jobId}`,
             `--jobConfig="${JSON.stringify(perfTest.config.config)}"` // TODO: fix this
           ]
+
+
+          console.log("COMMAND ---- ")
+          console.log(agentJobConfig.spec.template.spec.containers[0].command);
+          console.log("COMMAND ---- ")
 
           // Spawn agents.
           await _self.athena.k8sManager.spawnShortlivedAgents(agentJobConfig, jobAgentsCount);
@@ -604,13 +612,10 @@ class ManagerNode extends GenericNode {
         // TODO(nvasile): Try/Catch ;)
         const perfJobResults = ctx.request.body;
         const { id: jobId } = perfJobResults;
-
-        // console.log('---')
-        // console.log(JSON.stringify(perfJobResults, null, 2));
-        // console.log('---')
         
         log.info(`Attempting to parse incoming agent [${perfJobResults.agent_id}:${perfJobResults.agent_name}] info (non-interactive) for job: ${jobId}!`);
         _self._handleResRunPerf({ data: perfJobResults });
+
         const perfRun = await StorageRepository.incrPerfRunReports(jobId);
 
         // Mark the job as complete and prune agents.
@@ -632,8 +637,53 @@ class ManagerNode extends GenericNode {
       }
 
       // This endpoint processes the incoming agent reports in a buffered way.
-      async function _handleProcessBufferedAgentReport(ctx, next) {
-        // TODO! Not implemented.
+      async function _handleProcessPartialAgentReport(ctx, next) {
+        const REPORT_TYPES = {
+          START: "START",
+          PARTIAL: "PARTIAL",
+          END: "END"
+        }
+
+        const agentReport = ctx.request.body;
+
+        switch (agentReport.type) {
+          case REPORT_TYPES.START:
+            console.log(`[Job ID: ${agentReport.job_id}] The ${agentReport.agent_id} agent reported the START event!`)
+            break;
+            // Mark the job as started.
+            // Get the agent by id specific to this performance test run.
+            // Set its status to RUNNING
+
+          case REPORT_TYPES.PARTIAL:
+            // console.log(agentReport)
+            console.log(`[Job ID: ${agentReport.job_id}] The ${agentReport.agent_id} agent reported a PARTIAL event. COUNT: ${agentReport.results.partialReportsCount}`)
+            console.log(agentReport);
+            _self._handleResRunPerf({ data: agentReport });
+            break;
+            // Get the agent by id specific to this performance test run.
+            // Increment its partialReportsCount
+            // Store the partial report.
+
+          case REPORT_TYPES.END:
+            console.log(`[Job ID: ${agentReport.job_id}] The ${agentReport.agent_id} agent reported the END event!`)
+            _self._handleResRunPerf({ data: agentReport });
+            const perfRun = await StorageRepository.incrPerfRunReports(agentReport.job_id);
+
+            // Mark the job as complete and prune agents.
+            const { agents } = perfRun.config.resources;
+            console.log(`agentsCount = ${agents} : perfRun.reports = ${perfRun.reports}`)
+    
+            if (perfRun.reports == agents) {          
+              perfRun.status = "COMPLETED";
+              await perfRun.save();
+              await _self.athena.k8sManager.pruneShortlivedAgents(agentReport.job_id);
+            }
+            break;
+            
+          default:
+            // invalid report type, shouldn't ever happen.
+        }
+
         await next();
       }
 
@@ -649,6 +699,15 @@ class ManagerNode extends GenericNode {
           nodesList,
           podsList
         }
+      }
+
+      async function handleShowAvailableResources(ctx, next) {
+        const clusterResources = await resourcesAvailable();
+
+        ctx.status = 200;
+        ctx.body = clusterResources;
+
+        await next();
       }
 
       // Checks whether the cluster has the appropriate resources available.
@@ -748,7 +807,10 @@ class ManagerNode extends GenericNode {
       // Bootstrap
       AthenaAPI
         .use(KoaHelmet())
-        .use(KoaBodyparser())
+        .use(KoaBodyparser({
+          formLimit: "1000mb",
+          jsonLimit: "1000mb",
+        }))
         .use(KoaAsyncValidator())
         .use(KoaJSON())
         .use(KoaCors({ origin: '*' })) // TODO(nvasile): only in dev mode.
@@ -965,31 +1027,53 @@ class ManagerNode extends GenericNode {
       updated_at: data.updated_at, // todo: propagate value
     });
 
-    // ac_result_overview
+
+    console.log('----')
+    console.log("PROCESSING STATUSES:")
+    console.log(data.results.statuses)
+    console.log("PROCESSING STATUSES:")
+    console.log('----')
+
+    // ac_results_statuses
     actions.push({
       index: {
-        _index: 'ac_result_overview'
+        _index: 'ac_results_statuses'
       }
     }, {
-      'job_id': data.id,
-      'agent_id': data.agent_id,
-      'agent_name': data.agent_name,
-      'url': data.results.url,
-      'responses': data.results.stats.responses,
-      'errors': data.results.errors,
-      'timeouts': data.results.timeouts,
-      'duration': data.results.duration,
-      'start': data.results.start,
-      'finish': data.results.finish,
-      'connections': data.results.connections,
-      'pipelining': data.results.pipelining,
-      'non2xx': data.results.non2xx,
-      '1xx': data.results['1xx'],
-      '2xx': data.results['2xx'],
-      '3xx': data.results['3xx'],
-      '4xx': data.results['4xx'],
-      '5xx': data.results['5xx']
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      ...data.results.statuses
     });
+
+    // ac_result_overview
+    if (data.type === 'END') {
+      console.log(`Processing the END result overview...`)
+
+      // TODO: Process final overview here.
+      actions.push({
+        index: {
+          _index: 'ac_result_overview'
+        }
+      }, {
+        'job_id': data.id,
+        'agent_id': data.agent_id,
+        'agent_name': data.agent_name,
+        'url': data.results.url,
+        // 'responses': data.results.stats.responses,
+        'errors': data.results.errors,
+        'timeouts': data.results.timeouts,
+        'duration': data.results.duration,
+        'start': data.results.start,
+        'finish': data.results.finish,
+        'connections': data.results.connections,
+        'pipelining': data.results.pipelining,
+        'non2xx': data.results.non2xx,
+        '1xx': data.results['1xx'],
+        '2xx': data.results['2xx'],
+        '3xx': data.results['3xx'],
+        '4xx': data.results['4xx'],
+        '5xx': data.results['5xx']
+      });
 
     // ac_results_requests
     actions.push({
@@ -1026,6 +1110,7 @@ class ManagerNode extends GenericNode {
       agent_name: data.agent_name,
       ...data.results.throughput
     });
+  } // END
 
     // ac_result_rps
     const pushRpsEntry = (rpsEntry) => {
@@ -1041,10 +1126,10 @@ class ManagerNode extends GenericNode {
       });
     }
 
-    if (typeof data.results.stats.rpsMap === "object") {
-      Object.keys(data.results.stats.rpsMap).map(k => pushRpsEntry(data.results.stats.rpsMap[k]))
-    } else if (typeof data.results.stats.rpsMap === "array") {
-      data.results.stats.rpsMap.forEach(rpsEntry => pushRpsEntry(rpsEntry));
+    if (typeof data.results.rpsMap === "object") {
+      Object.keys(data.results.rpsMap).map(k => pushRpsEntry(data.results.rpsMap[k]))
+    } else if (typeof data.results.rpsMap === "array") {
+      data.results.rpsMap.forEach(rpsEntry => pushRpsEntry(rpsEntry));
     } else {
       // noop
     }
@@ -1063,10 +1148,58 @@ class ManagerNode extends GenericNode {
       });
     }
 
-    if (typeof data.results.stats.resIncrMap === "object") {
-      Object.keys(data.results.stats.resIncrMap).map(k => pushResEntry(data.results.stats.resIncrMap[k]))
-    } else if  (typeof data.results.stats.resIncrMap === "array") {
-      data.results.stats.resIncrMap.forEach((resEntry) => pushResEntry(resEntry));
+    if (typeof data.results.resIncrMap === "object") {
+      Object.keys(data.results.resIncrMap).map(k => pushResEntry(data.results.resIncrMap[k]))
+    } else if  (typeof data.results.resIncrMap === "array") {
+      data.results.resIncrMap.forEach((resEntry) => pushResEntry(resEntry));
+    } else {
+      // noop
+    }
+
+    // ac_result_rvt
+    const pushRvtEntry = (resEntry) => {
+      actions.push({
+        index: {
+          _index: 'ac_result_rvt'
+        }
+      }, {
+        job_id: data.id,
+        agent_id: data.agent_id,
+        agent_name: data.agent_name,
+        ...resEntry
+      });
+    }
+
+    if (typeof data.results.rvt === "object") {
+      console.log("processing RVT")
+      Object.keys(data.results.rvt).map(k => pushRvtEntry(data.results.rvt[k]))
+    } else if  (typeof data.results.rvt === "array") {
+      console.log("processing RVT")
+      data.results.rvt.forEach((resEntry) => pushRvtEntry(resEntry));
+    } else {
+      // noop
+    }
+
+    // ac_result_response_times
+    const pushLatencyEntry = (resEntry) => {
+      actions.push({
+        index: {
+          _index: 'ac_result_response_times'
+        }
+      }, {
+        job_id: data.id,
+        agent_id: data.agent_id,
+        agent_name: data.agent_name,
+        ...resEntry
+      });
+    }
+
+    if (typeof data.results.responseTimes === "object") {
+      console.log("processing response times")
+      Object.keys(data.results.responseTimes).map(k => pushLatencyEntry(data.results.responseTimes[k]))
+    } else if  (typeof data.results.responseTimes === "array") {
+      console.log("processing response times")
+      data.results.responseTimes.forEach((resEntry) => pushLatencyEntry(resEntry));
     } else {
       // noop
     }
@@ -1124,10 +1257,25 @@ class AgentNode extends GenericNode {
   joinNonInteractive = () => {
     const perfTest =  JSON.parse(this.settings.jobConfig);
     const _self = this;
+    _self.state = {};
 
-    // Try to evaluate any provided hooks.
+    // Try to evaluate any provided hooks
     if (perfTest.hooks) {
+      if (perfTest.hooks.init) {
+        try {
+          eval(perfTest.hooks.init);
+        } catch (e) {
+          log.error(`Could not parse the performance test hook [init]:\n${e}`);
+        }
+      }
       perfTest.setupClient = function(client) {
+        if (perfTest.hooks.setupClient) {
+          try {
+            eval(perfTest.hooks.setupClient);
+          } catch (e) {
+            log.error(`Could not parse the performance test hook [setupClient]:\n${e}`);
+          }
+        }
         client.on('request', () => {
           if (perfTest.hooks.onRequest) {
             try {
@@ -1139,8 +1287,11 @@ class AgentNode extends GenericNode {
         });
       }
     }
-  
-    this.athena.runPerformanceTests(perfTest, async function (err, results, stats) {
+
+    const PerfJob = new PerformanceJob(perfTest);
+    PerfJob.setId(_self.settings.jobId);
+
+    this.athena.runPerformanceTests(perfTest, async function finishCallback(err, results, stats) {
       // check for any errors
       if (err) {
         console.error(`Could not run the job!`, err);
@@ -1148,30 +1299,50 @@ class AgentNode extends GenericNode {
         // todo: return error message to manager
       }
 
-      results.stats = stats;
+      // results.stats = stats;
       log.success(`Successfully ran the performance test!`);
       log.info(`Attempting to notify the manager about the test results...`);
 
-      const PerfJob = new PerformanceJob(perfTest);
       PerfJob.setResults(results);
-      PerfJob.setId(_self.settings.jobId);
 
-      try {
-        request.post('http://athena-manager:5000/api/v1/k8s/internal/performance/parse-agent-report', {
+      request.post('http://athena-manager:5000/api/v1/k8s/internal/perf/process-partial-report', {
+        form: {
+          type: "END",
+          agent_id: _self.getID(),
+          agent_name: _self.getName(),
+          job_id: _self.settings.jobId,
+          ...PerfJob.describe()
+        }
+      }, function(err) {
+        // todo: handle error here
+      })
+
+    }, {
+      before: () => {
+        request.post('http://athena-manager:5000/api/v1/k8s/internal/perf/process-partial-report', {
           form: {
+            type: "START",
+            agent_id: _self.getID(),
+            agent_name: _self.getName(),
+            job_id: _self.settings.jobId,
+          }
+        }, function(err) {
+          // todo: handle error here
+        })
+      },
+
+      interval: (partialStats) => {
+        PerfJob.setResults(partialStats);
+        request.post('http://athena-manager:5000/api/v1/k8s/internal/perf/process-partial-report', {
+          form: {
+            type: "PARTIAL",
             agent_id: _self.getID(),
             agent_name: _self.getName(),
             ...PerfJob.describe()
           }
         }, function(err) {
-          // todo: hamdle error here
-          _process.exit(0);
+          // todo: handle error here
         })
-      } catch (e) {
-        console.error(e);
-        // ctx.throw(500, 'Could not notify the manager about the tests results.');
-      } finally {
-        // _process.kill(_process.pid);
       }
     });
 
@@ -1182,9 +1353,8 @@ class AgentNode extends GenericNode {
     NonInteractiveAgentAPI
       .use(KoaHelmet())
       .use(KoaBodyparser({
-        formLimit: "50mb",
-        jsonLimit: "50mb",
-        textLimit: "50mb"
+        formLimit: "1000mb",
+        jsonLimit: "1000mb",
       }))
       .use(KoaJSON())
       .use(Router.routes())

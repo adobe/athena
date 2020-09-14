@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 // Native
 const fs = require('fs');
 const path = require('path');
-const {find} = require('lodash');
+const {find, uniq} = require('lodash');
 
 // External
 const Mocha = require('mocha');
@@ -23,7 +23,7 @@ const L = require('list/methods');
 
 // Project specific
 const Engine = require('./engine');
-const {TAXONOMIES, ENGINES} = require('./../enums');
+const {TAXONOMIES, ENGINES, ENTITY_TYPES} = require('./../enums');
 const {makeLogger, isFunctionalTest, parseAstExpressions} = require('./../utils');
 
 const log = makeLogger();
@@ -66,7 +66,6 @@ module.exports = class FunctionalEngine extends Engine {
   // Private
   _registerEntities = _registerEntities
   _overrideDefaultMethods = _overrideDefaultMethods
-  _generateAssertions = _generateAssertions
   _destruct = __destruct
 }
 
@@ -76,14 +75,60 @@ const PRE = {
 };
 
 const _makeCtxFuncBody = (pre) => {
-  return `${pre}("#version #name: #description", function() {
+  return `#pre
+    ${pre}("[#name]: #description", #async function(#done) {
+      #hooks
       #body
-    });`
+    }#post);`
 }
 
 // Context function templates.
 const TEST_CTX_TPL = _makeCtxFuncBody(PRE.IT);
 const SUITE_CTX_TPL = _makeCtxFuncBody(PRE.DESCRIBE);
+
+const _generateEntityHooks = (entity) => {
+  // Check whether this entity has any hooks defined.
+  if (!entity.config.hooks) {
+    log.debug(`No hooks found for the "${entity.name}" entity!`);
+
+    return '';
+  }
+
+  const hookTypes = [
+    "setup",
+    "before",
+    "after",
+    "beforeEach",
+    "afterEach"
+  ];
+
+  const hooksCode = hookTypes.map(h => {
+    const hook = entity.config.hooks[h];
+
+    if (!hook) {
+      return '';
+    }
+
+    return h === "setup" ? hook : `${h}(function() { ${hook} });`;
+  });
+
+  return hooksCode.join('\n');
+}
+
+const _getFixturesCode = (fixtures) => {
+  const fixturesCode = fixtures.map((f) => {
+    if (!f.config || !f.config.config) {
+      return '';
+    }
+
+    const conf = f.config.config;
+    const fixturePath = f.fileData.dir;
+
+    return `const ${f.config.name} = require("${fixturePath}/${conf.source}");`
+  })
+
+  return fixturesCode.join('\n');
+}
 
 /**
  * Registers all functional entities (suites as well as tests).
@@ -93,13 +138,35 @@ function _registerEntities() {
 
   function _deepParseEntities(entity) {
     if (isFunctionalTest(entity)) {
-      const {name, version, description} = entity.config;
+      const {name, version, description, config} = entity.config;
+      const using = config && config.using || {
+        asyncAwait: true
+      };
+
+      const timeout = config && config.timeout || false;
+
+      // Check whether we need to limit the timeout for this test.
+      const postCode = ``;
 
       // Set the appropriate functional test entity details.
       let funcTestEntity = TEST_CTX_TPL.replace('#version', `[${version || '1.0.0'}]`)
       funcTestEntity = funcTestEntity.replace('#name', `${name}`)
       funcTestEntity = funcTestEntity.replace('#description', `${description}`)
-      funcTestEntity = funcTestEntity.replace('#body', `${this._generateAssertions(entity)}`)
+      funcTestEntity = funcTestEntity.replace('#body', `${jsBeautify(entity.config.scenario, { no_preserve_newlines: true })}`)
+
+      // TODO: The line below was used for complex body structures.
+      // funcTestEntity = funcTestEntity.replace('#body', `${this._generateAssertions(entity)}`)
+
+      // No pre code for single tests.
+      funcTestEntity = funcTestEntity.replace('#pre', "");
+
+      // Hooks and post
+      funcTestEntity = funcTestEntity.replace('#hooks', timeout ? `this.timeout(${timeout})` : "");
+      funcTestEntity = funcTestEntity.replace("#post", postCode)
+
+      // Maybe enable async/await and the done callback
+      funcTestEntity = funcTestEntity.replace('#async', using.asyncAwait ? "async" : "");
+      funcTestEntity = funcTestEntity.replace('#done', using.done ? "done" : "");
 
       entity.setContext(funcTestEntity);
 
@@ -108,11 +175,35 @@ function _registerEntities() {
 
     // Assuming that the entity is a functional suite at this point.
     if (entity.hasTestsRefs()) {
+      const fixtures = this.entityManager.getAllFixtures();
+
+      // Prep the pre code.
+      const preCode = `
+        ${_getFixturesCode(fixtures)}
+
+        let suite;
+      `;
+
+      // Prep the hooks code.
+      const conf = entity.config && entity.config.config || {}
+      // TODO: Setup suite-level timeout here !!!
+      const hooksCode = `
+        suite = this;
+        ${conf.retries ? `this.retries(${entity.config.config.retries})` : ""}
+        ${_generateEntityHooks(entity)}
+      `;
 
       // Define the generic suite context details.
       let functionalSuiteContext = SUITE_CTX_TPL.replace('#name', entity.config.name);
       functionalSuiteContext = functionalSuiteContext.replace('#version', `[${entity.config.version || '1.0.0'}]`);
       functionalSuiteContext = functionalSuiteContext.replace('#description', entity.config.description);
+      functionalSuiteContext = functionalSuiteContext.replace('#hooks', hooksCode);
+      functionalSuiteContext = functionalSuiteContext.replace('#pre', preCode);
+
+      // Suites shouldn't support async/await and the done callback.
+      functionalSuiteContext = functionalSuiteContext.replace('#async', "");
+      functionalSuiteContext = functionalSuiteContext.replace('#done', "");
+      functionalSuiteContext = functionalSuiteContext.replace("#post", "");
 
       // Parse all tests referenced by this suite.
       entity._tests = entity
@@ -139,13 +230,16 @@ function _registerEntities() {
     .map(entity => {
       entity.toString = entity.getContext;
       entity.fileName = `${entity.name}.athena.js`;
-
       this
         .engine
         .addFile(entity.fileName);
 
       return entity;
     })
+}
+
+function _generateAssertions2(test) {
+  debugger;
 }
 
 function _generateAssertions(test) {
@@ -266,7 +360,27 @@ function _overrideDefaultMethods() {
    * @param {Object} entity The Athena functional entity.
    */
   function _makePrimaryContext(entity) {
-    const requires = ["assert.ok", "chakram", "expect:chakram.expect"];
+    let entityRequires = []
+
+    if (entity.config && entity.config.type && entity.config.type === "suite") {
+      if (entity._tests && entity._tests.length) {
+        entity._tests.forEach(e => {
+          if (e.config && e.config.require && e.config.require.length) {
+            entityRequires.push(...e.config.require)
+          }
+        })
+      }
+    }
+
+    entityRequires = uniq(entityRequires)
+
+    const requires = [
+      "assert->ok",
+      "chakram",
+      "expect:chakram->expect",
+      ...entityRequires
+    ];
+
     const inits = {
       "$entity": toSource(entity),
       "$context": "this"
@@ -274,7 +388,7 @@ function _overrideDefaultMethods() {
 
     // Generate the final require string.
     const reqString = requires.map(r => {
-      const _r = r.split('.')
+      const _r = r.split('->')
       const _rMain = _r
         .shift()
         .split(':')
