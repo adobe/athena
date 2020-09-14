@@ -78,6 +78,11 @@
     "websocket": "^1.0.31",
     "ws": "^7.3.1",
     "yaml-joi": "^1.1.1",
+    "body-parser": "latest",
+    "koa": "^2.11.0",
+    "@koa/router": "^8.0.2",
+    "@hapi/boom": "^8.0.1",
+    "koa-body": "^4.1.1",
     "yargs": "^13.3.0"
   },
   "engineStrict": true,
