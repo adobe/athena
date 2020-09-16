@@ -11,11 +11,15 @@ governing permissions and limitations under the License.
 */
 
 // External
-const {isArray} = require('lodash');
+const {
+  isArray
+} = require('lodash');
 
 // Project
 const Entity = require('./entity');
-const {ENTITY_TYPES} = require('./../enums');
+const {
+  ENTITY_TYPES
+} = require('./../enums');
 
 /**
  * The main functional suite entity class.
@@ -31,6 +35,7 @@ class FunctionalSuiteEntity extends Entity {
     super(name, path, config);
 
     this._tests = []; // The list of tests referenced by this suite.
+    this._suites = []; // The list of sub-suites referenced by this suite.
 
     this.setType(ENTITY_TYPES.SUITE);
     this.validate();
@@ -44,6 +49,10 @@ class FunctionalSuiteEntity extends Entity {
     this._tests.push(test);
   };
 
+  addSuite = (suite) => {
+    this._suites.push(suite);
+  }
+
   /**
    * Returns the list of associated functional test instances.
    * @return {Array} The list of associated functional test instances.
@@ -52,16 +61,26 @@ class FunctionalSuiteEntity extends Entity {
     return this._tests;
   };
 
+  getSuites = () => {
+    return this._suites;
+  }
+
   /**
    * Checks whether the suite has any functional test references.
    * @return {boolean} True if the suite has any functional test references,
    * false otherwise.
    */
-  hasTestsRefs = () => {
+  hasTestRefs = () => {
     const suiteConfig = this.getConfig();
     return suiteConfig.tests &&
       isArray(suiteConfig.tests) &&
       suiteConfig.tests.length;
+  };
+
+  hasSuiteRefs = () => {
+    const suiteConfig = this.getConfig();
+
+    return suiteConfig.suites && isArray(suiteConfig.suites) && suiteConfig.suites.length;
   };
 
   /**
@@ -69,9 +88,11 @@ class FunctionalSuiteEntity extends Entity {
    * @return {Array} The list of tests referenced by this suite.
    */
   getTestsRefs = () => {
-    const suiteConfig = this.getConfig();
+    return this.getConfig().tests;
+  }
 
-    return suiteConfig.tests;
+  getSuitesRefs = () => {
+    return this.getConfig().suites;
   }
 }
 

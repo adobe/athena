@@ -174,7 +174,7 @@ function _registerEntities() {
     }
 
     // Assuming that the entity is a functional suite at this point.
-    if (entity.hasTestsRefs()) {
+    if (entity.hasTestRefs()) {
       const fixtures = this.entityManager.getAllFixtures();
 
       // Prep the pre code.
@@ -224,8 +224,9 @@ function _registerEntities() {
     return entity;
   }
 
-  return L
-    .toArray(this.entityManager.getAllFunctionalSuites())
+  const allFunctionalSuites = L.toArray(this.entityManager.getAllFunctionalSuites());
+
+  return allFunctionalSuites
     .map(_deepParseEntities.bind(this))
     .map(entity => {
       entity.toString = entity.getContext;
