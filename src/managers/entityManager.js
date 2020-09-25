@@ -136,6 +136,10 @@ class EntityManager {
     return L.first(foundFunctionalSuites);
   };
 
+  getFunctionalTestFiles = () => {
+    return this.testFiles.filter(e => isFunctionalTest(e) || isFunctionalSuite(e));
+  }
+
   // private
 
   /**

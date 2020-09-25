@@ -199,14 +199,13 @@ function _registerEntities() {
     }
 
     // Generate the pre code.
-    let preCode = `
-      ${suiteRef}
-    `;
+    let preCode = suiteRef;
 
     // Generate the hooks code.
     const conf = entity.config && entity.config.config || {}
     const hooksCode = `
       suite = this;
+      ${conf.timeout ? `this.timeout(${entity.config.config.timeout})` : ""}
       ${conf.retries ? `this.retries(${entity.config.config.retries})` : ""}
       ${_generateEntityHooks(entity)}`;
 
@@ -370,12 +369,12 @@ function _overrideDefaultMethods() {
 
   _getEntitiesRequires = () => {
     const requires = [];
-    
-    this.entities.forEach(_processRequires);
+
+    this.entityManager.getFunctionalTestFiles().forEach(_processRequires);
 
     function _processRequires(e) {
-      if (e.config && e.config.require && e.config.require.length) {
-        requires.push(...e.config.require)
+      if (e._config && e._config.require && e._config.require.length) {
+        requires.push(...e._config.require)
       }
 
       ["_tests", "_suites"].forEach(i => {
@@ -396,7 +395,8 @@ function _overrideDefaultMethods() {
     const requires = [
       "assert->ok",
       "chakram",
-      "expect:chakram->expect"
+      "expect:chakram->expect",
+      ..._getEntitiesRequires()
     ];
 
     // Generate the final require string.
