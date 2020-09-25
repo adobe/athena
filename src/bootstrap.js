@@ -19,6 +19,16 @@ const {EntityManager, EngineManager, PluginsManager, KubernetesManager} = requir
 
 format.extend(String.prototype, {});
 
+String.prototype.allReplace = function(obj) {
+  var retStr = this;
+
+  for (var x in obj) {
+      retStr = retStr.replace(new RegExp(x, 'g'), obj[x]);
+  }
+  
+  return retStr;
+};
+
 class Athena {
   constructor(options) {
     this.settings = getParsedSettings(options);

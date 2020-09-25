@@ -13,7 +13,10 @@ governing permissions and limitations under the License.
 // Native
 const fs = require('fs');
 const path = require('path');
-const {find, uniq} = require('lodash');
+const {
+  find,
+  uniq
+} = require('lodash');
 
 // External
 const Mocha = require('mocha');
@@ -23,10 +26,22 @@ const L = require('list/methods');
 
 // Project specific
 const Engine = require('./engine');
-const {TAXONOMIES, ENGINES, ENTITY_TYPES} = require('./../enums');
-const {makeLogger, isFunctionalTest, parseAstExpressions} = require('./../utils');
+const {
+  TAXONOMIES,
+  ENGINES,
+  ENTITY_TYPES
+} = require('./../enums');
+const {
+  makeLogger,
+  isFunctionalTest,
+  parseAstExpressions,
+  isFunctionalSuite
+} = require('./../utils');
+const bodyParser = require('body-parser');
 
 const log = makeLogger();
+
+const EMPTY_STRING = "";
 
 module.exports = class FunctionalEngine extends Engine {
   constructor([settings, pluginManager, entityManager]) {
@@ -55,7 +70,10 @@ module.exports = class FunctionalEngine extends Engine {
     );
 
     this.entityManager = entityManager;
-    this._nativeMethods = { readFileSync: null, findPath: null }
+    this._nativeMethods = {
+      readFileSync: null,
+      findPath: null
+    }
     this._overrideDefaultMethods();
     this.entities = this._registerEntities();
   }
@@ -135,10 +153,17 @@ const _getFixturesCode = (fixtures) => {
  */
 function _registerEntities() {
   log.debug('Registering functional entities...');
+  let isFirstSuite = true;
 
   function _deepParseEntities(entity) {
     if (isFunctionalTest(entity)) {
-      const {name, version, description, config} = entity.config;
+      const {
+        name,
+        version,
+        description,
+        config
+      } = entity.config;
+
       const using = config && config.using || {
         asyncAwait: true
       };
@@ -148,98 +173,83 @@ function _registerEntities() {
       // Check whether we need to limit the timeout for this test.
       const postCode = ``;
 
-      // Set the appropriate functional test entity details.
-      let funcTestEntity = TEST_CTX_TPL.replace('#version', `[${version || '1.0.0'}]`)
-      funcTestEntity = funcTestEntity.replace('#name', `${name}`)
-      funcTestEntity = funcTestEntity.replace('#description', `${description}`)
-      funcTestEntity = funcTestEntity.replace('#body', `${jsBeautify(entity.config.scenario, { no_preserve_newlines: true })}`)
-
-      // TODO: The line below was used for complex body structures.
-      // funcTestEntity = funcTestEntity.replace('#body', `${this._generateAssertions(entity)}`)
-
-      // No pre code for single tests.
-      funcTestEntity = funcTestEntity.replace('#pre', "");
-
-      // Hooks and post
-      funcTestEntity = funcTestEntity.replace('#hooks', timeout ? `this.timeout(${timeout})` : "");
-      funcTestEntity = funcTestEntity.replace("#post", postCode)
-
-      // Maybe enable async/await and the done callback
-      funcTestEntity = funcTestEntity.replace('#async', using.asyncAwait ? "async" : "");
-      funcTestEntity = funcTestEntity.replace('#done', using.done ? "done" : "");
-
-      entity.setContext(funcTestEntity);
+      entity.setContext(TEST_CTX_TPL.allReplace({
+        '#version': `[${version || '1.0.0'}]`,
+        '#name': name,
+        '#description': description,
+        '#body': `${jsBeautify(entity.config.scenario, { no_preserve_newlines: true })}`,
+        '#pre': EMPTY_STRING,
+        '#hooks': timeout ? `this.timeout(${timeout})` : "",
+        '#post': postCode,
+        '#async': using.asyncAwait ? "async" : "",
+        '#done': using.done ? "done" : ""
+      }));
 
       return entity;
     }
 
-    // Assuming that the entity is a functional suite at this point.
-    if (entity.hasTestsRefs()) {
-      const fixtures = this.entityManager.getAllFixtures();
+    let body = [];
+    let suiteRef = isFirstSuite ? 'let suite = {};' : '';
 
-      // Prep the pre code.
-      const preCode = `
-        ${_getFixturesCode(fixtures)}
-
-        let suite;
-      `;
-
-      // Prep the hooks code.
-      const conf = entity.config && entity.config.config || {}
-      // TODO: Setup suite-level timeout here !!!
-      const hooksCode = `
-        suite = this;
-        ${conf.retries ? `this.retries(${entity.config.config.retries})` : ""}
-        ${_generateEntityHooks(entity)}
-      `;
-
-      // Define the generic suite context details.
-      let functionalSuiteContext = SUITE_CTX_TPL.replace('#name', entity.config.name);
-      functionalSuiteContext = functionalSuiteContext.replace('#version', `[${entity.config.version || '1.0.0'}]`);
-      functionalSuiteContext = functionalSuiteContext.replace('#description', entity.config.description);
-      functionalSuiteContext = functionalSuiteContext.replace('#hooks', hooksCode);
-      functionalSuiteContext = functionalSuiteContext.replace('#pre', preCode);
-
-      // Suites shouldn't support async/await and the done callback.
-      functionalSuiteContext = functionalSuiteContext.replace('#async', "");
-      functionalSuiteContext = functionalSuiteContext.replace('#done', "");
-      functionalSuiteContext = functionalSuiteContext.replace("#post", "");
-
-      // Parse all tests referenced by this suite.
-      entity._tests = entity
-        ._tests
-        .map(_deepParseEntities.bind(this));
-
-      // Generate contexts for the tests defined by this suite.
-      const testsContext = entity
-        ._tests
-        .map(t => t.getContext());
-
-      // Set the appropriate suite context now that the referenced tests were parsed.
-      functionalSuiteContext = functionalSuiteContext.replace('#body', testsContext.join('\n'))
-
-      entity.setContext(functionalSuiteContext)
+    if (isFirstSuite) {
+      suiteRef = `${suiteRef}
+      ${_getFixturesCode(this.entityManager.getAllFixtures())}`;
+      
+      isFirstSuite = false;
     }
+
+    // Generate the pre code.
+    let preCode = suiteRef;
+
+    // Generate the hooks code.
+    const conf = entity.config && entity.config.config || {}
+    const hooksCode = `
+      suite = this;
+      ${conf.timeout ? `this.timeout(${entity.config.config.timeout})` : ""}
+      ${conf.retries ? `this.retries(${entity.config.config.retries})` : ""}
+      ${_generateEntityHooks(entity)}`;
+
+    // Process tests and suites nested in this suite.
+    ['_tests', '_suites'].forEach(function _parseChildren(p) {
+      if (!entity[p] && !entity[p].length) {
+        return;
+      }
+
+      // Process entities.
+      entity[p] = entity[p]
+        .map(_deepParseEntities.bind(this))
+        .map(e => body.push(e.getContext()));
+    });
+
+    // Generate the suite's context and set it.
+    entity.setContext(SUITE_CTX_TPL.allReplace({
+      "#name": entity.config.name,
+      "#version": `[${entity.config.version || '1.0.0'}]`,
+      "#description": entity.config.description,
+      "#hooks": hooksCode,
+      "#pre": preCode,
+      "#body": body.join('\n'),
+      "#async": EMPTY_STRING,
+      "#done": EMPTY_STRING,
+      "#post": EMPTY_STRING
+    }));
 
     return entity;
   }
 
-  return L
-    .toArray(this.entityManager.getAllFunctionalSuites())
+  let allFunctionalSuites = L.toArray(this.entityManager.getAllFunctionalSuites());
+  allFunctionalSuites = allFunctionalSuites
     .map(_deepParseEntities.bind(this))
     .map(entity => {
       entity.toString = entity.getContext;
       entity.fileName = `${entity.name}.athena.js`;
-      this
-        .engine
-        .addFile(entity.fileName);
+      this.engine.addFile(entity.fileName);
+      fs.writeFileSync('debug.js', jsBeautify(entity.getContext(), { no_preserve_newlines: true }));
 
       return entity;
     })
-}
 
-function _generateAssertions2(test) {
-  debugger;
+  return allFunctionalSuites;
 }
 
 function _generateAssertions(test) {
@@ -247,8 +257,7 @@ function _generateAssertions(test) {
     return '';
   }
 
-  const stagesOrder = [
-    {
+  const stagesOrder = [{
       'stage': 'hooks',
       'substage': ['beforeGiven', 'before'],
     }, // alias 'before'
@@ -280,34 +289,34 @@ function _generateAssertions(test) {
 
   // todo: handle stage rejections properly
   const stages = stagesOrder
-      .filter((s) =>
-        test.config[s.stage] &&
+    .filter((s) =>
+      test.config[s.stage] &&
       Object.keys(test.config[s.stage]).some((key) => s.substage.includes(key)))
-      .map(function _makeContextBoundStage(s) {
-        const substage = Object.keys(test.config[s.stage])
-            .filter((key) => s.substage.includes(key))[0];
-        let stageContent = test.config[s.stage][substage];
-        const promiseTpl = `new Promise(function(resolve) {
+    .map(function _makeContextBoundStage(s) {
+      const substage = Object.keys(test.config[s.stage])
+        .filter((key) => s.substage.includes(key))[0];
+      let stageContent = test.config[s.stage][substage];
+      const promiseTpl = `new Promise(function(resolve) {
                                       /* Stage: {substage} */
                                       {stageContent}
                                   }.bind($context))`;
 
-        if (substage === 'then') {
-          const parsedStageContent = parseAstExpressions(stageContent)
-              .map((e) => e.replace(';', ''))
-              .join(',');
+      if (substage === 'then') {
+        const parsedStageContent = parseAstExpressions(stageContent)
+          .map((e) => e.replace(';', ''))
+          .join(',');
 
-          stageContent = `resolve(Promise.all([${parsedStageContent}]))`;
-        } else {
-          stageContent = `${stageContent} \n resolve();`;
-        }
+        stageContent = `resolve(Promise.all([${parsedStageContent}]))`;
+      } else {
+        stageContent = `${stageContent} \n resolve();`;
+      }
 
-        return promiseTpl.format({
-          substage,
-          stageContent,
-        });
-      })
-      .join(',');
+      return promiseTpl.format({
+        substage,
+        stageContent,
+      });
+    })
+    .join(',');
 
   return jsBeautify(`return Promise.all([${stages}])`);
 }
@@ -336,7 +345,10 @@ function _overrideDefaultMethods() {
         .readFileSync(...args);
     }
 
-    return _makePrimaryContext(find(this.entities, {fileName}));
+    const primaryCtx = _makePrimaryContext(find(this.entities, { fileName }));
+    this.settings.debug && fs.writeFileSync('debug.js', primaryCtx);
+
+    return primaryCtx;
   }
 
   /**
@@ -355,36 +367,37 @@ function _overrideDefaultMethods() {
       .findPath(...args);
   }
 
+  _getEntitiesRequires = () => {
+    const requires = [];
+
+    this.entityManager.getFunctionalTestFiles().forEach(_processRequires);
+
+    function _processRequires(e) {
+      if (e._config && e._config.require && e._config.require.length) {
+        requires.push(...e._config.require)
+      }
+
+      ["_tests", "_suites"].forEach(i => {
+        if (e[i] && e[i].length) {
+          e[i].forEach(_processRequires)
+        }
+      });
+    }
+
+    return uniq(requires);
+  }
+
   /**
    * Creates the main context for a given functional suite.
    * @param {Object} entity The Athena functional entity.
    */
-  function _makePrimaryContext(entity) {
-    let entityRequires = []
-
-    if (entity.config && entity.config.type && entity.config.type === "suite") {
-      if (entity._tests && entity._tests.length) {
-        entity._tests.forEach(e => {
-          if (e.config && e.config.require && e.config.require.length) {
-            entityRequires.push(...e.config.require)
-          }
-        })
-      }
-    }
-
-    entityRequires = uniq(entityRequires)
-
+  _makePrimaryContext = (entity) => {
     const requires = [
       "assert->ok",
       "chakram",
       "expect:chakram->expect",
-      ...entityRequires
+      ..._getEntitiesRequires()
     ];
-
-    const inits = {
-      "$entity": toSource(entity),
-      "$context": "this"
-    }
 
     // Generate the final require string.
     const reqString = requires.map(r => {
@@ -396,19 +409,14 @@ function _overrideDefaultMethods() {
       const _rMainReq = _rMain[0] || _rMainName
       let reqStr = `const ${_rMainName} = require('${_rMainReq}')`
 
-      if (_r.length) 
+      if (_r.length) {
         reqStr = `${reqStr}.${_r.join('.')}`
+      }
 
       return `${reqStr};`
     }).join('\n');
 
-    // Generate the initializers string.
-    const initString = Object
-      .keys(inits)
-      .map(initKey => `const ${initKey} = ${inits[initKey]};`)
-      .join('\n');
-
-    return jsBeautify(`${reqString} ${initString} ${entity.getContext()}`);
+    return jsBeautify(`${reqString} ${entity.getContext()}`);
   }
 }
 
@@ -416,16 +424,17 @@ function _run() {
   this
     .engine
     .run((fail) => {
-      process.exitCode = fail
-        ? 1
-        : 0;
+      process.exitCode = fail ? 1 : 0;
     });
 
   this._destruct();
 }
 
 function __destruct() {
-  const {findPath, readFileSync} = this._nativeMethods;
+  const {
+    findPath,
+    readFileSync
+  } = this._nativeMethods;
   module.constructor._findPath = findPath
   false.readFileSync = readFileSync
 }

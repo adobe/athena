@@ -18,10 +18,11 @@ const {validateSchema, makeLogger} = require('./../utils');
 
 class Entity {
   constructor(name, filePath, config) {
+    this._type = null;
+
     this.name = name;
     this.config = config;
     this.fileData = null;
-    this._type = null;
     this.context = null;
     this.taxonomy = null;
     this.log = makeLogger();

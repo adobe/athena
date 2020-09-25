@@ -16,6 +16,7 @@ const path = require('path');
 // External
 const glob = require('glob');
 const L = require('list/methods');
+const _ = require('lodash');
 
 // Project
 const {
@@ -36,7 +37,10 @@ const PerformanceSuiteEntity = require('../entities/performanceSuiteEntity');
 const PerformancePatternEntity = require('../entities/performancePatternEntity');
 const PerformanceRunEntity = require('../entities/performanceRunEntity');
 const TestFileEntity = require('../entities/testFileEntity');
-const { only } = require('joi');
+const {
+  only
+} = require('joi');
+const { uniq } = require('lodash');
 
 // Log formats
 const functionalLogFormat = '[Functional Entity Parsing]';
@@ -56,6 +60,7 @@ class EntityManager {
     this.log = makeLogger();
     this.testFiles = [];
     this.entities = L.list();
+    this.suitesMarkedForDeletion = [];        // The list of suites marked for deletion, usually subsuites.
 
     this._parseEntities();
   }
@@ -88,8 +93,6 @@ class EntityManager {
    * @return {List/Array} The list or array of found fixtures.
    */
   getAllFixtures = (asArray = false) => {
-    var ent = this.entities;
-
     const allFixtureEntities = L.filter((entity) => {
       return entity && entity.constructor.name === 'FixtureEntity';
     }, this.entities);
@@ -133,6 +136,10 @@ class EntityManager {
     return L.first(foundFunctionalSuites);
   };
 
+  getFunctionalTestFiles = () => {
+    return this.testFiles.filter(e => isFunctionalTest(e) || isFunctionalSuite(e));
+  }
+
   // private
 
   /**
@@ -144,7 +151,9 @@ class EntityManager {
     this
       .log
       .debug('Reading all test files...');
-    return glob.sync(path.resolve(this.settings.testsDirPath, '**', '*.yaml'), {nodir: true});
+    return glob.sync(path.resolve(this.settings.testsDirPath, '**', '*.yaml'), {
+      nodir: true
+    });
   }
 
   /**
@@ -161,10 +170,10 @@ class EntityManager {
       .filter(isFixture)
       .map((fixture) => new FixtureEntity(fixture.getName(), fixture.getPath(), fixture.getConfig()));
 
-      onlyFixtures.forEach(function processSingleFixture(f) {
-        this.log.debug(`Processing ${f.name} fixture...`);
-        this.entities = L.append(f, this.entities);
-      }.bind(this));
+    onlyFixtures.forEach(function processSingleFixture(f) {
+      this.log.debug(`Processing ${f.name} fixture...`);
+      this.entities = L.append(f, this.entities);
+    }.bind(this));
   };
 
   /**
@@ -205,69 +214,66 @@ class EntityManager {
     this.testFiles = testFiles.map((filePath) => new TestFileEntity(filePath));
   };
 
-  /**
-   * Parses a single functional suite entity.
-   * @param {TestFileEntity} suite A functional suite entity, as a test file.
-   * @return {FunctionalSuiteEntity} A new functional suite entity instance,
-   * with all referenced tests attached.
-   * @private
-   */
-  _parseFunctionalSuite = (suite) => {
-    const suiteName = suite.getName();
-    const suitePath = suite.getPath();
-    const suiteConfig = suite.getConfig();
+  _linkFunctionalTests = (entity) => {
+    const SuiteInstance = new FunctionalSuiteEntity(
+      entity.getName(),
+      entity.getPath(),
+      entity.getConfig()
+    );
 
-    this
-      .log
-      .debug(`Parsing functional suite: ${suiteName} [${suitePath}]`);
+    if (SuiteInstance.hasTestRefs())
+    {
+      const testRefs = SuiteInstance.getTestsRefs();
+      const onlyFunctionalTests = this.testFiles.filter(isFunctionalTest);
 
-    const FunctionalSuiteInstance = new FunctionalSuiteEntity(suiteName, suitePath, suiteConfig);
+      // Process all functional tests.
+      for (const functionalTest of onlyFunctionalTests)
+      {
+        const testConf = functionalTest.getConfig();
 
-    // Check and see if this suite has any tests referenced.
-    if (!FunctionalSuiteInstance.hasTestsRefs()) {
-      this
-        .log
-        .warn(`The "${suiteName}" functional suite has no test references defined.`);
+        // Check whether the test is found inside the test refs.
+        if (testRefs.indexOf(testConf.name) === -1)
+        {
+          continue;
+        }
 
-      return FunctionalSuiteInstance;
+        // Create a new test instance and append it to the suite.
+        SuiteInstance.addTest(new FunctionalTestEntity(
+          testConf.name,
+          functionalTest.getPath(),
+          testConf
+        ));
+      }
     }
 
-    this
-      .log
-      .debug(`Parsing functional test references for suite ${suiteName}`);
+    return SuiteInstance;
+  }
 
-    // Get suite references.
-    const testRefs = FunctionalSuiteInstance.getTestsRefs();
+  _linkFunctionalSuites = (processedSuites, suite) => {
+    if (!suite.hasSuiteRefs()) {
+      return suite;
+    }
 
-    // Filter all functional tests, specific to this suite only.
-    const onlyFunctionalTests = this
-      .testFiles
-      .filter(isFunctionalTest);
+    const suiteRefs = suite.getSuitesRefs();
+    this.suitesMarkedForDeletion.push(...suiteRefs);
 
-    // Parse only functional tests.
-    for (const functionalTest of onlyFunctionalTests) {
-      // const testName = functionalTest.getName();
-      const testPath = functionalTest.getPath();
-      const testConfig = functionalTest.getConfig();
+    suiteRefs.forEach(ref => {
+      const processedSuite = _.find(
+        processedSuites,
+        suite => suite.config.name === ref
+      );
 
-      this
-        .log
-        .debug(`Parsing functional test ${testConfig.name} [${testPath}]`);
+      if (processedSuite) {
+        suite.addSuite(processedSuite);
 
-      // If this test is not associated with this suite, skip.
-      if (testRefs.indexOf(testConfig.name) === -1) {
-        continue;
+        return;
       }
 
-      // Instantiate a new functional test entity.
-      const FunctionalTestInstance = new FunctionalTestEntity(testConfig.name, testPath, testConfig);
+      this.log.debug(`Could not find the linked suite for ${ref}!`)
+    });
 
-      // Attach the test to the suite.
-      FunctionalSuiteInstance.addTest(FunctionalTestInstance);
-    }
-
-    return FunctionalSuiteInstance;
-  };
+    return suite;
+  }
 
   /**
    * Parses all functional test entities. It initially parses all
@@ -281,14 +287,17 @@ class EntityManager {
       .log
       .debug('Parsing functional tests...');
 
-    const onlyFunctionalSuites = this
+    let onlyFunctionalSuites = this
       .testFiles
       .filter(isFunctionalSuite)
-      .map(this._parseFunctionalSuite);
+      .map(this._linkFunctionalTests)
 
-    onlyFunctionalSuites.forEach(functionalSuite => {
-      this.entities = L.append(functionalSuite, this.entities)
-    });
+      onlyFunctionalSuites = onlyFunctionalSuites
+        .map((suite) => this._linkFunctionalSuites(onlyFunctionalSuites, suite))
+        .filter(e => e !== null && this.suitesMarkedForDeletion.indexOf(e.config.name) === -1)
+        .forEach(functionalSuite => {
+          this.entities = L.append(functionalSuite, this.entities)
+        });
   };
 
   /**

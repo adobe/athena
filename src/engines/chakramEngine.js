@@ -269,9 +269,6 @@ class ChakramEngine extends Engine {
                 const assert = require('assert').ok,
                     chakram = require('chakram'),
                     expect = chakram.expect;
-                    
-                const $entity = ${toSource(entity)};
-                const $context = this; // global context
                                     
                 ${this.pluginManager.maybeInjectFixtures(null, true)}
                 ${entity.getContext()}`;
