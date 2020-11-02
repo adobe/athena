@@ -23,6 +23,7 @@ const Mocha = require('mocha');
 const toSource = require('tosource');
 const jsBeautify = require('js-beautify');
 const L = require('list/methods');
+const rimraf = require('rimraf');
 
 // Project specific
 const Engine = require('./engine');
@@ -153,6 +154,7 @@ const _getFixturesCode = (fixtures) => {
  */
 function _registerEntities() {
   log.debug('Registering functional entities...');
+
   let isFirstSuite = true;
 
   function _deepParseEntities(entity) {
@@ -191,11 +193,11 @@ function _registerEntities() {
     let body = [];
     let suiteRef = isFirstSuite ? 'let suite = {};' : '';
 
+    const fixturesCode = _getFixturesCode(this.entityManager.getAllFixtures())
+
     if (isFirstSuite) {
       suiteRef = `${suiteRef}
-      ${_getFixturesCode(this.entityManager.getAllFixtures())}`;
-      
-      isFirstSuite = false;
+      ${fixturesCode}`;
     }
 
     // Generate the pre code.
@@ -215,11 +217,15 @@ function _registerEntities() {
         return;
       }
 
+      isFirstSuite = false;
+
       // Process entities.
       entity[p] = entity[p]
         .map(_deepParseEntities.bind(this))
         .map(e => body.push(e.getContext()));
     });
+
+    isFirstSuite = true;
 
     // Generate the suite's context and set it.
     entity.setContext(SUITE_CTX_TPL.allReplace({
@@ -244,7 +250,28 @@ function _registerEntities() {
       entity.toString = entity.getContext;
       entity.fileName = `${entity.name}.athena.js`;
       this.engine.addFile(entity.fileName);
-      fs.writeFileSync('debug.js', jsBeautify(entity.getContext(), { no_preserve_newlines: true }));
+
+      // Clean up the debug dir.
+      const debugPath = './debug/';
+      rimraf.sync(debugPath);
+
+      // Write contexts to debug dir.
+      if (this.settings.debug) {
+        if (!fs.existsSync(debugPath)) {
+          fs.mkdirSync(debugPath);
+        }
+
+        const debugFilePath = debugPath + entity.fileName;
+
+        fs.writeFileSync(
+          debugFilePath,
+          jsBeautify(entity.getContext(), {
+            no_preserve_newlines: true
+          })
+        );
+
+        this.log.debug(`Wrote context for ${entity.name} in ${debugFilePath}`);
+      }
 
       return entity;
     })
@@ -369,7 +396,6 @@ function _overrideDefaultMethods() {
 
   _getEntitiesRequires = () => {
     const requires = [];
-
     this.entityManager.getFunctionalTestFiles().forEach(_processRequires);
 
     function _processRequires(e) {
