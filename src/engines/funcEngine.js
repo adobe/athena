@@ -156,6 +156,7 @@ function _registerEntities() {
   log.debug('Registering functional entities...');
 
   let isFirstSuite = true;
+  const entityManager = this.entityManager;
 
   function _deepParseEntities(entity) {
     if (isFunctionalTest(entity)) {
@@ -191,13 +192,13 @@ function _registerEntities() {
     }
 
     let body = [];
-    let suiteRef = isFirstSuite ? 'let suite = {};' : '';
+    let suiteRef = isFirstSuite ? 'var suite = {};' : '';
 
-    const fixturesCode = _getFixturesCode(this.entityManager.getAllFixtures())
+    const fixturesCode = _getFixturesCode(entityManager.getAllFixtures())
 
     if (isFirstSuite) {
-      suiteRef = `${suiteRef}
-      ${fixturesCode}`;
+      suiteRef = `${fixturesCode}
+        ${suiteRef}`;
     }
 
     // Generate the pre code.
@@ -228,7 +229,8 @@ function _registerEntities() {
     isFirstSuite = true;
 
     // Generate the suite's context and set it.
-    entity.setContext(SUITE_CTX_TPL.allReplace({
+    // TODO: Use a single IIFE
+    entity.setContext(`(function (){ ${SUITE_CTX_TPL.allReplace({
       "#name": entity.config.name,
       "#version": `[${entity.config.version || '1.0.0'}]`,
       "#description": entity.config.description,
@@ -238,12 +240,12 @@ function _registerEntities() {
       "#async": EMPTY_STRING,
       "#done": EMPTY_STRING,
       "#post": EMPTY_STRING
-    }));
+    })} })();`);
 
     return entity;
   }
 
-  let allFunctionalSuites = L.toArray(this.entityManager.getAllFunctionalSuites());
+  let allFunctionalSuites = L.toArray(entityManager.getAllFunctionalSuites());
   allFunctionalSuites = allFunctionalSuites
     .map(_deepParseEntities.bind(this))
     .map(entity => {
