@@ -22,7 +22,7 @@
     "@spectrum-css/sidenav": "^2.0.3",
     "acorn-loose": "^7.0.0",
     "autocannon": "^4.0.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "babel-eslint": "^10.0.3",
     "body-parser": "latest",
     "chai": "^4.2.0",
