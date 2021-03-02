@@ -14,11 +14,43 @@ const INDEXES = {
     AC_RESULTS_LATENCY: 'ac_results_latency',
     AC_RESULT_RVT: 'ac_result_rvt',
     AC_RESULTS_STATUSES: 'ac_results_statuses',
-    AC_RESULT_RESPONSE_TIMES: 'ac_result_response_times'
+    AC_RESULT_RESPONSE_TIMES: 'ac_result_response_times',
+
+    // Thor
+    THOR_OVERVIEW: 'thor_overview',
 }
 
 // Mappings.
 const MAPPINGS = {}
+
+//
+// Thor
+//
+
+MAPPINGS[INDEXES.THOR_OVERVIEW] = {
+    index: INDEXES.THOR_OVERVIEW,
+    body: {
+        properties: {
+            created_at: { type: "date" },
+            job_id: { type: "keyword" },
+            test_runner: { type: "keyword" },
+            no_connections: { type: "integer" },
+            no_disconnect: { type: "integer" },
+            no_failures: { type: "integer" },
+            latency_min: { type: "float" },
+            latency_mean: { type: "float" },
+            latency_median: { type: "float" },
+            latency_max: { type: "float" },
+            latency_p95: { type: "float" },
+            latency_p97: { type: "float" },
+            latency_p99: { type: "float" },
+        }
+    }
+}
+
+//
+// Autocannon
+//
 
 MAPPINGS[INDEXES.AC_JOB] = {
     index: INDEXES.AC_JOB,
@@ -290,4 +322,7 @@ module.exports = () => {
     maybePutMappingForIndex(INDEXES.AC_RESULT_RVT);
     maybePutMappingForIndex(INDEXES.AC_RESULTS_STATUSES);
     maybePutMappingForIndex(INDEXES.AC_RESULT_RESPONSE_TIMES);
+
+    // Thor
+    maybePutMappingForIndex(INDEXES.THOR_OVERVIEW);
 }

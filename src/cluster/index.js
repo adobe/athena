@@ -14,7 +14,9 @@ const net = require('net');
 const fs = require('fs');
 const path = require('path');
 
-const {uniqueNamesGenerator} = require('unique-names-generator');
+const {
+  uniqueNamesGenerator
+} = require('unique-names-generator');
 const uuid = require('nanoid');
 const nanoidGenerate = require('nanoid/generate');
 const Koa = require('koa');
@@ -28,8 +30,12 @@ const jsYaml = require('js-yaml');
 const request = require('request');
 const KoaBodyparser = require('koa-bodyparser');
 
-const {makeLogger} = require('./../utils');
-const {makeMessage} = require('./commands');
+const {
+  makeLogger
+} = require('./../utils');
+const {
+  makeMessage
+} = require('./commands');
 const Storage = require('./../storage');
 const StorageRepository = require('./../storage/repository');
 const log = makeLogger();
@@ -207,7 +213,10 @@ class GenericNode {
 
   // private
   _generateNodeName = () => {
-    const newNodeName = uniqueNamesGenerator({length: 2, separator: '-'});
+    const newNodeName = uniqueNamesGenerator({
+      length: 2,
+      separator: '-'
+    });
 
     while (this._isNameUsed(newNodeName)) {
       this._generateNodeName();
@@ -242,7 +251,7 @@ class ManagerNode extends GenericNode {
     this._addr = null;
     this._port = null;
     this._socket = null;
-    this._accessToken = null; 
+    this._accessToken = null;
     this._agents = [];
 
     this.setAddr(this.settings.addr);
@@ -250,7 +259,7 @@ class ManagerNode extends GenericNode {
 
     const _self = this;
 
-    (async() => {
+    (async () => {
       this.setPort(process.env.API_PORT);
 
       const AthenaAPI = new Koa();
@@ -262,7 +271,9 @@ class ManagerNode extends GenericNode {
 
       Router.get('/version', async (ctx, next) => {
         ctx.status = 200;
-        ctx.body = { version: "1.0.0" }
+        ctx.body = {
+          version: "1.0.0"
+        }
 
         await next();
       })
@@ -278,7 +289,7 @@ class ManagerNode extends GenericNode {
       Router.put('/api/v1/projects/:projectId/performance/:testId', handleUpdatePerformanceTest);
       Router.delete('/api/v1/projects/:projectId/performance/:testId', handleDeletePerformanceTest);
       Router.delete('/api/v1/projects/:projectId', handleDeleteSingleProject);
-    
+
       // TODO: Not implemented.
       // Router.put('/api/v1/projects/:projectId', handleUpdateSingleProject);
       // Router.post('/api/v1/projects/:projectId/performance/:testId', handleCreatePerformanceTest);    
@@ -294,7 +305,7 @@ class ManagerNode extends GenericNode {
       // TODO(nvasile): The following endpoints should be protected from outside access.
       Router.post('/api/v1/k8s/internal/performance/parse-agent-report', _handleProcessAgentReport);
       Router.post('/api/v1/k8s/internal/perf/process-partial-report', _handleProcessPartialAgentReport);
-      
+
       async function handleCreateNewProject(ctx, next) {
         // Validate
         ctx.checkBody({
@@ -303,7 +314,7 @@ class ManagerNode extends GenericNode {
             errorMessage: 'The project name is required!'
           }
         });
-        
+
         let errors = await ctx.validationErrors(true);
 
         if (errors) {
@@ -312,8 +323,16 @@ class ManagerNode extends GenericNode {
             errors
           };
         } else {
-          const { name, description, repoUrl } = ctx.request.body;
-          await StorageRepository.createProject({ name, description, repoUrl });
+          const {
+            name,
+            description,
+            repoUrl
+          } = ctx.request.body;
+          await StorageRepository.createProject({
+            name,
+            description,
+            repoUrl
+          });
 
           ctx.status = 201;
           ctx.body = {
@@ -352,8 +371,12 @@ class ManagerNode extends GenericNode {
       // Create a single performance test for a single project.
       async function handleCreatePerformanceTest(ctx, next) {
         // TODO: Validate params and make sure that the projectId and the data are provided, otherwise return errors.
-        const { projectId } = ctx.params;
-        const { testData: yamlTestData } = ctx.request.body;
+        const {
+          projectId
+        } = ctx.params;
+        const {
+          testData: yamlTestData
+        } = ctx.request.body;
         let testData;
 
         try {
@@ -368,19 +391,26 @@ class ManagerNode extends GenericNode {
           await next();
         }
 
-        await StorageRepository.storeSinglePerfTest({projectId, testData});
+        await StorageRepository.storeSinglePerfTest({
+          projectId,
+          testData
+        });
 
         ctx.status = 201
-        ctx.body = { success: true }
+        ctx.body = {
+          success: true
+        }
 
         await next();
       }
 
       // Read all performance tests for a single project.
       async function handleReadPerformanceTests(ctx, next) {
-        const { projectId } = ctx.params;
+        const {
+          projectId
+        } = ctx.params;
         const perfTests = await StorageRepository.readAllPerfTests(projectId);
-      
+
         ctx.status = 200;
         ctx.body = {
           perfTests
@@ -391,14 +421,18 @@ class ManagerNode extends GenericNode {
 
       // Read a single performance test for a single project.
       async function handleReadSinglePerformanceTest(ctx, next) {
-        const { testId } = ctx.params;
+        const {
+          testId
+        } = ctx.params;
         let perfTest, perfRuns
 
         try {
           perfTest = await StorageRepository.readSinglePerfTest(testId);
         } catch (error) {
           ctx.status = 400;
-          ctx.body = { error };
+          ctx.body = {
+            error
+          };
         }
 
         ctx.status = 200;
@@ -409,14 +443,18 @@ class ManagerNode extends GenericNode {
 
       // Read performance test runs for a single performance test.
       async function handleReadSinglePerformanceTestRuns(ctx, next) {
-        const { testId } = ctx.params;
+        const {
+          testId
+        } = ctx.params;
         let perfRuns
 
         try {
           perfRuns = await StorageRepository.readAllPerfRuns(testId);
         } catch (error) {
           ctx.status = 400;
-          ctx.body = { error };
+          ctx.body = {
+            error
+          };
         }
 
         ctx.status = 200;
@@ -427,16 +465,19 @@ class ManagerNode extends GenericNode {
 
       // Schedule a single performance test run inside the cluster.
       async function handleSchedulePerformanceTestRun(ctx, next) {
-        const { testId } = ctx.params;
+        const {
+          testId
+        } = ctx.params;
         console.info(`Preparing to schedule a new performance test run for test id: ${testId}`)
 
         try {
-          // Get the perf test definition by id.
           const perfTest = await StorageRepository.readSinglePerfTest(testId);
           const perfJob = await StorageRepository.storeSinglePerfRun(testId, perfTest.config);
-          
+
           // Setup the perf job.
-          const { _id: jobId } = perfJob;
+          const {
+            _id: jobId
+          } = perfJob;
           const job = new PerformanceJob(perfTest);
           job.setId(jobId);
           const jobAgentsCount = perfTest.config.resources.agents || 1;
@@ -446,58 +487,123 @@ class ManagerNode extends GenericNode {
           agentJobConfig = jsYaml.safeLoad(agentJobConfig);
 
           // Update the ni-job conf.
-          agentJobConfig.metadata.name = `athena-ni-agent-${jobId}`;
+          agentJobConfig.metadata.name = `athena-perf-job-${jobId}`;
           agentJobConfig.metadata.labels = {
             athena_jid: jobId
           }
-
-          const { cpu: resCpu, memory: resMemory } = perfTest.config.resources;
+          const {
+            cpu: resCpu,
+            memory: resMemory
+          } = perfTest.config.resources;
           agentJobConfig.spec.completions = jobAgentsCount;
           agentJobConfig.spec.parallelism = jobAgentsCount;
 
-          agentJobConfig.spec.template.spec.containers[0].resources.limits.cpu = resCpu || "0";
-          agentJobConfig.spec.template.spec.containers[0].resources.limits.memory = resMemory || "0"
-          
+          if (resCpu) {
+            agentJobConfig.spec.template.spec.containers[0].resources.limits.cpu = resCpu
+          }
+
+          if (resMemory) {
+            agentJobConfig.spec.template.spec.containers[0].resources.limits.memory = resMemory
+          }
+
           agentJobConfig.metadata.labels = {
             "app": "athena",
             "type": "ni-agent",
             "jobId": jobId
           };
 
-          agentJobConfig.spec.template.spec.containers[0].command = [
-            "node",
-            "athena.js",
-            "cluster",
-            "--join",
-            "--foreground",
-            "--k8s",
-            `--jobId=${jobId}`,
-            `--jobConfig="${JSON.stringify(perfTest.config.config)}"` // TODO: fix this
-          ]
+          // Run Thor
+          if (perfTest.config.engine === "thor") {
+            // agentJobConfig.spec.template.spec.containers[0].image = process.env.ATHENA_AGENT_THOR_IMAGE
+            agentJobConfig.spec.template.spec.containers[0].image = "docker2-api-platform-snapshot-local.dr-uw2.adobeitc.com/apiplatform/athena-agent-thor:0.0.6"
 
+            agentJobConfig.spec.template.spec.containers[0].env = [{
+                name: "WORKERS",
+                value: String(perfTest.config.config.workers)
+              },
+              {
+                name: "MESSAGES",
+                value: String(perfTest.config.config.messages)
+              },
+              {
+                name: "CONNECTIONS",
+                value: String(perfTest.config.config.connections)
+              },
+              {
+                name: "CONCURRENT",
+                value: String(perfTest.config.config.concurrent)
+              },
+              {
+                name: "OUTPUT",
+                value: "/usr/share/reports/report.json"
+              },
+              {
+                name: "URL",
+                value: perfTest.config.config.url
+              },
+            ];
 
-          console.log("COMMAND ---- ")
-          console.log(agentJobConfig.spec.template.spec.containers[0].command);
-          console.log("COMMAND ---- ")
+            // Add custom environment variables.
+            if (perfTest.config.env && perfTest.config.env.length) {
+              perfTest.config.env.forEach(i => {
+                if (i.name && i.value) {
+                  agentJobConfig.spec.template.spec.containers[0].env.push(i);
+                  console.log(`Added the following environment variable to the Thor runner: ${i.name} = ${i.value}`)
+                  return;
+                }
+
+                console.log(`Invalid env variable for thor runner: ${JSON.stringify(i)}`)
+              })
+            }
+
+            // Add the env variables needed by the Athena Sidecar Collector.
+            agentJobConfig.spec.template.spec.containers[1].env = [{
+                name: "ATHENA_POST_URL",
+                value: "http://athena-manager:5000/api/v1/k8s/internal/performance/parse-agent-report"
+              },
+              {
+                name: "ATHENA_JOB_ID",
+                value: jobId
+              },
+              {
+                name: "ATHENA_TEST_RUNNER",
+                value: "thor"
+              },
+            ];
+          } else {
+            agentJobConfig.spec.template.spec.containers[0].command = [
+              "node",
+              "athena.js",
+              "cluster",
+              "--join",
+              "--foreground",
+              "--k8s",
+              `--jobId=${jobId}`,
+              `--jobConfig="${JSON.stringify(perfTest.config.config)}"` // TODO: fix this
+            ]
+          }
 
           // Spawn agents.
           await _self.athena.k8sManager.spawnShortlivedAgents(agentJobConfig, jobAgentsCount);
 
           ctx.status = 200;
-          ctx.body = { message: "success" };
+          ctx.body = {
+            message: "success"
+          };
 
         } catch (error) {
           console.log(error);
-
           ctx.status = 400;
-          ctx.body = { error };
+          ctx.body = {
+            error
+          };
         }
 
         await next();
       }
 
       // Run a single performance test by ID. GET:   /api/v1/performance/run/:id
-      Router.get('/api/v1/performance/run/:id', async(ctx, next) => {
+      Router.get('/api/v1/performance/run/:id', async (ctx, next) => {
         // TODO: Get the perf job by ID. Schedule the perf job to run.
         ctx.body = {};
 
@@ -506,7 +612,7 @@ class ManagerNode extends GenericNode {
 
       // Post a performance job JSON and schedule it to run. POST:
       // /api/v1/k8s/performance/run
-      Router.post('/api/v1/k8s/performance/run', async(ctx, next) => {
+      Router.post('/api/v1/k8s/performance/run', async (ctx, next) => {
         const perfJob = ctx.request.body;
         const perfJobInstance = new PerformanceJob(perfJob);
         const jobId = perfJobInstance.getId();
@@ -548,39 +654,51 @@ class ManagerNode extends GenericNode {
 
       // Update a performance test for a single project.
       async function handleUpdatePerformanceTest(ctx, next) {
-          const updatedData = ctx.request.body;
-          const { testId } = ctx.params;
+        const updatedData = ctx.request.body;
+        const {
+          testId
+        } = ctx.params;
 
-          await StorageRepository.updatePerfTestById(testId, {
-            config: updatedData
-          });
-  
-          ctx.status = 200;
-          ctx.body = { status: "updated!" }
-  
-          await next();
+        await StorageRepository.updatePerfTestById(testId, {
+          config: updatedData
+        });
+
+        ctx.status = 200;
+        ctx.body = {
+          status: "updated!"
+        }
+
+        await next();
       }
 
       // Delete a performance test for a single project.
       async function handleDeletePerformanceTest(ctx, next) {
-        const { testId } = ctx.params;
+        const {
+          testId
+        } = ctx.params;
 
         await StorageRepository.deletePerformanceTestById(testId);
 
         ctx.status = 200;
-        ctx.body = { status: "perf test deleted!" }
+        ctx.body = {
+          status: "perf test deleted!"
+        }
 
         await next();
       }
 
       // Delete a single project by ID.
       async function handleDeleteSingleProject(ctx, next) {
-        const { projectId } = ctx.params;
+        const {
+          projectId
+        } = ctx.params;
 
         await StorageRepository.deleteProjectById(projectId);
 
         ctx.status = 200;
-        ctx.body = { status: "project deleted!" }
+        ctx.body = {
+          status: "project deleted!"
+        }
 
         await next();
       }
@@ -611,18 +729,24 @@ class ManagerNode extends GenericNode {
 
         // TODO(nvasile): Try/Catch ;)
         const perfJobResults = ctx.request.body;
-        const { id: jobId } = perfJobResults;
-        
+        const {
+          id: jobId
+        } = perfJobResults;
+
         log.info(`Attempting to parse incoming agent [${perfJobResults.agent_id}:${perfJobResults.agent_name}] info (non-interactive) for job: ${jobId}!`);
-        _self._handleResRunPerf({ data: perfJobResults });
+        _self._handleResRunPerf({
+          data: perfJobResults
+        });
 
         const perfRun = await StorageRepository.incrPerfRunReports(jobId);
 
         // Mark the job as complete and prune agents.
-        const { agents } = perfRun.config.resources;
+        const {
+          agents
+        } = perfRun.config.resources;
         console.log(`agentsCount = ${agents} : perfRun.reports = ${perfRun.reports}`)
 
-        if (perfRun.reports == agents) {          
+        if (perfRun.reports == agents) {
           perfRun.status = "COMPLETED";
           await perfRun.save();
           await _self.athena.k8sManager.pruneShortlivedAgents(jobId);
@@ -658,7 +782,9 @@ class ManagerNode extends GenericNode {
             // console.log(agentReport)
             console.log(`[Job ID: ${agentReport.job_id}] The ${agentReport.agent_id} agent reported a PARTIAL event. COUNT: ${agentReport.results.partialReportsCount}`)
             console.log(agentReport);
-            _self._handleResRunPerf({ data: agentReport });
+            _self._handleResRunPerf({
+              data: agentReport
+            });
             break;
             // Get the agent by id specific to this performance test run.
             // Increment its partialReportsCount
@@ -666,20 +792,24 @@ class ManagerNode extends GenericNode {
 
           case REPORT_TYPES.END:
             console.log(`[Job ID: ${agentReport.job_id}] The ${agentReport.agent_id} agent reported the END event!`)
-            _self._handleResRunPerf({ data: agentReport });
+            _self._handleResRunPerf({
+              data: agentReport
+            });
             const perfRun = await StorageRepository.incrPerfRunReports(agentReport.job_id);
 
             // Mark the job as complete and prune agents.
-            const { agents } = perfRun.config.resources;
+            const {
+              agents
+            } = perfRun.config.resources;
             console.log(`agentsCount = ${agents} : perfRun.reports = ${perfRun.reports}`)
-    
-            if (perfRun.reports == agents) {          
+
+            if (perfRun.reports == agents) {
               perfRun.status = "COMPLETED";
               await perfRun.save();
               await _self.athena.k8sManager.pruneShortlivedAgents(agentReport.job_id);
             }
             break;
-            
+
           default:
             // invalid report type, shouldn't ever happen.
         }
@@ -692,8 +822,12 @@ class ManagerNode extends GenericNode {
         const nodes = await _self.athena.k8sManager.listClusterNodes();
         const pods = await _self.athena.k8sManager.listClusterPods();
 
-        const { body: nodesList } = nodes.response;
-        const { body: podsList } = pods.response;
+        const {
+          body: nodesList
+        } = nodes.response;
+        const {
+          body: podsList
+        } = pods.response;
 
         return {
           nodesList,
@@ -753,18 +887,24 @@ class ManagerNode extends GenericNode {
 
           const memSizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
           const memI = parseInt(Math.floor(Math.log(memBytes) / Math.log(1024)), 10);
-          
+
           if (memI === 0) {
             return `${memBytes} ${memSizes[memI]}`;
           }
-  
+
           return `${(memBytes / (1024 ** memI)).toFixed(1)} ${memSizes[memI]}`
         }
 
         const usedMemoryBytes = resources.podsList.items.map(p => p.spec.containers.map(c => {
           if (!c || !c.resources || !c.resources.limits || !c.resources.limits.memory) return 0;
-          const dtm = { Ki: 1000, Mi: 1e+6, Gi: 1e+9 }
-          const { memory } = c.resources.limits;
+          const dtm = {
+            Ki: 1000,
+            Mi: 1e+6,
+            Gi: 1e+9
+          }
+          const {
+            memory
+          } = c.resources.limits;
           const u = ['Ki', 'Mi', 'Gi'].filter(u => memory.indexOf(u) !== -1)[0];
           return parseInt(memory.split(u)[0]) * dtm[u];
         })).reduce((a, b) => parseInt(a) + parseInt(b), 0);
@@ -813,7 +953,9 @@ class ManagerNode extends GenericNode {
         }))
         .use(KoaAsyncValidator())
         .use(KoaJSON())
-        .use(KoaCors({ origin: '*' })) // TODO(nvasile): only in dev mode.
+        .use(KoaCors({
+          origin: '*'
+        })) // TODO(nvasile): only in dev mode.
         .use(Router.routes())
         .use(Router.allowedMethods())
         .use(this._APIErrorHandler)
@@ -824,7 +966,7 @@ class ManagerNode extends GenericNode {
     })();
   }
 
-  _APIErrorHandler = async(ctx, next) => {
+  _APIErrorHandler = async (ctx, next) => {
     try {
       await next();
     } catch (err) {
@@ -954,12 +1096,15 @@ class ManagerNode extends GenericNode {
   };
 
   _handleNewAgentConnection = (sock) => {
-    (async() => {
+    (async () => {
       // create and store a new Agent
       const Agent = new AgentNode(this.athena, this.settings);
       Agent.setSocket(sock);
       this.addAgent(Agent);
-      const {remoteAddress, remotePort} = sock;
+      const {
+        remoteAddress,
+        remotePort
+      } = sock;
       log.info(`New Athena agent (${Agent.getName()}) connected: ${remoteAddress}:${remotePort}`);
       await storage.storeAgent(Agent.describe());
 
@@ -1016,192 +1161,215 @@ class ManagerNode extends GenericNode {
 
     const actions = [];
 
-    // ac_job // todo: handle this only once !
-    actions.push({
-      index: {
-        _index: 'ac_job'
-      }
-    }, {
-      job_id: data.id,
-      created_at: data.created_at,
-      updated_at: data.updated_at, // todo: propagate value
-    });
-
-
-    console.log('----')
-    console.log("PROCESSING STATUSES:")
-    console.log(data.results.statuses)
-    console.log("PROCESSING STATUSES:")
-    console.log('----')
-
-    // ac_results_statuses
-    actions.push({
-      index: {
-        _index: 'ac_results_statuses'
-      }
-    }, {
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      ...data.results.statuses
-    });
-
-    // ac_result_overview
-    if (data.type === 'END') {
-      console.log(`Processing the END result overview...`)
-
-      // TODO: Process final overview here.
+    if (data.testRunner === "thor") {
       actions.push({
         index: {
-          _index: 'ac_result_overview'
+          _index: 'thor_overview'
         }
       }, {
-        'job_id': data.id,
-        'agent_id': data.agent_id,
-        'agent_name': data.agent_name,
-        'url': data.results.url,
-        // 'responses': data.results.stats.responses,
-        'errors': data.results.errors,
-        'timeouts': data.results.timeouts,
-        'duration': data.results.duration,
-        'start': data.results.start,
-        'finish': data.results.finish,
-        'connections': data.results.connections,
-        'pipelining': data.results.pipelining,
-        'non2xx': data.results.non2xx,
-        '1xx': data.results['1xx'],
-        '2xx': data.results['2xx'],
-        '3xx': data.results['3xx'],
-        '4xx': data.results['4xx'],
-        '5xx': data.results['5xx']
+        created_at: new Date().toISOString(),
+        job_id: data.id,
+        test_runner: data.testRunner,
+        no_connections: data.noConnections,
+        no_disconnect: data.noDisconnect,
+        no_failures: data.noFailures,
+        latency_min: data.details.latency.min,
+        latency_mean: data.details.latency.mean,
+        latency_median: data.details.latency.median,
+        latency_max: data.details.latency.max,
+        latency_p95: data.details.latency.percentiles["95"],
+        latency_p97: data.details.latency.percentiles["97"],
+        latency_p99: data.details.latency.percentiles["99"],
       });
 
-    // ac_results_requests
-    actions.push({
-      index: {
-        _index: 'ac_results_requests'
-      }
-    }, {
-      job_id: data.id,
-      agent_id: data.agent_id,
-      agent_name: data.agent_name,
-      ...data.results.requests
-    });
-
-    // ac_results_latency
-    actions.push({
-      index: {
-        _index: 'ac_results_latency'
-      }
-    }, {
-      job_id: data.id,
-      agent_id: data.agent_id,
-      agent_name: data.agent_name,
-      ...data.results.latency
-    });
-
-    // ac_results_throughput
-    actions.push({
-      index: {
-        _index: 'ac_results_throughput'
-      }
-    }, {
-      job_id: data.id,
-      agent_id: data.agent_id,
-      agent_name: data.agent_name,
-      ...data.results.throughput
-    });
-  } // END
-
-    // ac_result_rps
-    const pushRpsEntry = (rpsEntry) => {
+    } else {
+      // ac_job // todo: handle this only once !
       actions.push({
         index: {
-          _index: 'ac_result_rps'
+          _index: 'ac_job'
         }
       }, {
         job_id: data.id,
-        agent_id: data.agent_id,
-        agent_name: data.agent_name,
-        ...rpsEntry
+        created_at: data.created_at,
+        updated_at: data.updated_at, // todo: propagate value
       });
-    }
 
-    if (typeof data.results.rpsMap === "object") {
-      Object.keys(data.results.rpsMap).map(k => pushRpsEntry(data.results.rpsMap[k]))
-    } else if (typeof data.results.rpsMap === "array") {
-      data.results.rpsMap.forEach(rpsEntry => pushRpsEntry(rpsEntry));
-    } else {
-      // noop
-    }
 
-    // ac_result_resincr
-    const pushResEntry = (resEntry) => {
+      console.log('----')
+      console.log("PROCESSING STATUSES:")
+      console.log(data.results.statuses)
+      console.log("PROCESSING STATUSES:")
+      console.log('----')
+
+      // ac_results_statuses
       actions.push({
         index: {
-          _index: 'ac_result_resincr'
+          _index: 'ac_results_statuses'
         }
       }, {
-        job_id: data.id,
-        agent_id: data.agent_id,
-        agent_name: data.agent_name,
-        ...resEntry
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        ...data.results.statuses
       });
-    }
 
-    if (typeof data.results.resIncrMap === "object") {
-      Object.keys(data.results.resIncrMap).map(k => pushResEntry(data.results.resIncrMap[k]))
-    } else if  (typeof data.results.resIncrMap === "array") {
-      data.results.resIncrMap.forEach((resEntry) => pushResEntry(resEntry));
-    } else {
-      // noop
-    }
+      // ac_result_overview
+      if (data.type === 'END') {
+        console.log(`Processing the END result overview...`)
 
-    // ac_result_rvt
-    const pushRvtEntry = (resEntry) => {
-      actions.push({
-        index: {
-          _index: 'ac_result_rvt'
-        }
-      }, {
-        job_id: data.id,
-        agent_id: data.agent_id,
-        agent_name: data.agent_name,
-        ...resEntry
-      });
-    }
+        // TODO: Process final overview here.
+        actions.push({
+          index: {
+            _index: 'ac_result_overview'
+          }
+        }, {
+          'job_id': data.id,
+          'agent_id': data.agent_id,
+          'agent_name': data.agent_name,
+          'url': data.results.url,
+          // 'responses': data.results.stats.responses,
+          'errors': data.results.errors,
+          'timeouts': data.results.timeouts,
+          'duration': data.results.duration,
+          'start': data.results.start,
+          'finish': data.results.finish,
+          'connections': data.results.connections,
+          'pipelining': data.results.pipelining,
+          'non2xx': data.results.non2xx,
+          '1xx': data.results['1xx'],
+          '2xx': data.results['2xx'],
+          '3xx': data.results['3xx'],
+          '4xx': data.results['4xx'],
+          '5xx': data.results['5xx']
+        });
 
-    if (typeof data.results.rvt === "object") {
-      console.log("processing RVT")
-      Object.keys(data.results.rvt).map(k => pushRvtEntry(data.results.rvt[k]))
-    } else if  (typeof data.results.rvt === "array") {
-      console.log("processing RVT")
-      data.results.rvt.forEach((resEntry) => pushRvtEntry(resEntry));
-    } else {
-      // noop
-    }
+        // ac_results_requests
+        actions.push({
+          index: {
+            _index: 'ac_results_requests'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...data.results.requests
+        });
 
-    // ac_result_response_times
-    const pushLatencyEntry = (resEntry) => {
-      actions.push({
-        index: {
-          _index: 'ac_result_response_times'
-        }
-      }, {
-        job_id: data.id,
-        agent_id: data.agent_id,
-        agent_name: data.agent_name,
-        ...resEntry
-      });
-    }
+        // ac_results_latency
+        actions.push({
+          index: {
+            _index: 'ac_results_latency'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...data.results.latency
+        });
 
-    if (typeof data.results.responseTimes === "object") {
-      console.log("processing response times")
-      Object.keys(data.results.responseTimes).map(k => pushLatencyEntry(data.results.responseTimes[k]))
-    } else if  (typeof data.results.responseTimes === "array") {
-      console.log("processing response times")
-      data.results.responseTimes.forEach((resEntry) => pushLatencyEntry(resEntry));
-    } else {
-      // noop
+        // ac_results_throughput
+        actions.push({
+          index: {
+            _index: 'ac_results_throughput'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...data.results.throughput
+        });
+      } // END
+
+      // ac_result_rps
+      const pushRpsEntry = (rpsEntry) => {
+        actions.push({
+          index: {
+            _index: 'ac_result_rps'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...rpsEntry
+        });
+      }
+
+      if (typeof data.results.rpsMap === "object") {
+        Object.keys(data.results.rpsMap).map(k => pushRpsEntry(data.results.rpsMap[k]))
+      } else if (typeof data.results.rpsMap === "array") {
+        data.results.rpsMap.forEach(rpsEntry => pushRpsEntry(rpsEntry));
+      } else {
+        // noop
+      }
+
+      // ac_result_resincr
+      const pushResEntry = (resEntry) => {
+        actions.push({
+          index: {
+            _index: 'ac_result_resincr'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...resEntry
+        });
+      }
+
+      if (typeof data.results.resIncrMap === "object") {
+        Object.keys(data.results.resIncrMap).map(k => pushResEntry(data.results.resIncrMap[k]))
+      } else if (typeof data.results.resIncrMap === "array") {
+        data.results.resIncrMap.forEach((resEntry) => pushResEntry(resEntry));
+      } else {
+        // noop
+      }
+
+      // ac_result_rvt
+      const pushRvtEntry = (resEntry) => {
+        actions.push({
+          index: {
+            _index: 'ac_result_rvt'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...resEntry
+        });
+      }
+
+      if (typeof data.results.rvt === "object") {
+        console.log("processing RVT")
+        Object.keys(data.results.rvt).map(k => pushRvtEntry(data.results.rvt[k]))
+      } else if (typeof data.results.rvt === "array") {
+        console.log("processing RVT")
+        data.results.rvt.forEach((resEntry) => pushRvtEntry(resEntry));
+      } else {
+        // noop
+      }
+
+      // ac_result_response_times
+      const pushLatencyEntry = (resEntry) => {
+        actions.push({
+          index: {
+            _index: 'ac_result_response_times'
+          }
+        }, {
+          job_id: data.id,
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          ...resEntry
+        });
+      }
+
+      if (typeof data.results.responseTimes === "object") {
+        console.log("processing response times")
+        Object.keys(data.results.responseTimes).map(k => pushLatencyEntry(data.results.responseTimes[k]))
+      } else if (typeof data.results.responseTimes === "array") {
+        console.log("processing response times")
+        data.results.responseTimes.forEach((resEntry) => pushLatencyEntry(resEntry));
+      } else {
+        // noop
+      }
     }
 
     // store in bulk
@@ -1255,7 +1423,7 @@ class AgentNode extends GenericNode {
   };
 
   joinNonInteractive = () => {
-    const perfTest =  JSON.parse(this.settings.jobConfig);
+    const perfTest = JSON.parse(this.settings.jobConfig);
     const _self = this;
     _self.state = {};
 
@@ -1268,7 +1436,7 @@ class AgentNode extends GenericNode {
           log.error(`Could not parse the performance test hook [init]:\n${e}`);
         }
       }
-      perfTest.setupClient = function(client) {
+      perfTest.setupClient = function (client) {
         if (perfTest.hooks.setupClient) {
           try {
             eval(perfTest.hooks.setupClient);
@@ -1313,7 +1481,7 @@ class AgentNode extends GenericNode {
           job_id: _self.settings.jobId,
           ...PerfJob.describe()
         }
-      }, function(err) {
+      }, function (err) {
         // todo: handle error here
       })
 
@@ -1326,7 +1494,7 @@ class AgentNode extends GenericNode {
             agent_name: _self.getName(),
             job_id: _self.settings.jobId,
           }
-        }, function(err) {
+        }, function (err) {
           // todo: handle error here
         })
       },
@@ -1340,7 +1508,7 @@ class AgentNode extends GenericNode {
             agent_name: _self.getName(),
             ...PerfJob.describe()
           }
-        }, function(err) {
+        }, function (err) {
           // todo: handle error here
         })
       }
@@ -1359,7 +1527,7 @@ class AgentNode extends GenericNode {
       .use(KoaJSON())
       .use(Router.routes())
       .use(Router.allowedMethods())
-      .use(async(ctx, next) => {
+      .use(async (ctx, next) => {
         try {
           await next();
         } catch (err) {
@@ -1445,18 +1613,18 @@ class PerformanceJob {
     }
 
     // maybe provision
-    if (perfTest.id) 
+    if (perfTest.id)
       this._id = perfTest.id;
-    if (perfTest.created_at) 
+    if (perfTest.created_at)
       this._created_at = perfTest.created_at;
-    if (perfTest.updated_at) 
+    if (perfTest.updated_at)
       this._updated_at = perfTest.updated_at;
-    if (perfTest.data) 
+    if (perfTest.data)
       this._data = perfTest.data;
-    if (perfTest.results) 
+    if (perfTest.results)
       this._results = perfTest.results;
-    }
-  
+  }
+
   setId = (id) => {
     this._id = id;
   }
