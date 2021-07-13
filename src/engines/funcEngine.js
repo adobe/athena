@@ -159,6 +159,10 @@ function _registerEntities() {
   const entityManager = this.entityManager;
 
   function _deepParseEntities(entity) {
+    const using = entity && entity.config && entity.config.config && entity.config.config.using || {
+      asyncAwait: true
+    };
+
     if (isFunctionalTest(entity)) {
       const {
         name,
@@ -166,10 +170,6 @@ function _registerEntities() {
         description,
         config
       } = entity.config;
-
-      const using = config && config.using || {
-        asyncAwait: true
-      };
 
       const timeout = config && config.timeout || false;
 
@@ -237,7 +237,7 @@ function _registerEntities() {
       "#hooks": hooksCode,
       "#pre": preCode,
       "#body": body.join('\n'),
-      "#async": EMPTY_STRING,
+      "#async": using.asyncAwait ? "async" : "", // TODO  // "#async": EMPTY_STRING,
       "#done": EMPTY_STRING,
       "#post": EMPTY_STRING
     })} })();`);

@@ -254,8 +254,10 @@ class EntityManager {
       return suite;
     }
 
-    const suiteRefs = suite.getSuitesRefs();
-    this.suitesMarkedForDeletion.push(...suiteRefs);
+    const allRefs = suite.getSuitesRefs();
+    const markedRefs = allRefs.suites.concat(allRefs.skips);
+    const suiteRefs = allRefs.suites;
+    this.suitesMarkedForDeletion.push(...markedRefs);
 
     suiteRefs.forEach(ref => {
       const processedSuite = _.find(

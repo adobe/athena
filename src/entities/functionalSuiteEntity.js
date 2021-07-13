@@ -92,7 +92,10 @@ class FunctionalSuiteEntity extends Entity {
   }
 
   getSuitesRefs = () => {
-    return this.getConfig().suites;
+    return {
+        suites: this.getConfig().suites,
+        skips: this.getConfig().skips
+    };
   }
 }
 
