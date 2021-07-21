@@ -64,3 +64,4 @@ typings/
 notes.md
 .DS_Store
 TODO
+/api-gateway-athena-tests/
