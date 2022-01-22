@@ -59,7 +59,7 @@
     "monaco-editor-webpack-plugin": "^1.8.2",
     "monaco-yaml": "^2.1.0",
     "mongoose": "^5.8.11",
-    "nanoid": "^2.1.2",
+    "nanoid": "^3.1.31",
     "node-url-shortener": "^1.0.1",
     "nodemon": "^2.0.3",
     "ora": "^4.0.0",
